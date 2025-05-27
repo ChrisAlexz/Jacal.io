@@ -1,10 +1,6 @@
 // src/App.js
-
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-
-// Removed Bootstrap to prevent layout conflicts
-// import "bootstrap/dist/css/bootstrap.min.css";
 
 import Home from './components/Home';
 import About from './components/About';
@@ -19,7 +15,7 @@ import { UserAuthProvider } from './components/context/UserAuthContext';
 function App() {
   return (
     <UserAuthProvider>
-      <div className="app-container bg-gray-50 min-h-screen text-gray-900">
+      <div className="app-container min-h-screen">
         <Navbar />
         <div className="page-content px-4 py-6">
           <Routes>

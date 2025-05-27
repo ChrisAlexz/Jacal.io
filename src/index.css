@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom layout styles */
+/* index.css */
 html, body {
   background: #121212;     /* Match navbar & dark pages */
   color: #ffffff;
