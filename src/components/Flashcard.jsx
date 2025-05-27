@@ -21,7 +21,6 @@ export default function Flashcard() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [setId, setSetId] = useState(null);
 
-  // Load the existing deck (if id is provided)
   useEffect(() => {
     if (id) {
       fetchExistingSet(id);
@@ -31,7 +30,6 @@ export default function Flashcard() {
   const fetchExistingSet = async (theId) => {
     const { data, error } = await supabase
       .from("flashcard_sets")
-      // We'll join flashcard_cards via foreign key "set_id"
       .select(`*, flashcard_cards!set_id(*)`)
       .eq("id", theId)
       .single();
@@ -39,7 +37,6 @@ export default function Flashcard() {
     if (error) {
       console.error("Error fetching deck:", error);
     } else if (data) {
-      // Set local state from DB
       setSetId(data.id);
       setTitle(data.title);
       setType(data.type);
@@ -47,7 +44,6 @@ export default function Flashcard() {
     }
   };
 
-  // Debounce updates to set name / type
   useEffect(() => {
     const updateSetDetails = async () => {
       if (setId) {
@@ -70,61 +66,41 @@ export default function Flashcard() {
     return () => clearTimeout(timer);
   }, [title, type, setId]);
 
-  // Add a new flashcard
   const addFlashcard = async (front, back) => {
-    // Add trim validation
-    if (type === 'Basic' && (!front.trim() || !back.trim())) {
-      console.error("Empty front/back — not inserting");
-      return;
-    }
-    if (type === 'Cloze' && !front.trim()) {
-      console.error("Empty front — not inserting");
-      return;
-    }
+    if (type === 'Basic' && (!front.trim() || !back.trim())) return;
+    if (type === 'Cloze' && !front.trim()) return;
 
-    // Show success popup briefly
     setShowSuccess(true);
 
     try {
       if (setId) {
-        // Insert the card into the existing deck
         const { data, error } = await supabase
           .from('flashcard_cards')
           .insert({ set_id: setId, front, back })
           .select();
 
-        if (error) {
-          console.error("Error inserting new card:", error);
-          return;
-        }
-        // Append to local state
-        setFlashcards([...flashcards, data[0]]);
+        if (error) return;
 
+        setFlashcards([...flashcards, data[0]]);
       } else {
-        // If no deck yet, create one and then add the card
         const { data: newSetData, error: newSetErr } = await supabase
           .from('flashcard_sets')
           .insert({ title, type })
           .select()
           .single();
 
-        if (newSetErr) {
-          console.error("Error creating new set:", newSetErr);
-          return;
-        }
+        if (newSetErr) return;
+
         setSetId(newSetData.id);
 
-        // Insert the new card
         const { data: insertedCard, error: cardErr } = await supabase
           .from('flashcard_cards')
           .insert({ set_id: newSetData.id, front, back })
           .select()
           .single();
 
-        if (cardErr) {
-          console.error("Error creating new card in new set:", cardErr);
-          return;
-        }
+        if (cardErr) return;
+
         setFlashcards([insertedCard]);
       }
     } catch (err) {
@@ -132,17 +108,14 @@ export default function Flashcard() {
     }
   };
 
-  // Update an existing card
   const updateFlashcard = async (index, updated) => {
     const cardId = flashcards[index].id;
 
-    // Update local state
     const newArray = flashcards.map((fc, i) =>
       i === index ? { ...fc, ...updated } : fc
     );
     setFlashcards(newArray);
 
-    // Update in DB
     if (cardId) {
       const { error } = await supabase
         .from('flashcard_cards')
@@ -155,7 +128,6 @@ export default function Flashcard() {
     }
   };
 
-  // Delete an existing card
   const handleDelete = async (index) => {
     const cardToDelete = flashcards[index];
     const updatedFlashcards = flashcards.filter((_, i) => i !== index);
@@ -181,18 +153,9 @@ export default function Flashcard() {
 
         <div className="flashcard-header-row">
           <FlashcardTitle title={title} setTitle={setTitle} />
-
-          <FlashcardType
-            type={type}
-            setType={setType}
-            disabled={!title.trim()}
-          />
-
+          <FlashcardType type={type} setType={setType} disabled={!title.trim()} />
           {setId && (
-            <button
-              className="study-button"
-              onClick={() => navigate(`/study/${setId}`)}
-            >
+            <button className="study-button" onClick={() => navigate(`/study/${setId}`)}>
               Study
             </button>
           )}
