@@ -1,127 +1,190 @@
-/* 🏠 Main Container */
-.flashcard-page .flashcard-container {
-  width: 800px; /* Increased from 700px */
-  padding: 32px;
+/* src/styles/Flashcard.css */
+
+.flashcard-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #121212;
+  min-height: 100vh;
+  color: white;
+}
+
+.flashcard-container {
+  margin-bottom: 30px;
+}
+
+.flashcard-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.flashcard-header h2 {
+  color: white;
+  font-size: 2rem;
+  margin: 0;
+}
+
+/* Fixed header row styling */
+.flashcard-header-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+/* Deck name container */
+.flashcard-title-container {
+  flex: 1;
+  min-width: 250px;
+}
+
+.flashcard-title-label {
+  display: block;
+  color: white;
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.flashcard-title-container input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #333;
+  border-radius: 8px;
   background: white;
-  border-radius: 10px;
-  border: 2px solid #d1d5db; /* Softer border */
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  color: black;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.flashcard-title-container input:focus {
+  outline: none;
+  border-color: #4facfe;
+}
+
+/* Type selector container */
+.flashcard-type-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  margin: 100px auto 0 auto;
-  transition: all 0.3s ease;
+  min-width: 120px;
 }
 
-/* 🔠 Header Styles */
-.flashcard-page .flashcard-header h2 {
-  font-size: 24px;
-  margin-bottom: 25px;
-  color: #1f2937;
-}
-
-/* 📝 Title Input Section */
-.flashcard-page .flashcard-title-container {
-  width: 95%;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.flashcard-page .flashcard-title-label {
-  font-size: 16px;
+.flashcard-type-label {
+  color: white !important;
   font-weight: 600;
-  color: #374151;
-  min-width: 80px;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
 }
 
-.flashcard-page .flashcard-title-container input {
-  flex: 1;
+.flashcard-type-container select {
   padding: 12px 16px;
-  font-size: 16px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid #333;
   border-radius: 8px;
-  background: #fff;
-  transition: all 0.3s ease;
+  background: white !important;
+  color: black !important;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
 }
 
-/* 🔄 Type Selection */
-.flashcard-page .flashcard-type-container {
-  width: 95%;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 25px;
+.flashcard-type-container select:focus {
+  outline: none;
+  border-color: #4facfe;
 }
 
-.flashcard-page .flashcard-type select {
-  padding: 10px 14px;
-  font-size: 15px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
-  transition: all 0.3s ease;
+.flashcard-type-container select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-/* ✅ Success Popup */
-.flashcard-page .success-popup {
-  position: fixed;
-  top: 25px;
-  right: 25px;
-  background: #4CAF50;
-  color: white;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-size: 15px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-}
-
-@keyframes fadeInOut {
-  0% { opacity: 0; transform: translateY(-10px); }
-  50% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-10px); }
-}
-
-/* 📐 Align deck name, type, and study button in a row */
-.flashcard-page .flashcard-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 95%;
-  margin-bottom: 25px;
-  gap: 20px;
-}
-
-/* 🧾 Consistent input styles for dropdown */
-.flashcard-page select {
-  background-color: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 16px;
-  color: #111827;
-}
-
-/* 🎯 Study Button Style */
-.flashcard-page .study-button {
-  padding: 10px 20px;
-  background-color: #3b82f6;
+/* Study button */
+.study-button {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-  white-space: nowrap;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transition: all 0.2s ease;
+  align-self: flex-end;
+  margin-top: auto;
+  height: fit-content;
 }
 
-.flashcard-page .study-button:hover {
-  background-color: #2563eb;
+.study-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
+}
+
+.study-button:active {
+  transform: translateY(0);
+}
+
+/* Success popup */
+.success-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  z-index: 1000;
+  animation: successFade 1s ease-in-out;
+}
+
+@keyframes successFade {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .flashcard-header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+  }
+  
+  .flashcard-title-container {
+    min-width: unset;
+  }
+  
+  .flashcard-type-container {
+    min-width: unset;
+  }
+  
+  .study-button {
+    align-self: stretch;
+    margin-top: 0;
+  }
+}
+
+/* Flashcard list item labels */
+.front label,
+.back label {
+  color: white !important;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: block;
+}
+
+@media (max-width: 480px) {
+  .flashcard-page {
+    padding: 15px;
+  }
+  
+  .flashcard-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .flashcard-header-row {
+    gap: 12px;
+  }
 }

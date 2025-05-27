@@ -1,92 +1,135 @@
-/* 🎛️ Input Container */
+/* src/styles/FlashcardInput.css */
+
 .flashcard-input {
-  width: 100%;
-  max-width: 800px;
-  margin: 25px auto;
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 30px;
 }
 
-/* 📦 Input Box Container */
-.flashcard-input .flashcard-box {
-  width: 100%;
-  background: #fff;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 20px;
-  transition: all 0.3s ease;
-  margin-bottom: 15px;
-}
-
-/* ✍️ Content Editable Area */
-.flashcard-input .flashcard-box-content {
-  min-height: 150px;
-  padding: 18px;
-  font-size: 16px;
-  line-height: 1.6;
-  color: #1f2937;
-  border: none;
-  border-radius: 8px;
-  background: #fff;
-  transition: all 0.3s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-/* 🔍 Focus States */
-.flashcard-input .flashcard-box:focus-within,
-.flashcard-input .flashcard-box-content:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  outline: none;
-}
-
-/* 🖱️ Hover States */
-.flashcard-input .flashcard-box:hover {
-  border-color: #9ca3af;
-}
-
-/* 📛 Input Headings */
+/* Front Side and Back Side labels - make them white */
 .flashcard-input h4 {
-  font-size: 18px;
-  color: #1f2937;
+  color: white !important;
+  font-weight: 600;
   margin-bottom: 12px;
-  font-weight: 600;
+  margin-top: 20px;
+  font-size: 1.1rem;
 }
 
-/* 🎨 Add Flashcard Button */
-.flashcard-input .add-flashcard-btn {
-  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
-  padding: 14px 28px;
-  border: none;
+.flashcard-input h4:first-of-type {
+  margin-top: 0;
+}
+
+.flashcard-input h4 span {
+  color: #888;
+  font-weight: 400;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.flashcard-box {
+  margin-bottom: 20px;
+}
+
+.flashcard-box-content {
+  min-height: 120px;
+  padding: 15px;
+  border: 2px solid #333;
   border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  align-self: flex-start;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  background: #2a2a2a;
+  color: white;
+  font-size: 1rem;
+  line-height: 1.5;
+  overflow-y: auto;
+  transition: all 0.2s ease;
 }
 
-.flashcard-input .add-flashcard-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+.flashcard-box-content:focus {
+  outline: none;
+  border-color: #4facfe;
+  background: #333;
+  box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
 }
 
-/* 🕶️ Disabled States */
-.flashcard-input .flashcard-box:disabled,
-.flashcard-input .flashcard-box-content:disabled {
+.flashcard-box-content:empty:before {
+  content: attr(placeholder);
+  color: #888;
+  font-style: italic;
+  pointer-events: none;
+}
+
+.flashcard-box-content[contenteditable="false"] {
   opacity: 0.6;
   cursor: not-allowed;
-  background: #f3f4f6;
+  background: #1a1a1a;
 }
 
-/* 📍 Cloze Styling */
-.flashcard-input .cloze-revealed {
-  background-color: #fef9c3;
-  color: #854d0e;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 500;
+/* Cloze button styling */
+.flashcard-input button {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 10px;
+}
+
+.flashcard-input button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+}
+
+.flashcard-input button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.add-flashcard-btn {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+  padding: 12px 24px !important;
+  font-size: 1rem !important;
+  margin-top: 15px;
+}
+
+.add-flashcard-btn:hover:not(:disabled) {
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3) !important;
+}
+
+/* Small helper text styling */
+.flashcard-input small {
+  color: #aaa;
+  font-style: italic;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .flashcard-input {
+    padding: 20px;
+  }
+  
+  .flashcard-box-content {
+    min-height: 100px;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .flashcard-input {
+    padding: 15px;
+  }
+  
+  .flashcard-input h4 {
+    font-size: 1rem;
+  }
+  
+  .flashcard-box-content {
+    min-height: 80px;
+    padding: 10px;
+  }
 }

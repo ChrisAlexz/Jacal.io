@@ -11,9 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 // Connect to MongoDB Atlas using your connection string
-mongoose.connect(
-  'mongodb+srv://Hazuh:escalon11@notive.8w1z2.mongodb.net/notive-flashcard?retryWrites=true&w=majority&appName=notive'
-)
+mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB (Atlas) connected'))
   .catch((err) => console.error('Error connecting to MongoDB Atlas:', err));
 
