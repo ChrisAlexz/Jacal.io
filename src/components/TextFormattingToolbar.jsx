@@ -15,6 +15,13 @@ import '../styles/TextFormattingToolbar.css';
 const TextFormattingToolbar = ({ editorRef, selectionRangeRef, activeFormats = {}, onFormatChange }) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
+  const [activeStyles, setActiveStyles] = useState({
+    bold: false,
+    italic: false,
+    underline: false,
+    superscript: false,
+    subscript: false
+  });
   
   // Standard text color options
   const colorOptions = [
@@ -28,105 +35,117 @@ const TextFormattingToolbar = ({ editorRef, selectionRangeRef, activeFormats = {
     '#FFD700', '#FFA07A', '#87CEFA', '#D3D3D3'
   ];
 
-  // Restore the saved selection so that execCommand applies to the right text
-  const restoreSelection = () => {
-    if (!editorRef || !editorRef.current) return false;
-    
-    // Focus the element first
-    editorRef.current.focus();
-    
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    
-    if (selectionRangeRef && selectionRangeRef.current) {
-      try {
-        selection.addRange(selectionRangeRef.current);
-        return true;
-      } catch (e) {
-        console.error("Failed to restore selection:", e);
-        return false;
-      }
-    }
-    return false;
-  };
-
-  // Apply a formatting command (e.g., bold, italic, etc.)
-  const applyFormatting = (command, value = null) => {
-    // Skip if editor is not active
+  // Focus the editor and set cursor to end if no selection
+  const focusEditor = () => {
     if (!editorRef || !editorRef.current) return;
     
-    // Restore selection if possible, or just focus
-    const selectionRestored = restoreSelection();
-    if (!selectionRestored) {
-      editorRef.current.focus();
+    editorRef.current.focus();
+    
+    // If no selection exists, place cursor at the end
+    const selection = window.getSelection();
+    if (!selection.rangeCount || selection.isCollapsed) {
+      const range = document.createRange();
+      range.selectNodeContents(editorRef.current);
+      range.collapse(false); // Move to end
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+  };
+
+  // Apply formatting by toggling document.execCommand
+  const toggleFormatting = (command) => {
+    if (!editorRef || !editorRef.current) return;
+    
+    focusEditor();
+    
+    // Toggle the format state
+    const newActiveStyles = { ...activeStyles };
+    
+    switch (command) {
+      case 'bold':
+        newActiveStyles.bold = !activeStyles.bold;
+        document.execCommand('bold', false, null);
+        break;
+      case 'italic':
+        newActiveStyles.italic = !activeStyles.italic;
+        document.execCommand('italic', false, null);
+        break;
+      case 'underline':
+        newActiveStyles.underline = !activeStyles.underline;
+        document.execCommand('underline', false, null);
+        break;
+      case 'superscript':
+        // If subscript is active, turn it off first
+        if (activeStyles.subscript) {
+          document.execCommand('subscript', false, null);
+          newActiveStyles.subscript = false;
+        }
+        newActiveStyles.superscript = !activeStyles.superscript;
+        document.execCommand('superscript', false, null);
+        break;
+      case 'subscript':
+        // If superscript is active, turn it off first
+        if (activeStyles.superscript) {
+          document.execCommand('superscript', false, null);
+          newActiveStyles.superscript = false;
+        }
+        newActiveStyles.subscript = !activeStyles.subscript;
+        document.execCommand('subscript', false, null);
+        break;
     }
     
-    // Apply the command
-    document.execCommand(command, false, value);
+    // Update state
+    setActiveStyles(newActiveStyles);
     
-    // Update active formats state
+    // Notify parent component
     if (onFormatChange) {
-      const newActiveFormats = { ...activeFormats };
-      
-      // Toggle format state based on command
-      switch (command) {
-        case 'bold':
-          newActiveFormats.bold = !activeFormats.bold;
-          break;
-        case 'italic':
-          newActiveFormats.italic = !activeFormats.italic;
-          break;
-        case 'underline':
-          newActiveFormats.underline = !activeFormats.underline;
-          break;
-        case 'superscript':
-          newActiveFormats.superscript = !activeFormats.superscript;
-          newActiveFormats.subscript = false; // Can't be both
-          break;
-        case 'subscript':
-          newActiveFormats.subscript = !activeFormats.subscript;
-          newActiveFormats.superscript = false; // Can't be both
-          break;
-          case 'removeFormat':
-            if (selectionRangeRef?.current) {
-              const range = selectionRangeRef.current;
-              const plainText = range.toString();
-              range.deleteContents();
-              range.insertNode(document.createTextNode(plainText));
-              const selection = window.getSelection();
-              selection.removeAllRanges();
-              selection.addRange(range);
-            } else {
-              document.execCommand('removeFormat');
-            }
-          
-            newActiveFormats.bold = false;
-            newActiveFormats.italic = false;
-            newActiveFormats.underline = false;
-            newActiveFormats.superscript = false;
-            newActiveFormats.subscript = false;
-            break;
-          
-        default:
-          break;
-      }
-      
-      onFormatChange(newActiveFormats);
+      onFormatChange(newActiveStyles);
     }
     
-    // Save the updated HTML content
-    if (editorRef && editorRef.current) {
-      // Create a custom event to trigger a content update
-      const event = new Event('input', { bubbles: true });
-      editorRef.current.dispatchEvent(event);
+    // Keep focus on editor
+    editorRef.current.focus();
+  };
+
+  // Apply color formatting
+  const applyColor = (command, color) => {
+    if (!editorRef || !editorRef.current) return;
+    
+    focusEditor();
+    document.execCommand(command, false, color);
+    editorRef.current.focus();
+  };
+
+  // Remove all formatting
+  const removeAllFormatting = () => {
+    if (!editorRef || !editorRef.current) return;
+    
+    focusEditor();
+    
+    // Remove formatting
+    document.execCommand('removeFormat', false, null);
+    
+    // Reset all active states
+    const resetStyles = {
+      bold: false,
+      italic: false,
+      underline: false,
+      superscript: false,
+      subscript: false
+    };
+    
+    setActiveStyles(resetStyles);
+    
+    if (onFormatChange) {
+      onFormatChange(resetStyles);
     }
+    
+    editorRef.current.focus();
   };
 
   // Effect to handle clicks outside of color pickers
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (showColorPicker || showHighlightPicker) {
-        // Close color pickers when clicking outside
         setShowColorPicker(false);
         setShowHighlightPicker(false);
       }
@@ -138,15 +157,19 @@ const TextFormattingToolbar = ({ editorRef, selectionRangeRef, activeFormats = {
     };
   }, [showColorPicker, showHighlightPicker]);
 
+  // Update active styles when activeFormats prop changes
+  useEffect(() => {
+    if (activeFormats && Object.keys(activeFormats).length > 0) {
+      setActiveStyles(activeFormats);
+    }
+  }, [activeFormats]);
+
   return (
     <div className="text-formatting-toolbar">
       <button 
-        onMouseDown={(e) => {
-          e.preventDefault();
-          applyFormatting('bold');
-        }} 
+        onClick={() => toggleFormatting('bold')}
         title="Bold"
-        className={`toolbar-button ${activeFormats.bold ? 'active' : ''}`}
+        className={`toolbar-button ${activeStyles.bold ? 'active' : ''}`}
         type="button"
         disabled={!editorRef}
       >
@@ -154,12 +177,9 @@ const TextFormattingToolbar = ({ editorRef, selectionRangeRef, activeFormats = {
       </button>
       
       <button 
-        onMouseDown={(e) => {
-          e.preventDefault();
-          applyFormatting('italic');
-        }} 
+        onClick={() => toggleFormatting('italic')}
         title="Italic"
-        className={`toolbar-button ${activeFormats.italic ? 'active' : ''}`}
+        className={`toolbar-button ${activeStyles.italic ? 'active' : ''}`}
         type="button"
         disabled={!editorRef}
       >
@@ -167,12 +187,9 @@ const TextFormattingToolbar = ({ editorRef, selectionRangeRef, activeFormats = {
       </button>
       
       <button 
-        onMouseDown={(e) => {
-          e.preventDefault();
-          applyFormatting('underline');
-        }} 
+        onClick={() => toggleFormatting('underline')}
         title="Underline"
-        className={`toolbar-button ${activeFormats.underline ? 'active' : ''}`}
+        className={`toolbar-button ${activeStyles.underline ? 'active' : ''}`}
         type="button"
         disabled={!editorRef}
       >
@@ -180,12 +197,9 @@ const TextFormattingToolbar = ({ editorRef, selectionRangeRef, activeFormats = {
       </button>
       
       <button 
-        onMouseDown={(e) => {
-          e.preventDefault();
-          applyFormatting('superscript');
-        }} 
+        onClick={() => toggleFormatting('superscript')}
         title="Superscript"
-        className={`toolbar-button ${activeFormats.superscript ? 'active' : ''}`}
+        className={`toolbar-button ${activeStyles.superscript ? 'active' : ''}`}
         type="button"
         disabled={!editorRef}
       >
@@ -193,12 +207,9 @@ const TextFormattingToolbar = ({ editorRef, selectionRangeRef, activeFormats = {
       </button>
       
       <button 
-        onMouseDown={(e) => {
-          e.preventDefault();
-          applyFormatting('subscript');
-        }} 
+        onClick={() => toggleFormatting('subscript')}
         title="Subscript"
-        className={`toolbar-button ${activeFormats.subscript ? 'active' : ''}`}
+        className={`toolbar-button ${activeStyles.subscript ? 'active' : ''}`}
         type="button"
         disabled={!editorRef}
       >
@@ -207,8 +218,7 @@ const TextFormattingToolbar = ({ editorRef, selectionRangeRef, activeFormats = {
       
       <div className="color-picker-container">
         <button 
-          onMouseDown={(e) => {
-            e.preventDefault();
+          onClick={(e) => {
             e.stopPropagation();
             setShowColorPicker(!showColorPicker);
             setShowHighlightPicker(false);
@@ -224,17 +234,16 @@ const TextFormattingToolbar = ({ editorRef, selectionRangeRef, activeFormats = {
         {showColorPicker && (
           <div 
             className="color-palette"
-            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             {colorOptions.map(color => (
               <div 
                 key={color}
                 className="color-option"
                 style={{ backgroundColor: color }}
-                onMouseDown={(e) => {
-                  e.preventDefault();
+                onClick={(e) => {
                   e.stopPropagation();
-                  applyFormatting('foreColor', color);
+                  applyColor('foreColor', color);
                   setShowColorPicker(false);
                 }}
               />
@@ -245,8 +254,7 @@ const TextFormattingToolbar = ({ editorRef, selectionRangeRef, activeFormats = {
       
       <div className="color-picker-container">
         <button 
-          onMouseDown={(e) => {
-            e.preventDefault();
+          onClick={(e) => {
             e.stopPropagation();
             setShowHighlightPicker(!showHighlightPicker);
             setShowColorPicker(false);
@@ -262,17 +270,16 @@ const TextFormattingToolbar = ({ editorRef, selectionRangeRef, activeFormats = {
         {showHighlightPicker && (
           <div 
             className="color-palette"
-            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             {highlightOptions.map(color => (
               <div 
                 key={color}
                 className="color-option"
                 style={{ backgroundColor: color }}
-                onMouseDown={(e) => {
-                  e.preventDefault();
+                onClick={(e) => {
                   e.stopPropagation();
-                  applyFormatting('hiliteColor', color);
+                  applyColor('hiliteColor', color);
                   setShowHighlightPicker(false);
                 }}
               />
@@ -282,10 +289,7 @@ const TextFormattingToolbar = ({ editorRef, selectionRangeRef, activeFormats = {
       </div>
       
       <button 
-        onMouseDown={(e) => {
-          e.preventDefault();
-          applyFormatting('removeFormat');
-        }} 
+        onClick={removeAllFormatting}
         title="Remove Formatting"
         className="toolbar-button"
         type="button"

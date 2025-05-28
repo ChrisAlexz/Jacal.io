@@ -50,14 +50,14 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
         throw new Error('User is not logged in or session has expired.');
       }
       if (!deckName.trim()) {
-        throw new Error('Deck name is required.');
+        throw new Error('Set name is required.');
       }
 
-      // If "Create New Class" is selected, we also create a new class row
+      // If "Create New Set" is selected, we also create a new class row
       let classId;
       if (selectedOption === 'new') {
         if (!className.trim()) {
-          throw new Error('Class name is required when creating a new class.');
+          throw new Error('Set name is required when creating a new set.');
         }
         const { data: classData, error: classError } = await supabase
           .from('classes')
@@ -106,18 +106,18 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
   return (
     <div className="modal-overlay">
       <div className="class-deck-modal">
-        <h2>Create New Set</h2>
+        <h2>{selectedOption === 'new' ? 'Create New Set' : 'Create New Deck'}</h2>
         {error && <div className="error-message">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Class</label>
+            <label>Set</label>
             <select
               value={selectedOption}
               onChange={(e) => setSelectedOption(e.target.value)}
               disabled={loading}
             >
-              <option value="new">Create New Class</option>
+              <option value="new">Create New Set</option>
               {classes.map((cls) => (
                 <option key={cls.id} value={cls.id}>
                   {cls.name}
@@ -128,12 +128,12 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
 
           {selectedOption === 'new' && (
             <div className="form-group">
-              <label>Class Name</label>
+              <label>Set Name</label>
               <input
                 type="text"
                 value={className}
                 onChange={(e) => setClassName(e.target.value)}
-                placeholder="Enter new class name"
+                placeholder="Enter new set name"
                 disabled={loading}
               />
             </div>

@@ -1,94 +1,31 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import SimpleRichTextEditor from './SimpleRichTextEditor';
 import "../styles/FlashcardInput.css";
-import TextFormattingToolbar from './TextFormattingToolbar';
 
 export default function FlashcardInput({ addFlashcard, disabled, type }) {
-  const frontRef = useRef(null);
-  const backRef = useRef(null);
-  const frontSelectionRange = useRef(null);
-  const backSelectionRange = useRef(null);
-  const [activeEditor, setActiveEditor] = useState(null);
-  const [contentKey, setContentKey] = useState(0);
-  
-  // Add state variables to track content
   const [frontContent, setFrontContent] = useState('');
   const [backContent, setBackContent] = useState('');
 
-  const handleFrontSelection = () => {
-    setActiveEditor(frontRef);
-    const selection = window.getSelection();
-    if (selection.rangeCount > 0) {
-      frontSelectionRange.current = selection.getRangeAt(0);
-    }
-  };
-
-  const handleBackSelection = () => {
-    setActiveEditor(backRef);
-    const selection = window.getSelection();
-    if (selection.rangeCount > 0) {
-      backSelectionRange.current = selection.getRangeAt(0);
-    }
-  };
-
-  // Track content changes
-  const handleFrontContentChange = () => {
-    if (frontRef.current) {
-      setFrontContent(frontRef.current.innerHTML);
-    }
-  };
-
-  const handleBackContentChange = () => {
-    if (backRef.current) {
-      setBackContent(backRef.current.innerHTML);
-    }
-  };
-
   const handleCloze = () => {
-    if (!frontRef.current) return;
-    const selection = window.getSelection();
-    if (selection.rangeCount === 0) return;
-
-    const range = selection.getRangeAt(0);
-    const selectedText = range.toString();
-    if (!selectedText) {
-      console.warn("No text selected for cloze deletion");
-      return;
-    }
-
-    const span = document.createElement('span');
-    span.textContent = `{{c1::${selectedText}}}`;
-    range.deleteContents();
-    range.insertNode(span);
-
-    const newRange = document.createRange();
-    newRange.setStartAfter(span);
-    newRange.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(newRange);
-    frontRef.current.focus();
+    if (type !== 'Cloze') return;
     
-    // Update the front content after adding cloze
-    handleFrontContentChange();
+    // Add cloze placeholder to current content
+    const clozeText = '{{c1::text to hide}}';
+    setFrontContent(frontContent + clozeText);
   };
 
   const clearContent = () => {
-    if (frontRef.current) frontRef.current.innerHTML = '';
-    if (backRef.current) backRef.current.innerHTML = '';
     setFrontContent('');
     setBackContent('');
-    setContentKey(prev => prev + 1);
   };
 
   const handleAdd = () => {
-    const front = frontRef.current?.innerHTML || '';
-    const back = backRef.current?.innerHTML || '';
-
     if (type === 'Cloze') {
-      if (!front.trim()) return;
-      addFlashcard(front, back.trim() || front);
+      if (!frontContent.trim()) return;
+      addFlashcard(frontContent, backContent.trim() || frontContent);
     } else {
-      if (!front.trim() || !back.trim()) return;
-      addFlashcard(front, back);
+      if (!frontContent.trim() || !backContent.trim()) return;
+      addFlashcard(frontContent, backContent);
     }
 
     clearContent();
@@ -96,8 +33,8 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
 
   // Check if content is valid based on type
   const isContentValid = () => {
-    const hasFrontContent = frontContent.trim() !== '';
-    const hasBackContent = backContent.trim() !== '';
+    const hasFrontContent = frontContent.replace(/<[^>]*>/g, '').trim() !== '';
+    const hasBackContent = backContent.replace(/<[^>]*>/g, '').trim() !== '';
     
     if (type === 'Cloze') {
       return hasFrontContent;
@@ -107,62 +44,40 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
   };
 
   return (
-    <div className="flashcard-input" key={contentKey}>
+    <div className="flashcard-input">
       <h4>Front Side {type === 'Cloze' && <span>(Required)</span>}</h4>
       
-      {!disabled && (
-        <TextFormattingToolbar 
-          editorRef={frontRef}
-          selectionRangeRef={frontSelectionRange}
-        />
-      )}
-      
       <div className="flashcard-box">
-        <div
-          ref={frontRef}
-          className="flashcard-box-content"
-          contentEditable={!disabled}
-          onFocus={handleFrontSelection}
-          onMouseUp={handleFrontSelection}
-          onKeyUp={handleFrontSelection}
-          onInput={handleFrontContentChange}
+        <SimpleRichTextEditor
+          value={frontContent}
+          onChange={setFrontContent}
           placeholder={type === 'Cloze' 
             ? "Enter text with content to be hidden..." 
             : "Enter front side..."}
+          readOnly={disabled}
         />
       </div>
 
       <h4>Back Side {type === 'Cloze' && <span>(Optional)</span>}</h4>
       
-      {!disabled && (
-        <TextFormattingToolbar 
-          editorRef={backRef}
-          selectionRangeRef={backSelectionRange}
-        />
-      )}
-      
       <div className="flashcard-box">
-        <div
-          ref={backRef}
-          className="flashcard-box-content"
-          contentEditable={!disabled}
-          onFocus={handleBackSelection}
-          onMouseUp={handleBackSelection}
-          onKeyUp={handleBackSelection}
-          onInput={handleBackContentChange}
+        <SimpleRichTextEditor
+          value={backContent}
+          onChange={setBackContent}
           placeholder={type === 'Cloze' 
             ? "Enter additional info (optional)..." 
             : "Enter back side..."}
+          readOnly={disabled}
         />
       </div>
 
       {type === 'Cloze' && (
         <div style={{ marginBottom: '10px' }}>
-          <button onClick={handleCloze} disabled={disabled}>
+          <button onClick={handleCloze} disabled={disabled} type="button">
             [c] Cloze
           </button>
           <small style={{ marginLeft: '10px', color: '#666' }}>
-            Select text and click [c] to cloze
+            Click [c] to add cloze deletion
           </small>
         </div>
       )}
