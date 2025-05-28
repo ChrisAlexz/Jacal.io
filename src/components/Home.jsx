@@ -3,87 +3,293 @@ import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import '../styles/Home.css';
-import UserAuthContext from './context/UserAuthContext'; // <-- changed
+import UserAuthContext from './context/UserAuthContext';
 import ClassDeckModal from './ClassDeckModal';
 
 export default function Home() {
   const navigate = useNavigate();
   const [recentSets, setRecentSets] = useState([]);
-  const { user } = useContext(UserAuthContext); // <-- changed
+  const { user } = useContext(UserAuthContext);
   const [showModal, setShowModal] = useState(false);
-  
+  const [stats, setStats] = useState({
+    totalSets: 0,
+    totalCards: 0,
+    studiedToday: 0
+  });
 
   useEffect(() => {
-    const fetchRecents = async () => {
-      const { data, error } = await supabase
+    const fetchData = async () => {
+      if (!user) return;
+
+      // Fetch recent sets
+      const { data: setsData, error: setsError } = await supabase
         .from('flashcard_sets')
         .select('*')
-        .eq('user_id', user?.id) // If user is null, this yields no results
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(3);
+        .limit(6);
 
-      if (error) {
-        console.error('Error fetching recent flashcards:', error);
-      } else {
-        setRecentSets(data || []);
+      if (!setsError && setsData) {
+        // Get card counts for each set
+        const setsWithCounts = await Promise.all(
+          setsData.map(async (set) => {
+            const { count } = await supabase
+              .from('flashcard_cards')
+              .select('*', { count: 'exact', head: true })
+              .eq('set_id', set.id);
+            
+            return {
+              ...set,
+              card_count: count || 0
+            };
+          })
+        );
+
+        setRecentSets(setsWithCounts);
+
+        // Calculate stats
+        const totalSets = setsWithCounts.length;
+        const totalCards = setsWithCounts.reduce((sum, set) => sum + (set.card_count || 0), 0);
+        
+        setStats({
+          totalSets,
+          totalCards,
+          studiedToday: Math.floor(totalCards * 0.1) // Mock data for now
+        });
       }
     };
 
-    // Only fetch if user is defined
-    if (user) {
-      fetchRecents();
-    }
+    fetchData();
   }, [user]);
 
   const getWelcomeName = () => {
     if (!user) return "Welcome Back!";
-    return `Welcome ${user.user_metadata?.name}!` || `Welcome ${user.email.split('@')[0]}!`;
+    const name = user.user_metadata?.name || user.email?.split('@')[0] || 'there';
+    return `Welcome back, ${name}!`;
   };
 
-  const handleNewSetClick = () => {
-    setShowModal(true);
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
   };
 
-  // Just for demonstration
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   const handleModalClose = () => {
-    console.log('Home.jsx: handleModalClose called. Hiding modal overlay.');
     setShowModal(false);
   };
 
   const handleSetCreated = (deckId) => {
-    // do any callback logic if needed
-    console.log('Home.jsx: onSuccess -> deck created with id:', deckId);
+    // Refresh data after creating new set
+    window.location.reload();
   };
-  return (
-    <div className="dashboard">
-      <div className="intro-section">
-        <h1>{getWelcomeName()}</h1>
-        <p>Start studying or create new flashcards.</p>
-      </div>
 
-      <div className="action-area">
-        <button className="new-set-button" onClick={handleNewSetClick}>
-          + New Set
-        </button>
-      </div>
-
-      <div className="recents-section">
-        <h2>Recent Flashcard Decks</h2>
-        <div className="recents-grid">
-          {recentSets.length > 0 ? (
-            recentSets.map((set) => (
-              <div 
-                key={set.id}
-                className="flashcard-preview"
-                onClick={() => navigate(`/flashcards/${set.id}`)}
-              >
-                <h2>{set.title}</h2>
+  if (!user) {
+    return (
+      <div className="home-container">
+        <div className="hero-section">
+          <div className="hero-content">
+            <div className="hero-icon">🧠</div>
+            <h1 className="hero-title">Master Any Subject</h1>
+            <p className="hero-subtitle">
+              Create, study, and master flashcards with our intelligent learning system. 
+              Built for students, professionals, and lifelong learners.
+            </p>
+            <div className="hero-features">
+              <div className="feature-item">
+                <span className="feature-icon">⚡</span>
+                <span>Smart Spaced Repetition</span>
               </div>
-            ))
-          ) : (
-            <p className="empty-message">No recent flashcard sets. Create one now!</p>
+              <div className="feature-item">
+                <span className="feature-icon">🎨</span>
+                <span>Rich Text Formatting</span>
+              </div>
+              <div className="feature-item">
+                <span className="feature-icon">📱</span>
+                <span>Study Anywhere</span>
+              </div>
+            </div>
+            <button 
+              className="cta-button"
+              onClick={() => navigate('/register')}
+            >
+              Get Started Free
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="home-container">
+      {/* Hero Section */}
+      <div className="welcome-section">
+        <div className="welcome-content">
+          <div className="greeting-text">
+            <span className="greeting-time">{getGreeting()}</span>
+            <h1 className="welcome-title">{getWelcomeName()}</h1>
+            <p className="welcome-subtitle">Ready to continue your learning journey?</p>
+          </div>
+          <button 
+            className="primary-cta"
+            onClick={() => setShowModal(true)}
+          >
+            <span className="cta-icon">+</span>
+            Create New Set
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Section */}
+      <div className="stats-section">
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon sets-icon">📚</div>
+            <div className="stat-content">
+              <div className="stat-number">{stats.totalSets}</div>
+              <div className="stat-label">Total Sets</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon cards-icon">📄</div>
+            <div className="stat-content">
+              <div className="stat-number">{stats.totalCards}</div>
+              <div className="stat-label">Total Cards</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon study-icon">🔥</div>
+            <div className="stat-content">
+              <div className="stat-number">{stats.studiedToday}</div>
+              <div className="stat-label">Studied Today</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="quick-actions-section">
+        <h2 className="section-title">Quick Actions</h2>
+        <div className="actions-grid">
+          <button 
+            className="action-card"
+            onClick={() => setShowModal(true)}
+          >
+            <div className="action-icon create-icon">➕</div>
+            <div className="action-content">
+              <h3>Create Set</h3>
+              <p>Start a new flashcard collection</p>
+            </div>
+          </button>
+          <button 
+            className="action-card"
+            onClick={() => navigate('/set')}
+          >
+            <div className="action-icon browse-icon">📂</div>
+            <div className="action-content">
+              <h3>Browse Sets</h3>
+              <p>View and manage all your sets</p>
+            </div>
+          </button>
+          <button 
+            className="action-card"
+            onClick={() => recentSets.length > 0 && navigate(`/study/${recentSets[0].id}`)}
+            disabled={recentSets.length === 0}
+          >
+            <div className="action-icon study-icon">🧠</div>
+            <div className="action-content">
+              <h3>Quick Study</h3>
+              <p>Jump into your latest set</p>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Recent Sets */}
+      <div className="recent-section">
+        <div className="section-header">
+          <h2 className="section-title">Recent Sets</h2>
+          {recentSets.length > 3 && (
+            <button 
+              className="view-all-btn"
+              onClick={() => navigate('/set')}
+            >
+              View All
+            </button>
           )}
         </div>
+
+        {recentSets.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-illustration">
+              <div className="empty-icon">📚</div>
+              <div className="empty-books">
+                <div className="book book-1"></div>
+                <div className="book book-2"></div>
+                <div className="book book-3"></div>
+              </div>
+            </div>
+            <div className="empty-content">
+              <h3>No flashcard sets yet</h3>
+              <p>Create your first set to start learning and see it here</p>
+              <button 
+                className="empty-action-btn"
+                onClick={() => setShowModal(true)}
+              >
+                Create Your First Set
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="sets-grid">
+            {recentSets.map((set) => (
+              <div 
+                key={set.id}
+                className="set-card"
+                onClick={() => navigate(`/flashcards/${set.id}`)}
+              >
+                <div className="set-card-header">
+                  <div className="set-card-icon">📝</div>
+                  <div className="set-card-menu">
+                    <button 
+                      className="menu-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/study/${set.id}`);
+                      }}
+                    >
+                      Study
+                    </button>
+                  </div>
+                </div>
+                <div className="set-card-content">
+                  <h3 className="set-card-title">{set.title}</h3>
+                  <div className="set-card-meta">
+                    <span className="card-count">{set.card_count} cards</span>
+                    <span className="created-date">{formatDate(set.created_at)}</span>
+                  </div>
+                </div>
+                <div className="set-card-footer">
+                  <div className="progress-bar">
+                    <div 
+                      className="progress-fill" 
+                      style={{ width: `${Math.min(100, (set.card_count || 0) * 10)}%` }}
+                    ></div>
+                  </div>
+                  <span className="progress-text">Ready to study</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {showModal && (

@@ -9,9 +9,38 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
   const handleCloze = () => {
     if (type !== 'Cloze') return;
     
-    // Add cloze placeholder to current content
-    const clozeText = '{{c1::text to hide}}';
-    setFrontContent(frontContent + clozeText);
+    const selection = window.getSelection();
+    
+    // Check if there's selected text
+    if (selection.rangeCount > 0 && !selection.isCollapsed) {
+      const range = selection.getRangeAt(0);
+      const selectedText = range.toString();
+      
+      if (selectedText.trim()) {
+        // Create the cloze deletion
+        const clozeText = `{{c1::${selectedText}}}`;
+        
+        // Replace the selected text with cloze format
+        range.deleteContents();
+        const textNode = document.createTextNode(clozeText);
+        range.insertNode(textNode);
+        
+        // Clear selection
+        selection.removeAllRanges();
+        
+        // Update the content state
+        // We need to get the updated HTML from the editor
+        setTimeout(() => {
+          const frontEditor = document.querySelector('.front-editor .editor-content');
+          if (frontEditor) {
+            setFrontContent(frontEditor.innerHTML);
+          }
+        }, 10);
+      }
+    } else {
+      // No text selected - show alert or add placeholder
+      alert('Please select some text first to create a cloze deletion.');
+    }
   };
 
   const clearContent = () => {
@@ -47,7 +76,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
     <div className="flashcard-input">
       <h4>Front Side {type === 'Cloze' && <span>(Required)</span>}</h4>
       
-      <div className="flashcard-box">
+      <div className="flashcard-box front-editor">
         <SimpleRichTextEditor
           value={frontContent}
           onChange={setFrontContent}
@@ -77,7 +106,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
             [c] Cloze
           </button>
           <small style={{ marginLeft: '10px', color: '#666' }}>
-            Click [c] to add cloze deletion
+            Select text first, then click [c] to create cloze deletion
           </small>
         </div>
       )}

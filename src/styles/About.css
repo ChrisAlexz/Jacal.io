@@ -1,31 +1,599 @@
-/* About.css */
+/* src/styles/About.css */
+
 .about-container {
-    max-width: 800px;        /* or any width you prefer */
-    margin: 0 auto;          /* centers the container on the page */
-    padding: 4rem 1rem;      /* top/bottom padding of 2rem, left/right of 1rem */
-    text-align: center;      /* centers all text within this container */
+  min-height: 100vh;
+  background: #121212;
+  color: white;
+  overflow-x: hidden;
+}
+
+/* Hero Section */
+.about-hero {
+  padding: 120px 20px 80px 20px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+}
+
+.about-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 50% 30%, rgba(79, 172, 254, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-content {
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-icon {
+  font-size: 4rem;
+  margin-bottom: 30px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.1;
+}
+
+.hero-subtitle {
+  font-size: 1.3rem;
+  color: #aaa;
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Features Section */
+.features-section {
+  padding: 80px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.section-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: white;
+}
+
+.section-subtitle {
+  font-size: 1.1rem;
+  color: #aaa;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 32px;
+}
+
+.feature-card {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 20px;
+  padding: 32px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.feature-card:hover {
+  border-color: #4facfe;
+  transform: translateY(-8px);
+  box-shadow: 0 12px 40px rgba(79, 172, 254, 0.15);
+}
+
+.feature-card:hover::before {
+  opacity: 1;
+}
+
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  padding: 20px;
+  border-radius: 16px;
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+
+.brain-icon { background: rgba(79, 172, 254, 0.1); }
+.design-icon { background: rgba(255, 107, 107, 0.1); }
+.cloze-icon { background: rgba(255, 193, 7, 0.1); }
+.mobile-icon { background: rgba(40, 167, 69, 0.1); }
+.progress-icon { background: rgba(156, 39, 176, 0.1); }
+.organize-icon { background: rgba(255, 152, 0, 0.1); }
+
+.feature-card:hover .feature-icon {
+  transform: scale(1.1);
+}
+
+.feature-content h3 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: white;
+}
+
+.feature-content p {
+  font-size: 1rem;
+  color: #ccc;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* How It Works Section */
+.how-it-works-section {
+  padding: 80px 20px;
+  background: #1a1a1a;
+}
+
+.steps-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.step-item {
+  display: grid;
+  grid-template-columns: 80px 1fr 200px;
+  gap: 40px;
+  align-items: center;
+  margin-bottom: 80px;
+  position: relative;
+}
+
+.step-item.reverse {
+  grid-template-columns: 80px 1fr 200px;
+}
+
+.step-item.reverse .step-visual {
+  order: -1;
+}
+
+.step-number {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+}
+
+.step-content h3 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: white;
+}
+
+.step-content p {
+  font-size: 1.1rem;
+  color: #aaa;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Step Visuals */
+.step-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.mock-card {
+  background: #2a2a2a;
+  border-radius: 12px;
+  padding: 20px;
+  width: 150px;
+  border: 1px solid #333;
+}
+
+.mock-text-line {
+  height: 8px;
+  background: #4facfe;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.mock-text-line.long { width: 100%; }
+.mock-text-line.medium { width: 75%; }
+.mock-text-line.short { width: 50%; }
+
+.difficulty-buttons-demo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 160px;
+}
+
+.demo-btn {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.demo-btn.again { background: #dc3545; color: white; }
+.demo-btn.hard { background: #ffc107; color: black; }
+.demo-btn.good { background: #17a2b8; color: white; }
+.demo-btn.easy { background: #28a745; color: white; }
+
+.progress-demo {
+  width: 180px;
+}
+
+.progress-bar-demo {
+  height: 8px;
+  background: #333;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.progress-fill-demo {
+  height: 100%;
+  width: 75%;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  animation: fillProgress 2s ease-in-out infinite;
+}
+
+@keyframes fillProgress {
+  0%, 100% { width: 75%; }
+  50% { width: 85%; }
+}
+
+.stats-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-demo {
+  font-size: 0.8rem;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Science Section */
+.science-section {
+  padding: 80px 20px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.science-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 80% 20%, rgba(79, 172, 254, 0.1) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.science-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 60px;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.science-text h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+  color: white;
+}
+
+.science-text p {
+  font-size: 1.2rem;
+  color: #aaa;
+  line-height: 1.7;
+  margin-bottom: 40px;
+}
+
+.science-stats {
+  display: flex;
+  gap: 40px;
+}
+
+.science-stat {
+  text-align: center;
+}
+
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #4facfe;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Brain Visual */
+.brain-diagram {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+}
+
+.brain-section {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(79, 172, 254, 0.2);
+}
+
+.section-1 {
+  width: 80px;
+  height: 80px;
+  top: 20px;
+  left: 40px;
+  animation: brainPulse 3s ease-in-out infinite;
+}
+
+.section-2 {
+  width: 60px;
+  height: 60px;
+  top: 60px;
+  right: 20px;
+  animation: brainPulse 3s ease-in-out infinite 1s;
+}
+
+.section-3 {
+  width: 70px;
+  height: 70px;
+  bottom: 20px;
+  left: 60px;
+  animation: brainPulse 3s ease-in-out infinite 2s;
+}
+
+@keyframes brainPulse {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+.brain-waves {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.wave {
+  position: absolute;
+  border: 2px solid #4facfe;
+  border-radius: 50%;
+  opacity: 0;
+  animation: waveExpand 4s ease-out infinite;
+}
+
+.wave-1 {
+  width: 100px;
+  height: 100px;
+  top: 50px;
+  left: 50px;
+}
+
+.wave-2 {
+  width: 150px;
+  height: 150px;
+  top: 25px;
+  left: 25px;
+  animation-delay: 1.3s;
+}
+
+.wave-3 {
+  width: 200px;
+  height: 200px;
+  top: 0;
+  left: 0;
+  animation-delay: 2.6s;
+}
+
+@keyframes waveExpand {
+  0% { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(1.2); opacity: 0; }
+}
+
+/* CTA Section */
+.cta-section {
+  padding: 80px 20px;
+  background: #121212;
+  text-align: center;
+}
+
+.cta-content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.cta-content h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: white;
+}
+
+.cta-content p {
+  font-size: 1.2rem;
+  color: #aaa;
+  line-height: 1.6;
+  margin-bottom: 40px;
+}
+
+.cta-buttons {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+.cta-primary {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 16px 32px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+}
+
+.cta-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+}
+
+.cta-secondary {
+  background: transparent;
+  color: #4facfe;
+  border: 2px solid #4facfe;
+  border-radius: 50px;
+  padding: 14px 30px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cta-secondary:hover {
+  background: rgba(79, 172, 254, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2.5rem;
   }
   
-  /* WELCOME CONTAINER: Adds spacing around the "About us" section */
-  .welcome-container {
-    margin-bottom: 2rem;     /* space below the heading */
+  .section-title {
+    font-size: 2rem;
   }
   
-  /* ABOUT DETAILS: Optional styling for the second section */
-  .about-details {
-    margin-bottom: 2rem;  
-    color: white;   /* space below this section if more content follows */
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
   }
   
-  /* TWEAK SPACING FOR HEADINGS */
-  .about-details h2 {
-    margin-bottom: 1rem;     /* give a bit of space under the heading */
+  .step-item {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 20px;
   }
   
-  /* TWEAK SPACING FOR PARAGRAPHS */
-  .para, .about-details p {
-    margin-bottom: 1.5rem;
-    line-height: 1.6;        /* slightly increase line-height for readability */
-    color: white;
+  .step-item.reverse {
+    grid-template-columns: 1fr;
   }
   
+  .step-item.reverse .step-visual {
+    order: 0;
+  }
+  
+  .science-content {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 40px;
+  }
+  
+  .science-stats {
+    justify-content: center;
+  }
+  
+  .cta-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+  
+  .section-title {
+    font-size: 1.8rem;
+  }
+  
+  .feature-card {
+    padding: 24px;
+  }
+  
+  .science-stats {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .about-hero {
+    padding: 100px 15px 60px 15px;
+  }
+  
+  .features-section,
+  .how-it-works-section,
+  .science-section,
+  .cta-section {
+    padding: 60px 15px;
+  }
+}
