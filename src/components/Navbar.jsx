@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../styles/Navbar.css';
-import logo from '../assets/jacal.png';
+import logo from '../assets/jacal.jpg';
 import DropdownMenu from './DropdownMenu';
 
 // Import the *default* export from UserAuthContext

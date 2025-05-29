@@ -10,7 +10,16 @@ export default function About() {
         {/* Hero Section */}
         <div className="about-hero">
           <div className="hero-content">
-            <div className="hero-icon">🧠</div>
+            <div className="hero-icon">
+              <div className="orbit-container">
+                <div className="orbit-center"></div>
+                <div className="orbit-ring">
+                  <div className="orbit-particle orbit-particle-1"></div>
+                  <div className="orbit-particle orbit-particle-2"></div>
+                  <div className="orbit-particle orbit-particle-3"></div>
+                </div>
+              </div>
+            </div>
             <h1 className="hero-title">Learn Smarter, Not Harder</h1>
             <p className="hero-subtitle">
               Master any subject with our intelligent flashcard system designed for modern learners

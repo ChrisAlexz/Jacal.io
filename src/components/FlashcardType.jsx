@@ -11,6 +11,7 @@ export default function FlashcardType({ type, setType, disabled }) {
         style={{ color: 'black' }}
       >
         <option value="Basic">Basic</option>
+        <option value="Basic-Type">Basic (Type Answer)</option>
         <option value="Cloze">Cloze</option>
       </select>
     </div>

@@ -1,114 +1,378 @@
 /* Navbar.css */
 :root {
-  --primary-bg: #111111;
+  --primary-bg: #0a0a0a;
+  --navbar-bg: rgba(10, 10, 10, 0.95);
   --accent-color: #4f46e5;
-  --text-primary: #f8fafc;
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --hover-bg: rgba(255, 255, 255, 0.1);
+  --border-color: rgba(255, 255, 255, 0.1);
   --hover-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .navbar {
-  /* Keep existing styles */
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  height: 85px;
-  background: var(--primary-bg);
-  backdrop-filter: blur(10px);
+  height: 70px;
+  background: var(--navbar-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   z-index: 1000;
   display: flex;
-  justify-content: space-between; /* Add this */
+  justify-content: space-between;
   align-items: center;
-  padding: 0 5%;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0 2rem;
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
+/* Logo Styling */
 .logo {
-  height: 60px;
+  height: 45px;
   width: auto;
   cursor: pointer;
-  transition: transform 0.3s ease;
+  transition: var(--hover-transition);
+  filter: brightness(1);
 }
 
 .logo:hover {
   transform: scale(1.05);
+  filter: brightness(1.1);
 }
 
+/* Navigation Links */
 ul {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 2rem;
+  gap: 0.5rem;
   list-style: none;
   margin: 0;
   padding: 0;
+  align-items: center;
+}
+
+ul li {
+  position: relative;
 }
 
 ul li a {
-  color: var(--text-primary);
+  color: var(--text-secondary);
   text-decoration: none;
   font-weight: 500;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.8rem 1.2rem;
-  border-radius: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
   transition: var(--hover-transition);
+  position: relative;
+  overflow: hidden;
+}
+
+ul li a::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 12px;
+}
+
+ul li a:hover::before {
+  opacity: 1;
 }
 
 ul li a:hover {
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  background: var(--hover-bg);
+  transform: translateY(-1px);
+}
+
+ul li a.active {
   color: var(--accent-color);
+  background: rgba(79, 70, 229, 0.1);
+  border: 1px solid rgba(79, 70, 229, 0.2);
 }
 
-ul li a svg {
-  font-size: 1.2rem;
+ul li a.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background: var(--accent-color);
+  border-radius: 1px;
 }
 
+/* Auth Section */
 .auth-section {
-  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
+/* Sign Up Button */
 .signup-button {
   background: linear-gradient(135deg, var(--accent-color), #6366f1);
   color: white;
   border: none;
-  padding: 0.8rem 1.5rem;
-  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
   font-weight: 600;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: var(--hover-transition);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(79, 70, 229, 0.3);
+}
+
+.signup-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.signup-button:hover::before {
+  left: 100%;
 }
 
 .signup-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+  background: linear-gradient(135deg, #6366f1, var(--accent-color));
 }
 
-/* Responsive adjustments */
+.signup-button:active {
+  transform: translateY(0);
+}
+
+/* Profile/Dropdown Area */
+.profile-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.profile-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-color), #6366f1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--hover-transition);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: white;
+  border: 2px solid transparent;
+}
+
+.profile-icon:hover {
+  transform: scale(1.05);
+  border-color: rgba(79, 70, 229, 0.5);
+  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+}
+
+.profile-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Mobile Navigation Toggle */
+.mobile-menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: var(--hover-transition);
+}
+
+.mobile-menu-toggle:hover {
+  background: var(--hover-bg);
+}
+
+/* Search Bar (if you want to add one) */
+.navbar-search {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  margin-left: 1rem;
+  transition: var(--hover-transition);
+  min-width: 200px;
+}
+
+.navbar-search:focus-within {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
+
+.navbar-search input {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  width: 100%;
+  margin-left: 0.5rem;
+}
+
+.navbar-search input::placeholder {
+  color: var(--text-secondary);
+}
+
+.search-icon {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+/* Notification Badge */
+.notification-badge {
+  position: relative;
+}
+
+.notification-badge::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  border: 2px solid var(--primary-bg);
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
   .navbar {
-    padding: 0 3%;
-  }
-  
-  ul {
-    gap: 1rem;
-    margin-left: 2rem;
-  }
-  
-  ul li a {
-    font-size: 1rem;
-    padding: 0.6rem;
-  }
-  
-  ul li a span {
-    display: none;
+    padding: 0 1rem;
+    height: 60px;
   }
   
   .logo {
-    height: 50px;
+    height: 35px;
+  }
+  
+  ul {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--navbar-bg);
+    backdrop-filter: blur(20px);
+    flex-direction: column;
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  }
+  
+  ul.mobile-menu-open {
+    display: flex;
+  }
+  
+  ul li a {
+    padding: 1rem;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .mobile-menu-toggle {
+    display: block;
+  }
+  
+  .auth-section {
+    gap: 0.5rem;
+  }
+  
+  .signup-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+  
+  .navbar-search {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    padding: 0 0.75rem;
+  }
+  
+  .logo {
+    height: 30px;
+  }
+  
+  .signup-button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+  }
+  
+  .profile-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+}
+
+/* Smooth scroll behavior for page navigation */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus styles for accessibility */
+.navbar a:focus,
+.signup-button:focus,
+.profile-icon:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* Loading skeleton for logo */
+.logo-skeleton {
+  width: 45px;
+  height: 45px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
   }
 }

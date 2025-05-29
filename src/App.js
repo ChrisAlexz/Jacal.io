@@ -7,6 +7,7 @@ import About from './components/About';
 import Set from './components/Set';
 import Flashcard from './components/Flashcard';
 import FlashcardStudyPage from './components/FlashcardStudyPage';
+import SpeedFocusMode from './components/SpeedFocusMode';
 import Register from './components/authentication/Register';
 import Navbar from './components/Navbar';
 import FlashcardStudy from './components/FlashcardStudy';
@@ -26,6 +27,7 @@ function App() {
             <Route path="/flashcards" element={<Flashcard />} />
             <Route path="/flashcards/:id" element={<Flashcard />} />
             <Route path="/study/:id" element={<FlashcardStudyPage />} />
+            <Route path="/speed/:id" element={<SpeedFocusMode />} />
           </Routes>
         </div>
       </div>

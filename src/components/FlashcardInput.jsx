@@ -52,6 +52,9 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
     if (type === 'Cloze') {
       if (!frontContent.trim()) return;
       addFlashcard(frontContent, backContent.trim() || frontContent);
+    } else if (type === 'Basic-Type') {
+      if (!frontContent.trim() || !backContent.trim()) return;
+      addFlashcard(frontContent, backContent);
     } else {
       if (!frontContent.trim() || !backContent.trim()) return;
       addFlashcard(frontContent, backContent);
@@ -72,6 +75,29 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
     }
   };
 
+  // Get placeholder text based on type
+  const getPlaceholders = () => {
+    switch (type) {
+      case 'Cloze':
+        return {
+          front: "Enter text with content to be hidden...",
+          back: "Enter additional info (optional)..."
+        };
+      case 'Basic-Type':
+        return {
+          front: "Enter your question...",
+          back: "Enter the exact answer to type..."
+        };
+      default:
+        return {
+          front: "Enter front side...",
+          back: "Enter back side..."
+        };
+    }
+  };
+
+  const placeholders = getPlaceholders();
+
   return (
     <div className="flashcard-input">
       <h4>Front Side {type === 'Cloze' && <span>(Required)</span>}</h4>
@@ -80,25 +106,32 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
         <SimpleRichTextEditor
           value={frontContent}
           onChange={setFrontContent}
-          placeholder={type === 'Cloze' 
-            ? "Enter text with content to be hidden..." 
-            : "Enter front side..."}
+          placeholder={placeholders.front}
           readOnly={disabled}
         />
       </div>
 
-      <h4>Back Side {type === 'Cloze' && <span>(Optional)</span>}</h4>
+      <h4>
+        Back Side {type === 'Cloze' && <span>(Optional)</span>}
+        {type === 'Basic-Type' && <span>(Exact Answer)</span>}
+      </h4>
       
       <div className="flashcard-box">
         <SimpleRichTextEditor
           value={backContent}
           onChange={setBackContent}
-          placeholder={type === 'Cloze' 
-            ? "Enter additional info (optional)..." 
-            : "Enter back side..."}
+          placeholder={placeholders.back}
           readOnly={disabled}
         />
       </div>
+
+      {type === 'Basic-Type' && (
+        <div style={{ marginBottom: '10px' }}>
+          <small style={{ color: '#888', fontStyle: 'italic' }}>
+            💡 Tip: Enter the exact answer users should type. Matching will be case-insensitive with trimmed spaces.
+          </small>
+        </div>
+      )}
 
       {type === 'Cloze' && (
         <div style={{ marginBottom: '10px' }}>

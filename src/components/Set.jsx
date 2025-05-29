@@ -7,7 +7,7 @@ import ClassDeckModal from './ClassDeckModal';
 import '../styles/Set.css';
 import Layout from './Layout';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faChevronRight, faTrash, faEdit, faPlus, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faChevronRight, faTrash, faEdit, faPlus, faSearch, faBolt } from '@fortawesome/free-solid-svg-icons';
 
 export default function Set() {
   const { user } = useContext(UserAuthContext);
@@ -356,6 +356,16 @@ export default function Set() {
                                     <span className="stat-text">
                                       {formatDate(deck.created_at)}
                                     </span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/speed/${deck.id}`);
+                                      }}
+                                      className="speed-button-inline"
+                                      title="Speed Focus Mode"
+                                    >
+                                      Speed Study <FontAwesomeIcon icon={faBolt} />
+                                    </button>
                                   </div>
                                 </div>
                                 
@@ -365,9 +375,9 @@ export default function Set() {
                                       e.stopPropagation();
                                       navigate(`/study/${deck.id}`);
                                     }}
-                                    className="study-button"
+                                    className="study-button-full"
                                   >
-                                    Start Studying
+                                    📚 Start Studying
                                   </button>
                                 </div>
                               </div>

@@ -1,15 +1,22 @@
 // src/pages/FlashcardStudyPage.jsx
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import "../styles/FlashcardStudyPage.css";
 
 export default function FlashcardStudyPage() {
   const { id } = useParams(); // ID of the flashcard set
+  const navigate = useNavigate();
   const [flashcards, setFlashcards] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showBack, setShowBack] = useState(false);
   const [deckType, setDeckType] = useState("Basic");
+  const [setTitle, setSetTitle] = useState("");
+  
+  // State for type-in-answer functionality
+  const [userAnswer, setUserAnswer] = useState('');
+  const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
+  const [isAnswerCorrect, setIsAnswerCorrect] = useState(null);
 
   useEffect(() => {
     if (id) {
@@ -32,6 +39,7 @@ export default function FlashcardStudyPage() {
 
     if (setData) {
       setDeckType(setData.type);
+      setSetTitle(setData.title);
     }
 
     // Then, get the cards
@@ -50,8 +58,24 @@ export default function FlashcardStudyPage() {
 
   const handleShowAnswer = () => setShowBack(true);
 
+  const handleSubmitAnswer = () => {
+    if (deckType !== 'Basic-Type') return;
+    
+    const currentCard = flashcards[currentIndex];
+    const correctAnswer = currentCard.back.replace(/<[^>]*>/g, '').trim().toLowerCase();
+    const userAnswerClean = userAnswer.trim().toLowerCase();
+    
+    const isCorrect = correctAnswer === userAnswerClean;
+    setIsAnswerCorrect(isCorrect);
+    setShowCorrectAnswer(true);
+  };
+
   const handleNextCard = () => {
+    // Reset all states for next card
     setShowBack(false);
+    setShowCorrectAnswer(false);
+    setIsAnswerCorrect(null);
+    setUserAnswer('');
     setCurrentIndex((prevIndex) => (prevIndex + 1) % flashcards.length);
   };
 
@@ -66,7 +90,14 @@ export default function FlashcardStudyPage() {
   };
 
   if (flashcards.length === 0) {
-    return <p>Loading flashcards...</p>;
+    return (
+      <div className="study-container">
+        <div className="loading-study">
+          <div className="loading-spinner"></div>
+          <p>Loading flashcards...</p>
+        </div>
+      </div>
+    );
   }
 
   const currentCard = flashcards[currentIndex];
@@ -77,7 +108,23 @@ export default function FlashcardStudyPage() {
 
   return (
     <div className="study-container">
+      {/* Study Mode Options */}
+      <div className="study-mode-selector">
+        <button 
+          className="speed-focus-btn"
+          onClick={() => navigate(`/speed/${id}`)}
+          title="Speed Focus Mode - Test your knowledge under time pressure!"
+        >
+          ⚡ Speed Focus Mode
+        </button>
+      </div>
+
       <div className="flashcard-study-box">
+        {/* Progress indicator */}
+        <div className="study-progress">
+          {currentIndex + 1} / {flashcards.length}
+        </div>
+
         <div className="flashcard-front">
           {deckType === "Cloze" ? (
             <div
@@ -90,11 +137,66 @@ export default function FlashcardStudyPage() {
           )}
         </div>
 
-        {!showBack ? (
+        {/* Basic Type Answer Input */}
+        {deckType === 'Basic-Type' && !showCorrectAnswer && (
+          <div className="type-answer-section">
+            <input
+              type="text"
+              value={userAnswer}
+              onChange={(e) => setUserAnswer(e.target.value)}
+              placeholder="Type your answer here..."
+              className="answer-input"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && userAnswer.trim()) {
+                  handleSubmitAnswer();
+                }
+              }}
+              autoFocus
+            />
+            <button 
+              className="submit-answer-btn" 
+              onClick={handleSubmitAnswer}
+              disabled={!userAnswer.trim()}
+            >
+              Submit Answer
+            </button>
+          </div>
+        )}
+
+        {/* Show results for Basic-Type */}
+        {deckType === 'Basic-Type' && showCorrectAnswer && (
+          <div className="answer-results">
+            <div className={`answer-feedback ${isAnswerCorrect ? 'correct' : 'incorrect'}`}>
+              <span>{isAnswerCorrect ? '✅' : '❌'}</span>
+              <span>{isAnswerCorrect ? 'Correct!' : 'Incorrect'}</span>
+            </div>
+            <div className="answer-comparison">
+              <div className="user-answer">
+                <strong>Your answer:</strong>
+                <div>{userAnswer}</div>
+              </div>
+              <div className="correct-answer">
+                <strong>Correct answer:</strong> 
+                <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
+              </div>
+            </div>
+            <div className="difficulty-buttons">
+              <button className="again-btn" onClick={handleNextCard}>Again</button>
+              <button className="hard-btn" onClick={handleNextCard}>Hard</button>
+              <button className="good-btn" onClick={handleNextCard}>Good</button>
+              <button className="easy-btn" onClick={handleNextCard}>Easy</button>
+            </div>
+          </div>
+        )}
+
+        {/* Regular Basic and Cloze flow */}
+        {deckType !== 'Basic-Type' && !showBack && (
           <button className="show-answer-btn" onClick={handleShowAnswer}>
             Show Answer
           </button>
-        ) : (
+        )}
+
+        {deckType !== 'Basic-Type' && showBack && (
           <>
             {(deckType !== "Cloze" || hasCustomBackContent) && (
               <div className="flashcard-back">
