@@ -147,7 +147,7 @@ export default function FlashcardStudyPage() {
 
   const currentCard = flashcards[currentIndex];
   const hasCustomBackContent =
-    (deckType === "Cloze" || deckType === "Image-Occlusion") &&
+    deckType === "Cloze" &&
     currentCard.back !== currentCard.front &&
     currentCard.back.trim() !== "";
 
@@ -243,11 +243,11 @@ export default function FlashcardStudyPage() {
 
         {deckType !== 'Basic-Type' && showBack && (
           <>
-            {(deckType !== "Cloze" && deckType !== "Image-Occlusion") || hasCustomBackContent ? (
+            {(deckType !== "Cloze" || hasCustomBackContent) && (
               <div className="flashcard-back">
                 <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
               </div>
-            ) : null}
+            )}
 
             <div className="difficulty-buttons">
               <button className="again-btn" onClick={handleNextCard}>Again</button>

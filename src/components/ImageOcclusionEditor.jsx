@@ -8,12 +8,11 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
   const [occlusions, setOcclusions] = useState([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentRect, setCurrentRect] = useState(null);
-  const [selectedTool, setSelectedTool] = useState('rectangle');
   const [nextId, setNextId] = useState(1);
   const [cardTitle, setCardTitle] = useState('');
+  const [canvasSize, setCanvasSize] = useState(100); // Size percentage (50-200%)
   
   const canvasRef = useRef(null);
-  const imageRef = useRef(null);
   const containerRef = useRef(null);
 
   // Load image and setup canvas
@@ -34,94 +33,78 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
 
   const setupCanvas = (img) => {
     const canvas = canvasRef.current;
-    const container = containerRef.current;
-    
-    if (!canvas || !container || !img) return;
+    if (!canvas || !img) return;
 
-    // Calculate dimensions with better sizing logic
-    const containerWidth = Math.max(container.clientWidth - 40, 400); // Min width 400px
-    const minHeight = 300; // Minimum height
-    const maxHeight = 800; // Maximum height
+    // Base target dimensions
+    const BASE_WIDTH = 600;
+    const BASE_HEIGHT = 400;
     
-    const aspectRatio = img.width / img.height;
+    // Apply user size adjustment
+    const sizeMultiplier = canvasSize / 100;
+    const targetWidth = BASE_WIDTH * sizeMultiplier;
+    const targetHeight = BASE_HEIGHT * sizeMultiplier;
+    
+    const imgAspectRatio = img.width / img.height;
+    const targetAspectRatio = targetWidth / targetHeight;
+    
     let canvasWidth, canvasHeight;
     
-    // Calculate initial size based on container
-    if (aspectRatio > 1) {
-      // Landscape image
-      canvasWidth = Math.min(containerWidth, Math.max(600, img.width * 0.8));
-      canvasHeight = canvasWidth / aspectRatio;
+    if (imgAspectRatio > targetAspectRatio) {
+      // Image is wider - fit to width
+      canvasWidth = targetWidth;
+      canvasHeight = targetWidth / imgAspectRatio;
     } else {
-      // Portrait or square image
-      canvasHeight = Math.min(maxHeight, Math.max(minHeight, img.height * 0.8));
-      canvasWidth = canvasHeight * aspectRatio;
+      // Image is taller - fit to height
+      canvasHeight = targetHeight;
+      canvasWidth = targetHeight * imgAspectRatio;
     }
     
-    // Ensure minimum readable size
-    const minSize = 400;
-    if (canvasWidth < minSize && canvasHeight < minSize) {
-      if (aspectRatio > 1) {
-        canvasWidth = minSize;
-        canvasHeight = minSize / aspectRatio;
-      } else {
-        canvasHeight = minSize;
-        canvasWidth = minSize * aspectRatio;
-      }
-    }
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
     
-    // Make sure it fits in container but isn't too small
-    if (canvasWidth > containerWidth) {
-      canvasWidth = containerWidth;
-      canvasHeight = canvasWidth / aspectRatio;
-    }
-    
-    // Final size check - ensure readability
-    const finalScale = Math.max(canvasWidth / img.width, canvasHeight / img.height);
-    if (finalScale < 0.3) {
-      // If image would be too small, scale it up
-      canvasWidth = img.width * 0.5;
-      canvasHeight = img.height * 0.5;
-    }
-    
-    canvas.width = Math.round(canvasWidth);
-    canvas.height = Math.round(canvasHeight);
-    
-    // Only draw if canvas is properly set up
-    setTimeout(() => {
-      if (canvasRef.current) {
-        drawCanvas();
-      }
-    }, 10);
+    drawCanvas();
   };
+
+  // Update canvas size when user changes the slider
+  useEffect(() => {
+    if (image) {
+      setupCanvas(image);
+    }
+  }, [canvasSize, image]);
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return; // Exit if canvas doesn't exist
+    if (!canvas || !image) return;
     
     const ctx = canvas.getContext('2d');
-    if (!ctx || !image) return; // Exit if context or image doesn't exist
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw image
+    // Clear and draw image
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
     
     // Draw occlusions
-    occlusions.forEach((occlusion, index) => {
+    occlusions.forEach((occlusion) => {
+      // Black rectangle
       ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
       ctx.fillRect(occlusion.x, occlusion.y, occlusion.width, occlusion.height);
       
-      // Draw label
+      // Blue border
+      ctx.strokeStyle = '#4facfe';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(occlusion.x, occlusion.y, occlusion.width, occlusion.height);
+      
+      // Label
       ctx.fillStyle = '#4facfe';
-      ctx.font = 'bold 16px Arial';
+      ctx.font = 'bold 18px Arial';
       ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
       const labelX = occlusion.x + occlusion.width / 2;
-      const labelY = occlusion.y + occlusion.height / 2 + 6;
+      const labelY = occlusion.y + occlusion.height / 2;
       ctx.fillText(occlusion.id.toString(), labelX, labelY);
     });
     
-    // Draw current rectangle while drawing
+    // Draw current rectangle
     if (currentRect) {
       ctx.strokeStyle = '#4facfe';
       ctx.lineWidth = 2;
@@ -131,43 +114,47 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     }
   };
 
-  // Mouse event handlers
+  // Mouse event handlers with proper coordinate calculation
+  const getMousePos = (event) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * canvas.width,
+      y: ((event.clientY - rect.top) / rect.height) * canvas.height
+    };
+  };
+
   const handleMouseDown = (event) => {
     if (!image || disabled || !canvasRef.current) return;
     
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    const pos = getMousePos(event);
     
-    // Check if clicking on existing occlusion to delete
-    const clickedOcclusion = occlusions.findIndex(occlusion => 
-      x >= occlusion.x && x <= occlusion.x + occlusion.width &&
-      y >= occlusion.y && y <= occlusion.y + occlusion.height
-    );
-    
-    if (event.shiftKey && clickedOcclusion !== -1) {
-      // Delete occlusion
-      setOcclusions(prev => prev.filter((_, index) => index !== clickedOcclusion));
-      return;
+    // Check for deletion (Shift+Click)
+    if (event.shiftKey) {
+      const clickedIndex = occlusions.findIndex(occlusion => 
+        pos.x >= occlusion.x && pos.x <= occlusion.x + occlusion.width &&
+        pos.y >= occlusion.y && pos.y <= occlusion.y + occlusion.height
+      );
+      
+      if (clickedIndex !== -1) {
+        setOcclusions(prev => prev.filter((_, index) => index !== clickedIndex));
+        return;
+      }
     }
     
     setIsDrawing(true);
-    setCurrentRect({ x, y, width: 0, height: 0 });
+    setCurrentRect({ x: pos.x, y: pos.y, width: 0, height: 0 });
   };
 
   const handleMouseMove = (event) => {
-    if (!isDrawing || !image || !canvasRef.current) return;
+    if (!isDrawing || !currentRect) return;
     
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    
+    const pos = getMousePos(event);
     setCurrentRect(prev => ({
       ...prev,
-      width: x - prev.x,
-      height: y - prev.y
+      width: pos.x - prev.x,
+      height: pos.y - prev.y
     }));
   };
 
@@ -175,7 +162,7 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     if (!isDrawing || !currentRect) return;
     
     // Only add if rectangle is large enough
-    if (Math.abs(currentRect.width) > 20 && Math.abs(currentRect.height) > 20) {
+    if (Math.abs(currentRect.width) > 30 && Math.abs(currentRect.height) > 30) {
       const normalizedRect = {
         id: nextId,
         x: currentRect.width < 0 ? currentRect.x + currentRect.width : currentRect.x,
@@ -192,24 +179,12 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     setCurrentRect(null);
   };
 
-  // Redraw canvas when occlusions change
+  // Redraw when occlusions change
   useEffect(() => {
-    if (image && canvasRef.current) {
+    if (image) {
       drawCanvas();
     }
   }, [occlusions, currentRect, image]);
-
-  // Handle window resize
-  useEffect(() => {
-    const handleResize = () => {
-      if (image) {
-        setupCanvas(image);
-      }
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [image]);
 
   const handleSave = () => {
     if (!image || occlusions.length === 0 || !cardTitle.trim()) {
@@ -217,15 +192,11 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
       return;
     }
 
-    // Create cards for each occlusion
     const cards = occlusions.map(occlusion => ({
       id: occlusion.id,
       title: `${cardTitle} - ${occlusion.id}`,
       imageUrl: imageUrl,
-      occlusions: occlusions.map(o => ({
-        ...o,
-        hidden: o.id === occlusion.id ? false : true
-      })),
+      occlusions: occlusions,
       revealedId: occlusion.id
     }));
 
@@ -238,10 +209,15 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
   };
 
   const undoLast = () => {
-    setOcclusions(prev => prev.slice(0, -1));
     if (occlusions.length > 0) {
+      setOcclusions(prev => prev.slice(0, -1));
       setNextId(prev => prev - 1);
     }
+  };
+
+  // Quick size presets
+  const setSizePreset = (size) => {
+    setCanvasSize(size);
   };
 
   return (
@@ -272,6 +248,50 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
             disabled={disabled}
           />
         </div>
+
+        {image && (
+          <>
+            <div className="control-group">
+              <label>Canvas Size: {canvasSize}%</label>
+              <input
+                type="range"
+                min="50"
+                max="200"
+                step="10"
+                value={canvasSize}
+                onChange={(e) => setCanvasSize(parseInt(e.target.value))}
+                disabled={disabled}
+                className="size-slider"
+              />
+              <div className="size-presets">
+                <button 
+                  type="button"
+                  className="preset-btn"
+                  onClick={() => setSizePreset(75)}
+                  disabled={disabled}
+                >
+                  Small
+                </button>
+                <button 
+                  type="button"
+                  className="preset-btn"
+                  onClick={() => setSizePreset(100)}
+                  disabled={disabled}
+                >
+                  Medium
+                </button>
+                <button 
+                  type="button"
+                  className="preset-btn"
+                  onClick={() => setSizePreset(150)}
+                  disabled={disabled}
+                >
+                  Large
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {image && (
@@ -283,7 +303,13 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={() => setIsDrawing(false)}
-              style={{ cursor: disabled ? 'default' : 'crosshair' }}
+              style={{ 
+                cursor: disabled ? 'default' : 'crosshair',
+                border: '1px solid #444',
+                borderRadius: '8px',
+                maxWidth: '100%',
+                height: 'auto'
+              }}
             />
           </div>
 
