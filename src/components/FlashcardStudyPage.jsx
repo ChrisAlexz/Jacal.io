@@ -79,10 +79,7 @@ export default function FlashcardStudyPage() {
     setCurrentIndex((prevIndex) => (prevIndex + 1) % flashcards.length);
   };
 
-  // For Image Occlusion, just display the content as-is
-  // The HTML structure is already correct from the editor
-
-  // Process cloze text for different card types
+  // Process cloze text for different card types (excluding Image Occlusion)
   const processClozeText = (text, isRevealed, activeClozeDeletion = 1) => {
     if (deckType !== "Cloze") return text;
     
@@ -134,6 +131,10 @@ export default function FlashcardStudyPage() {
     currentCard.back !== currentCard.front &&
     currentCard.back.trim() !== "";
 
+  // Check if this is an image occlusion card by looking at the HTML content
+  const isImageOcclusionCard = currentCard.front.includes('image-occlusion-card') || 
+                              currentCard.front.includes('occlusion-');
+
   return (
     <div className="study-container">
       {/* Study Mode Options */}
@@ -154,11 +155,12 @@ export default function FlashcardStudyPage() {
         </div>
 
         <div className="flashcard-front">
-          {deckType === "Image-Occlusion" ? (
-            // For Image Occlusion, show front for question, back for answer
+          {isImageOcclusionCard ? (
+            // For Image Occlusion, ALWAYS show the front HTML (which has all areas masked)
+            // The front HTML contains the proper blocked areas with active question styling
             <div
               dangerouslySetInnerHTML={{
-                __html: showBack ? currentCard.back : currentCard.front
+                __html: currentCard.front
               }}
             />
           ) : deckType === "Cloze" ? (
@@ -224,7 +226,7 @@ export default function FlashcardStudyPage() {
           </div>
         )}
 
-        {/* Regular Basic and Cloze flow */}
+        {/* Regular Basic, Cloze, and Image Occlusion flow */}
         {deckType !== 'Basic-Type' && !showBack && (
           <button className="show-answer-btn" onClick={handleShowAnswer}>
             Show Answer
@@ -233,8 +235,15 @@ export default function FlashcardStudyPage() {
 
         {deckType !== 'Basic-Type' && showBack && (
           <>
-            {/* For Image Occlusion, don't show back content separately since it's handled above */}
-            {deckType !== "Image-Occlusion" && (deckType !== "Cloze" || hasCustomBackContent) && (
+            {/* For Image Occlusion, show the back content when answer is revealed */}
+            {isImageOcclusionCard && (
+              <div className="flashcard-back">
+                <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
+              </div>
+            )}
+            
+            {/* For regular Cloze, only show back content if it's different from front */}
+            {!isImageOcclusionCard && (deckType !== "Cloze" || hasCustomBackContent) && (
               <div className="flashcard-back">
                 <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
               </div>

@@ -530,6 +530,107 @@
   text-align: center;
 }
 
+/* Image Occlusion Support for Speed Focus Mode */
+.speed-focus-container .card-front .image-occlusion-card,
+.speed-focus-container .card-back .image-occlusion-card {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.speed-focus-container .card-front .occlusion-image,
+.speed-focus-container .card-back .occlusion-image {
+  max-width: 100%;
+  max-height: 350px;
+  height: auto;
+  width: auto;
+  border-radius: 8px;
+  display: block;
+  object-fit: contain;
+  margin: 0 auto;
+}
+
+.speed-focus-container .card-front .occlusion-overlay,
+.speed-focus-container .card-back .occlusion-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.speed-focus-container .card-front .occlusion-question-active,
+.speed-focus-container .card-back .occlusion-question-active,
+.speed-focus-container .card-front .occlusion-blocked,
+.speed-focus-container .card-back .occlusion-blocked,
+.speed-focus-container .card-front .occlusion-answer-revealed,
+.speed-focus-container .card-back .occlusion-answer-revealed {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  border-radius: 4px;
+  box-sizing: border-box;
+  min-height: 20px;
+  min-width: 20px;
+  font-size: 14px;
+  line-height: 1;
+  text-align: center;
+}
+
+.speed-focus-container .card-front .occlusion-question-active {
+  background: rgb(79, 172, 254);
+  border: 3px solid #4facfe;
+  color: white;
+  box-shadow: 0 0 15px rgba(79, 172, 254, 0.6);
+  z-index: 10;
+}
+
+.speed-focus-container .card-front .occlusion-blocked,
+.speed-focus-container .card-back .occlusion-blocked {
+  background: rgb(0, 0, 0);
+  border: 2px solid #444;
+  color: #666;
+  z-index: 5;
+}
+
+.speed-focus-container .card-back .occlusion-answer-revealed {
+  background: transparent;
+  border: 3px solid #28a745;
+  color: transparent;
+  box-shadow: 0 0 15px rgba(40, 167, 69, 0.8);
+  z-index: 10;
+  font-size: 0;
+  overflow: hidden;
+}
+
+/* Ensure the card content doesn't interfere with image sizing */
+.speed-focus-container .card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Make sure the card front/back don't mess with image sizing */
+.speed-focus-container .card-front:has(.image-occlusion-card),
+.speed-focus-container .card-back:has(.image-occlusion-card) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* Fallback for browsers that don't support :has() */
+.speed-focus-container .card-front .image-occlusion-card,
+.speed-focus-container .card-back .image-occlusion-card {
+  padding: 0;
+  margin: 0;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .game-hud {
@@ -571,6 +672,22 @@
   .achievement {
     font-size: 0.8rem;
   }
+
+  .speed-focus-container .card-front .occlusion-image,
+  .speed-focus-container .card-back .occlusion-image {
+    max-height: 280px;
+  }
+  
+  .speed-focus-container .card-front .occlusion-question-active,
+  .speed-focus-container .card-back .occlusion-question-active,
+  .speed-focus-container .card-front .occlusion-blocked,
+  .speed-focus-container .card-back .occlusion-blocked,
+  .speed-focus-container .card-front .occlusion-answer-revealed,
+  .speed-focus-container .card-back .occlusion-answer-revealed {
+    font-size: 12px;
+    min-height: 18px;
+    min-width: 18px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -594,5 +711,21 @@
   .speed-btn {
     flex: 1;
     min-width: 120px;
+  }
+
+  .speed-focus-container .card-front .occlusion-image,
+  .speed-focus-container .card-back .occlusion-image {
+    max-height: 220px;
+  }
+  
+  .speed-focus-container .card-front .occlusion-question-active,
+  .speed-focus-container .card-back .occlusion-question-active,
+  .speed-focus-container .card-front .occlusion-blocked,
+  .speed-focus-container .card-back .occlusion-blocked,
+  .speed-focus-container .card-front .occlusion-answer-revealed,
+  .speed-focus-container .card-back .occlusion-answer-revealed {
+    font-size: 10px;
+    min-height: 16px;
+    min-width: 16px;
   }
 }

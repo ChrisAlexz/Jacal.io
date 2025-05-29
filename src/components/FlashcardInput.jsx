@@ -77,91 +77,76 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
       
-      // FRONT CARD: Hide ONLY the target answer, show others as context
+      // FRONT CARD: All areas masked, active question has different styling
       const frontHTML = `
         <div class="image-occlusion-card">
           <img src="${card.imageUrl}" alt="${card.title}" class="occlusion-image" />
           <div class="occlusion-overlay">
-            ${card.occlusions.map(occlusion => 
-              occlusion.id === card.revealedId
-                ? `<div class="occlusion-mask" style="
-                    position: absolute; 
-                    left: ${(occlusion.x / canvasWidth) * 100}%; 
-                    top: ${(occlusion.y / canvasHeight) * 100}%; 
-                    width: ${(occlusion.width / canvasWidth) * 100}%; 
-                    height: ${(occlusion.height / canvasHeight) * 100}%; 
-                    background: rgba(0, 0, 0, 0.95);
-                    border-radius: 4px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: #4facfe;
-                    font-weight: bold;
-                    font-size: min(18px, ${Math.max(14, (occlusion.width / canvasWidth) * 200)}px);
-                    border: 2px solid #4facfe;
-                  ">${occlusion.id}</div>`
-                : `<div class="occlusion-visible" style="
-                    position: absolute; 
-                    left: ${(occlusion.x / canvasWidth) * 100}%; 
-                    top: ${(occlusion.y / canvasHeight) * 100}%; 
-                    width: ${(occlusion.width / canvasWidth) * 100}%; 
-                    height: ${(occlusion.height / canvasHeight) * 100}%; 
-                    border: 2px solid rgba(255, 255, 255, 0.4);
-                    border-radius: 4px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: rgba(255, 255, 255, 0.6);
-                    font-weight: bold;
-                    font-size: min(14px, ${Math.max(12, (occlusion.width / canvasWidth) * 150)}px);
-                    background: rgba(255, 255, 255, 0.08);
-                  ">${occlusion.id}</div>`
-            ).join('')}
+            ${card.occlusions.map(occlusion => {
+              const isActive = occlusion.id === card.revealedId;
+              const leftPercent = (occlusion.x / canvasWidth) * 100;
+              const topPercent = (occlusion.y / canvasHeight) * 100;
+              const widthPercent = (occlusion.width / canvasWidth) * 100;
+              const heightPercent = (occlusion.height / canvasHeight) * 100;
+              const fontSize = Math.max(12, Math.min(18, (occlusion.width / canvasWidth) * 150));
+              
+              if (isActive) {
+                // Active question - still masked but with distinctive blue styling
+                return `<div class="occlusion-question-active" style="
+                  left: ${leftPercent}%; 
+                  top: ${topPercent}%; 
+                  width: ${widthPercent}%; 
+                  height: ${heightPercent}%; 
+                  font-size: ${fontSize}px;
+                ">${occlusion.id}</div>`;
+              } else {
+                // Non-active areas - completely masked in black (same as Anki)
+                return `<div class="occlusion-blocked" style="
+                  left: ${leftPercent}%; 
+                  top: ${topPercent}%; 
+                  width: ${widthPercent}%; 
+                  height: ${heightPercent}%; 
+                  font-size: ${Math.max(10, fontSize * 0.8)}px;
+                ">${occlusion.id}</div>`;
+              }
+            }).join('')}
           </div>
         </div>
       `;
       
-      // BACK CARD: Highlight the answer, dim others
+      // BACK CARD: Only reveal the active answer, keep ALL others blocked
       const backHTML = `
         <div class="image-occlusion-card">
           <img src="${card.imageUrl}" alt="${card.title}" class="occlusion-image" />
           <div class="occlusion-overlay">
-            ${card.occlusions.map(occlusion => 
-              occlusion.id === card.revealedId
-                ? `<div class="occlusion-answer" style="
-                    position: absolute; 
-                    left: ${(occlusion.x / canvasWidth) * 100}%; 
-                    top: ${(occlusion.y / canvasHeight) * 100}%; 
-                    width: ${(occlusion.width / canvasWidth) * 100}%; 
-                    height: ${(occlusion.height / canvasHeight) * 100}%; 
-                    border: 3px solid #4facfe;
-                    background: rgba(79, 172, 254, 0.25);
-                    border-radius: 4px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: #4facfe;
-                    font-weight: bold;
-                    font-size: min(18px, ${Math.max(14, (occlusion.width / canvasWidth) * 200)}px);
-                    box-shadow: 0 0 10px rgba(79, 172, 254, 0.5);
-                  ">${occlusion.id}</div>`
-                : `<div class="occlusion-other" style="
-                    position: absolute; 
-                    left: ${(occlusion.x / canvasWidth) * 100}%; 
-                    top: ${(occlusion.y / canvasHeight) * 100}%; 
-                    width: ${(occlusion.width / canvasWidth) * 100}%; 
-                    height: ${(occlusion.height / canvasHeight) * 100}%; 
-                    border: 2px solid rgba(255, 255, 255, 0.25);
-                    border-radius: 4px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: rgba(255, 255, 255, 0.5);
-                    font-weight: bold;
-                    font-size: min(14px, ${Math.max(12, (occlusion.width / canvasWidth) * 150)}px);
-                    background: rgba(255, 255, 255, 0.05);
-                  ">${occlusion.id}</div>`
-            ).join('')}
+            ${card.occlusions.map(occlusion => {
+              const isActive = occlusion.id === card.revealedId;
+              const leftPercent = (occlusion.x / canvasWidth) * 100;
+              const topPercent = (occlusion.y / canvasHeight) * 100;
+              const widthPercent = (occlusion.width / canvasWidth) * 100;
+              const heightPercent = (occlusion.height / canvasHeight) * 100;
+              const fontSize = Math.max(12, Math.min(18, (occlusion.width / canvasWidth) * 150));
+              
+              if (isActive) {
+                // ONLY the active answer is revealed - EMPTY DIV WITH NO NUMBER
+                return `<div class="occlusion-answer-revealed" style="
+                  left: ${leftPercent}%; 
+                  top: ${topPercent}%; 
+                  width: ${widthPercent}%; 
+                  height: ${heightPercent}%; 
+                  font-size: 0px;
+                "></div>`;
+              } else {
+                // ALL other areas remain completely blocked (same as front)
+                return `<div class="occlusion-blocked" style="
+                  left: ${leftPercent}%; 
+                  top: ${topPercent}%; 
+                  width: ${widthPercent}%; 
+                  height: ${heightPercent}%; 
+                  font-size: ${Math.max(10, fontSize * 0.8)}px;
+                ">${occlusion.id}</div>`;
+              }
+            }).join('')}
           </div>
         </div>
       `;

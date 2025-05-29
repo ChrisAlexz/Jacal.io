@@ -91,9 +91,16 @@ export default function SpeedFocusMode() {
     }
   };
 
-  // Process cloze text for Speed Focus Mode (same logic as study page)
+  // Process cloze text for Speed Focus Mode (updated for image occlusion support)
   const processClozeText = (text, isRevealed, activeClozeDeletion = 1) => {
-    if (deckType !== "Cloze" && deckType !== "Image-Occlusion") return text;
+    // Check if this is an image occlusion card
+    if (text.includes('image-occlusion-card') || text.includes('occlusion-')) {
+      // For image occlusion cards, return the text as-is since it already contains
+      // the proper HTML structure with Anki-style formatting
+      return text;
+    }
+    
+    if (deckType !== "Cloze") return text;
     
     // Replace all cloze deletions with appropriate styling
     let processedText = text;
@@ -104,41 +111,21 @@ export default function SpeedFocusMode() {
     processedText = processedText.replace(clozePattern, (match, clozeNumber, clozeText) => {
       const clozeNum = parseInt(clozeNumber);
       
-      if (deckType === "Image-Occlusion") {
-        // IMAGE OCCLUSION TYPE
-        if (isRevealed) {
-          // When answer is revealed, only show the active one, keep others hidden
-          if (clozeNum === activeClozeDeletion) {
-            return `<span class="cloze-revealed-active">${clozeText}</span>`;
-          } else {
-            return `<span class="cloze-hidden-inactive">[...]</span>`;
-          }
+      if (isRevealed) {
+        // When answer is revealed, show all cloze deletions with highlighting
+        if (clozeNum === activeClozeDeletion) {
+          return `<span class="cloze-revealed-active">${clozeText}</span>`;
         } else {
-          // When question is shown, all are hidden but active one has different color
-          if (clozeNum === activeClozeDeletion) {
-            return `<span class="cloze-question-active">[...]</span>`;
-          } else {
-            return `<span class="cloze-hidden-inactive">[...]</span>`;
-          }
+          return `<span class="cloze-revealed-inactive">${clozeText}</span>`;
         }
       } else {
-        // REGULAR CLOZE TYPE (existing behavior)
-        if (isRevealed) {
-          // When answer is revealed, show all cloze deletions with highlighting
-          if (clozeNum === activeClozeDeletion) {
-            return `<span class="cloze-revealed-active">${clozeText}</span>`;
-          } else {
-            return `<span class="cloze-revealed-inactive">${clozeText}</span>`;
-          }
+        // When question is shown
+        if (clozeNum === activeClozeDeletion) {
+          // The active cloze deletion being tested - show as blue question
+          return `<span class="cloze-question">[...]</span>`;
         } else {
-          // When question is shown
-          if (clozeNum === activeClozeDeletion) {
-            // The active cloze deletion being tested - show as blue question
-            return `<span class="cloze-question">[...]</span>`;
-          } else {
-            // Other cloze deletions - show the actual text but dimmed
-            return `<span class="cloze-other">${clozeText}</span>`;
-          }
+          // Other cloze deletions - show the actual text but dimmed
+          return `<span class="cloze-other">${clozeText}</span>`;
         }
       }
     });
@@ -335,6 +322,10 @@ export default function SpeedFocusMode() {
     );
   }
 
+  // Check if this is an image occlusion card
+  const isImageOcclusionCard = currentCard?.front?.includes('image-occlusion-card') || 
+                              currentCard?.front?.includes('occlusion-');
+
   // Settings Screen
   if (!gameStarted) {
     return (
@@ -520,7 +511,12 @@ export default function SpeedFocusMode() {
       <div className="speed-card">
         <div className="card-content">
           <div className="card-front">
-            {(deckType === "Cloze" || deckType === "Image-Occlusion") ? (
+            {isImageOcclusionCard ? (
+              // For Image Occlusion, show front (blocked) when question, back (revealed) when answer
+              <div dangerouslySetInnerHTML={{ 
+                __html: showAnswer ? currentCard.back : currentCard.front 
+              }} />
+            ) : (deckType === "Cloze") ? (
               <div dangerouslySetInnerHTML={{ 
                 __html: processClozeText(currentCard.front, showAnswer, 1) 
               }} />
@@ -565,7 +561,12 @@ export default function SpeedFocusMode() {
           {/* Answer Display */}
           {showAnswer && (
             <div className="card-back">
-              {(deckType === "Cloze" || deckType === "Image-Occlusion") ? (
+              {isImageOcclusionCard ? (
+                // For Image Occlusion, show the back card content (revealed answer)
+                <div dangerouslySetInnerHTML={{ 
+                  __html: currentCard.back 
+                }} />
+              ) : (deckType === "Cloze") ? (
                 <div dangerouslySetInnerHTML={{ 
                   __html: processClozeText(currentCard.front, true, 1) 
                 }} />
