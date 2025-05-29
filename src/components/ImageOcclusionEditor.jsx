@@ -1,24 +1,31 @@
 // src/components/ImageOcclusionEditor.jsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
+import { supabase } from '../supabase';
+import UserAuthContext from './context/UserAuthContext';
 import '../styles/ImageOcclusionEditor.css';
 
 const ImageOcclusionEditor = ({ onSave, disabled }) => {
+  const { user } = useContext(UserAuthContext);
   const [image, setImage] = useState(null);
+  const [imageFile, setImageFile] = useState(null); // Store the actual file
   const [imageUrl, setImageUrl] = useState('');
+  const [uploadedImageUrl, setUploadedImageUrl] = useState(''); // Permanent URL
   const [occlusions, setOcclusions] = useState([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentRect, setCurrentRect] = useState(null);
   const [nextId, setNextId] = useState(1);
   const [cardTitle, setCardTitle] = useState('');
-  const [canvasSize, setCanvasSize] = useState(100); // Size percentage (50-200%)
+  const [canvasSize, setCanvasSize] = useState(100);
+  const [isUploading, setIsUploading] = useState(false);
   
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
 
   // Load image and setup canvas
-  const handleImageUpload = (event) => {
+  const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
+      setImageFile(file); // Store the file for later upload
       const url = URL.createObjectURL(file);
       setImageUrl(url);
       
@@ -28,6 +35,42 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
         setupCanvas(img);
       };
       img.src = url;
+
+      // Upload image to Supabase Storage
+      await uploadImageToSupabase(file);
+    }
+  };
+
+  const uploadImageToSupabase = async (file) => {
+    if (!user || !file) return;
+
+    setIsUploading(true);
+    try {
+      // Create a unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('flashcard-images')
+        .upload(fileName, file);
+
+      if (error) {
+        console.error('Error uploading image:', error);
+        return;
+      }
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('flashcard-images')
+        .getPublicUrl(fileName);
+
+      setUploadedImageUrl(publicUrl);
+      console.log('Image uploaded successfully:', publicUrl);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -187,15 +230,16 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
   }, [occlusions, currentRect, image]);
 
   const handleSave = () => {
-    if (!image || occlusions.length === 0 || !cardTitle.trim()) {
-      alert('Please add a title, upload an image, and create at least one occlusion.');
+    if (!image || occlusions.length === 0 || !cardTitle.trim() || !uploadedImageUrl) {
+      alert('Please add a title, upload an image, and create at least one occlusion. Make sure the image is uploaded before saving.');
       return;
     }
 
+    // Use the permanent Supabase URL instead of blob URL
     const cards = occlusions.map(occlusion => ({
       id: occlusion.id,
       title: `${cardTitle} - ${occlusion.id}`,
-      imageUrl: imageUrl,
+      imageUrl: uploadedImageUrl, // Use the permanent URL
       occlusions: occlusions,
       revealedId: occlusion.id
     }));
@@ -245,8 +289,18 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
             type="file"
             accept="image/*"
             onChange={handleImageUpload}
-            disabled={disabled}
+            disabled={disabled || isUploading}
           />
+          {isUploading && (
+            <div style={{ marginTop: '8px', color: '#4facfe', fontSize: '0.9rem' }}>
+              Uploading image... Please wait.
+            </div>
+          )}
+          {uploadedImageUrl && (
+            <div style={{ marginTop: '8px', color: '#28a745', fontSize: '0.9rem' }}>
+              ✅ Image uploaded successfully
+            </div>
+          )}
         </div>
 
         {image && (
@@ -339,9 +393,9 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
             <button 
               className="save-btn"
               onClick={handleSave}
-              disabled={disabled || !image || occlusions.length === 0 || !cardTitle.trim()}
+              disabled={disabled || !image || occlusions.length === 0 || !cardTitle.trim() || isUploading || !uploadedImageUrl}
             >
-              Create {occlusions.length} Cards
+              {isUploading ? 'Uploading...' : `Create ${occlusions.length} Cards`}
             </button>
           </div>
         </>
