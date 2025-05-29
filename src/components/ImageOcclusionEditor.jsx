@@ -11,7 +11,6 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
   const [selectedTool, setSelectedTool] = useState('rectangle');
   const [nextId, setNextId] = useState(1);
   const [cardTitle, setCardTitle] = useState('');
-  const [imageScale, setImageScale] = useState(1);
   
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
@@ -40,29 +39,52 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     if (!canvas || !container || !img) return;
 
     // Calculate dimensions with better sizing logic
-    const containerWidth = Math.max(container.clientWidth - 40, 400);
+    const containerWidth = Math.max(container.clientWidth - 40, 400); // Min width 400px
+    const minHeight = 300; // Minimum height
+    const maxHeight = 800; // Maximum height
+    
     const aspectRatio = img.width / img.height;
+    let canvasWidth, canvasHeight;
     
-    // Base size calculation
-    let baseWidth, baseHeight;
-    const minDisplaySize = 500; // Minimum size for readability
-    
+    // Calculate initial size based on container
     if (aspectRatio > 1) {
       // Landscape image
-      baseWidth = Math.max(minDisplaySize, Math.min(containerWidth, img.width * 0.7));
-      baseHeight = baseWidth / aspectRatio;
+      canvasWidth = Math.min(containerWidth, Math.max(600, img.width * 0.8));
+      canvasHeight = canvasWidth / aspectRatio;
     } else {
-      // Portrait or square image  
-      baseHeight = Math.max(minDisplaySize, Math.min(700, img.height * 0.7));
-      baseWidth = baseHeight * aspectRatio;
+      // Portrait or square image
+      canvasHeight = Math.min(maxHeight, Math.max(minHeight, img.height * 0.8));
+      canvasWidth = canvasHeight * aspectRatio;
     }
     
-    // Apply user scale
-    const canvasWidth = Math.round(baseWidth * imageScale);
-    const canvasHeight = Math.round(baseHeight * imageScale);
+    // Ensure minimum readable size
+    const minSize = 400;
+    if (canvasWidth < minSize && canvasHeight < minSize) {
+      if (aspectRatio > 1) {
+        canvasWidth = minSize;
+        canvasHeight = minSize / aspectRatio;
+      } else {
+        canvasHeight = minSize;
+        canvasWidth = minSize * aspectRatio;
+      }
+    }
     
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
+    // Make sure it fits in container but isn't too small
+    if (canvasWidth > containerWidth) {
+      canvasWidth = containerWidth;
+      canvasHeight = canvasWidth / aspectRatio;
+    }
+    
+    // Final size check - ensure readability
+    const finalScale = Math.max(canvasWidth / img.width, canvasHeight / img.height);
+    if (finalScale < 0.3) {
+      // If image would be too small, scale it up
+      canvasWidth = img.width * 0.5;
+      canvasHeight = img.height * 0.5;
+    }
+    
+    canvas.width = Math.round(canvasWidth);
+    canvas.height = Math.round(canvasHeight);
     
     // Only draw if canvas is properly set up
     setTimeout(() => {
@@ -177,14 +199,6 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     }
   }, [occlusions, currentRect, image]);
 
-  // Handle scale change
-  const handleScaleChange = (newScale) => {
-    setImageScale(newScale);
-    if (image) {
-      setupCanvas(image);
-    }
-  };
-
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
@@ -195,7 +209,7 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [image, imageScale]);
+  }, [image]);
 
   const handleSave = () => {
     if (!image || occlusions.length === 0 || !cardTitle.trim()) {
@@ -258,54 +272,6 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
             disabled={disabled}
           />
         </div>
-
-        {image && (
-          <div className="control-group">
-            <label>Image Size: {Math.round(imageScale * 100)}%</label>
-            <div className="scale-controls">
-              <button 
-                type="button"
-                onClick={() => handleScaleChange(0.5)}
-                disabled={disabled}
-                className="scale-btn"
-              >
-                50%
-              </button>
-              <button 
-                type="button"
-                onClick={() => handleScaleChange(0.75)}
-                disabled={disabled}
-                className="scale-btn"
-              >
-                75%
-              </button>
-              <button 
-                type="button"
-                onClick={() => handleScaleChange(1)}
-                disabled={disabled}
-                className="scale-btn"
-              >
-                100%
-              </button>
-              <button 
-                type="button"
-                onClick={() => handleScaleChange(1.25)}
-                disabled={disabled}
-                className="scale-btn"
-              >
-                125%
-              </button>
-              <button 
-                type="button"
-                onClick={() => handleScaleChange(1.5)}
-                disabled={disabled}
-                className="scale-btn"
-              >
-                150%
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {image && (
