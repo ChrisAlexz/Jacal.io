@@ -79,14 +79,59 @@ export default function FlashcardStudyPage() {
     setCurrentIndex((prevIndex) => (prevIndex + 1) % flashcards.length);
   };
 
-  // Process cloze text for Cloze-type flashcards
-  const processClozeText = (text, isRevealed) => {
-    if (deckType !== "Cloze") return text;
-    if (isRevealed) {
-      return text.replace(/{{c1::(.*?)}}/g, '<span class="cloze-revealed">$1</span>');
-    } else {
-      return text.replace(/{{c1::(.*?)}}/g, '[...]');
-    }
+  // Process cloze text for different card types
+  const processClozeText = (text, isRevealed, activeClozeDeletion = 1) => {
+    if (deckType !== "Cloze" && deckType !== "Image-Occlusion") return text;
+    
+    // Replace all cloze deletions with appropriate styling
+    let processedText = text;
+    
+    // Find all cloze deletions (c1, c2, c3, etc.)
+    const clozePattern = /{{c(\d+)::(.*?)}}/g;
+    
+    processedText = processedText.replace(clozePattern, (match, clozeNumber, clozeText) => {
+      const clozeNum = parseInt(clozeNumber);
+      
+      if (deckType === "Image-Occlusion") {
+        // IMAGE OCCLUSION TYPE
+        if (isRevealed) {
+          // When answer is revealed, only show the active one, keep others hidden
+          if (clozeNum === activeClozeDeletion) {
+            return `<span class="cloze-revealed-active">${clozeText}</span>`;
+          } else {
+            return `<span class="cloze-hidden-inactive">[...]</span>`;
+          }
+        } else {
+          // When question is shown, all are hidden but active one has different color
+          if (clozeNum === activeClozeDeletion) {
+            return `<span class="cloze-question-active">[...]</span>`;
+          } else {
+            return `<span class="cloze-hidden-inactive">[...]</span>`;
+          }
+        }
+      } else {
+        // REGULAR CLOZE TYPE (existing behavior)
+        if (isRevealed) {
+          // When answer is revealed, show all cloze deletions with highlighting
+          if (clozeNum === activeClozeDeletion) {
+            return `<span class="cloze-revealed-active">${clozeText}</span>`;
+          } else {
+            return `<span class="cloze-revealed-inactive">${clozeText}</span>`;
+          }
+        } else {
+          // When question is shown
+          if (clozeNum === activeClozeDeletion) {
+            // The active cloze deletion being tested - show as blue question
+            return `<span class="cloze-question">[...]</span>`;
+          } else {
+            // Other cloze deletions - show the actual text but dimmed
+            return `<span class="cloze-other">${clozeText}</span>`;
+          }
+        }
+      }
+    });
+    
+    return processedText;
   };
 
   if (flashcards.length === 0) {
@@ -102,7 +147,7 @@ export default function FlashcardStudyPage() {
 
   const currentCard = flashcards[currentIndex];
   const hasCustomBackContent =
-    deckType === "Cloze" &&
+    (deckType === "Cloze" || deckType === "Image-Occlusion") &&
     currentCard.back !== currentCard.front &&
     currentCard.back.trim() !== "";
 
@@ -126,10 +171,10 @@ export default function FlashcardStudyPage() {
         </div>
 
         <div className="flashcard-front">
-          {deckType === "Cloze" ? (
+          {(deckType === "Cloze" || deckType === "Image-Occlusion") ? (
             <div
               dangerouslySetInnerHTML={{
-                __html: processClozeText(currentCard.front, showBack),
+                __html: processClozeText(currentCard.front, showBack, 1),
               }}
             />
           ) : (
@@ -198,11 +243,11 @@ export default function FlashcardStudyPage() {
 
         {deckType !== 'Basic-Type' && showBack && (
           <>
-            {(deckType !== "Cloze" || hasCustomBackContent) && (
+            {(deckType !== "Cloze" && deckType !== "Image-Occlusion") || hasCustomBackContent ? (
               <div className="flashcard-back">
                 <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
               </div>
-            )}
+            ) : null}
 
             <div className="difficulty-buttons">
               <button className="again-btn" onClick={handleNextCard}>Again</button>

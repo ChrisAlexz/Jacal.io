@@ -91,6 +91,61 @@ export default function SpeedFocusMode() {
     }
   };
 
+  // Process cloze text for Speed Focus Mode (same logic as study page)
+  const processClozeText = (text, isRevealed, activeClozeDeletion = 1) => {
+    if (deckType !== "Cloze" && deckType !== "Image-Occlusion") return text;
+    
+    // Replace all cloze deletions with appropriate styling
+    let processedText = text;
+    
+    // Find all cloze deletions (c1, c2, c3, etc.)
+    const clozePattern = /{{c(\d+)::(.*?)}}/g;
+    
+    processedText = processedText.replace(clozePattern, (match, clozeNumber, clozeText) => {
+      const clozeNum = parseInt(clozeNumber);
+      
+      if (deckType === "Image-Occlusion") {
+        // IMAGE OCCLUSION TYPE
+        if (isRevealed) {
+          // When answer is revealed, only show the active one, keep others hidden
+          if (clozeNum === activeClozeDeletion) {
+            return `<span class="cloze-revealed-active">${clozeText}</span>`;
+          } else {
+            return `<span class="cloze-hidden-inactive">[...]</span>`;
+          }
+        } else {
+          // When question is shown, all are hidden but active one has different color
+          if (clozeNum === activeClozeDeletion) {
+            return `<span class="cloze-question-active">[...]</span>`;
+          } else {
+            return `<span class="cloze-hidden-inactive">[...]</span>`;
+          }
+        }
+      } else {
+        // REGULAR CLOZE TYPE (existing behavior)
+        if (isRevealed) {
+          // When answer is revealed, show all cloze deletions with highlighting
+          if (clozeNum === activeClozeDeletion) {
+            return `<span class="cloze-revealed-active">${clozeText}</span>`;
+          } else {
+            return `<span class="cloze-revealed-inactive">${clozeText}</span>`;
+          }
+        } else {
+          // When question is shown
+          if (clozeNum === activeClozeDeletion) {
+            // The active cloze deletion being tested - show as blue question
+            return `<span class="cloze-question">[...]</span>`;
+          } else {
+            // Other cloze deletions - show the actual text but dimmed
+            return `<span class="cloze-other">${clozeText}</span>`;
+          }
+        }
+      }
+    });
+    
+    return processedText;
+  };
+
   const startGame = () => {
     setGameStarted(true);
     setIsActive(true);
@@ -465,7 +520,13 @@ export default function SpeedFocusMode() {
       <div className="speed-card">
         <div className="card-content">
           <div className="card-front">
-            <div dangerouslySetInnerHTML={{ __html: currentCard.front }} />
+            {(deckType === "Cloze" || deckType === "Image-Occlusion") ? (
+              <div dangerouslySetInnerHTML={{ 
+                __html: processClozeText(currentCard.front, showAnswer, 1) 
+              }} />
+            ) : (
+              <div dangerouslySetInnerHTML={{ __html: currentCard.front }} />
+            )}
           </div>
 
           {/* Type Answer Input */}
@@ -504,7 +565,13 @@ export default function SpeedFocusMode() {
           {/* Answer Display */}
           {showAnswer && (
             <div className="card-back">
-              <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
+              {(deckType === "Cloze" || deckType === "Image-Occlusion") ? (
+                <div dangerouslySetInnerHTML={{ 
+                  __html: processClozeText(currentCard.front, true, 1) 
+                }} />
+              ) : (
+                <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
+              )}
               <div className="speed-difficulty-buttons">
                 <button className="speed-btn again" onClick={() => handleDifficultyChoice('again')}>
                   Again

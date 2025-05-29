@@ -7,7 +7,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
   const [backContent, setBackContent] = useState('');
 
   const handleCloze = () => {
-    if (type !== 'Cloze') return;
+    if (type !== 'Cloze' && type !== 'Image-Occlusion') return;
     
     const selection = window.getSelection();
     
@@ -17,8 +17,14 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
       const selectedText = range.toString();
       
       if (selectedText.trim()) {
+        // Find the next cloze number
+        const existingClozes = frontContent.match(/{{c(\d+)::/g) || [];
+        const maxClozeNum = existingClozes.length > 0 ? 
+          Math.max(...existingClozes.map(match => parseInt(match.match(/\d+/)[0]))) : 0;
+        const nextClozeNum = maxClozeNum + 1;
+        
         // Create the cloze deletion
-        const clozeText = `{{c1::${selectedText}}}`;
+        const clozeText = `{{c${nextClozeNum}::${selectedText}}}`;
         
         // Replace the selected text with cloze format
         range.deleteContents();
@@ -49,7 +55,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
   };
 
   const handleAdd = () => {
-    if (type === 'Cloze') {
+    if (type === 'Cloze' || type === 'Image-Occlusion') {
       if (!frontContent.trim()) return;
       addFlashcard(frontContent, backContent.trim() || frontContent);
     } else if (type === 'Basic-Type') {
@@ -68,7 +74,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
     const hasFrontContent = frontContent.replace(/<[^>]*>/g, '').trim() !== '';
     const hasBackContent = backContent.replace(/<[^>]*>/g, '').trim() !== '';
     
-    if (type === 'Cloze') {
+    if (type === 'Cloze' || type === 'Image-Occlusion') {
       return hasFrontContent;
     } else {
       return hasFrontContent && hasBackContent;
@@ -81,6 +87,11 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
       case 'Cloze':
         return {
           front: "Enter text with content to be hidden...",
+          back: "Enter additional info (optional)..."
+        };
+      case 'Image-Occlusion':
+        return {
+          front: "Enter text/image with multiple areas to be occluded...",
           back: "Enter additional info (optional)..."
         };
       case 'Basic-Type':
@@ -100,7 +111,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
 
   return (
     <div className="flashcard-input">
-      <h4>Front Side {type === 'Cloze' && <span>(Required)</span>}</h4>
+      <h4>Front Side {(type === 'Cloze' || type === 'Image-Occlusion') && <span>(Required)</span>}</h4>
       
       <div className="flashcard-box front-editor">
         <SimpleRichTextEditor
@@ -112,7 +123,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
       </div>
 
       <h4>
-        Back Side {type === 'Cloze' && <span>(Optional)</span>}
+        Back Side {(type === 'Cloze' || type === 'Image-Occlusion') && <span>(Optional)</span>}
         {type === 'Basic-Type' && <span>(Exact Answer)</span>}
       </h4>
       
@@ -133,14 +144,21 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
         </div>
       )}
 
-      {type === 'Cloze' && (
+      {(type === 'Cloze' || type === 'Image-Occlusion') && (
         <div style={{ marginBottom: '10px' }}>
           <button onClick={handleCloze} disabled={disabled} type="button">
-            [c] Cloze
+            [c] {type === 'Image-Occlusion' ? 'Occlude' : 'Cloze'}
           </button>
           <small style={{ marginLeft: '10px', color: '#666' }}>
-            Select text first, then click [c] to create cloze deletion
+            Select text first, then click [c] to create {type === 'Image-Occlusion' ? 'occlusion' : 'cloze deletion'}
           </small>
+          {type === 'Image-Occlusion' && (
+            <div style={{ marginTop: '5px' }}>
+              <small style={{ color: '#ff6b35', fontStyle: 'italic' }}>
+                🖼️ Image Occlusion: All areas stay hidden except the one being tested (shown in orange)
+              </small>
+            </div>
+          )}
         </div>
       )}
 
