@@ -79,9 +79,12 @@ export default function FlashcardStudyPage() {
     setCurrentIndex((prevIndex) => (prevIndex + 1) % flashcards.length);
   };
 
+  // For Image Occlusion, just display the content as-is
+  // The HTML structure is already correct from the editor
+
   // Process cloze text for different card types
   const processClozeText = (text, isRevealed, activeClozeDeletion = 1) => {
-    if (deckType !== "Cloze" && deckType !== "Image-Occlusion") return text;
+    if (deckType !== "Cloze") return text;
     
     // Replace all cloze deletions with appropriate styling
     let processedText = text;
@@ -92,41 +95,21 @@ export default function FlashcardStudyPage() {
     processedText = processedText.replace(clozePattern, (match, clozeNumber, clozeText) => {
       const clozeNum = parseInt(clozeNumber);
       
-      if (deckType === "Image-Occlusion") {
-        // IMAGE OCCLUSION TYPE
-        if (isRevealed) {
-          // When answer is revealed, only show the active one, keep others hidden
-          if (clozeNum === activeClozeDeletion) {
-            return `<span class="cloze-revealed-active">${clozeText}</span>`;
-          } else {
-            return `<span class="cloze-hidden-inactive">[...]</span>`;
-          }
+      if (isRevealed) {
+        // When answer is revealed, show all cloze deletions with highlighting
+        if (clozeNum === activeClozeDeletion) {
+          return `<span class="cloze-revealed-active">${clozeText}</span>`;
         } else {
-          // When question is shown, all are hidden but active one has different color
-          if (clozeNum === activeClozeDeletion) {
-            return `<span class="cloze-question-active">[...]</span>`;
-          } else {
-            return `<span class="cloze-hidden-inactive">[...]</span>`;
-          }
+          return `<span class="cloze-revealed-inactive">${clozeText}</span>`;
         }
       } else {
-        // REGULAR CLOZE TYPE (existing behavior)
-        if (isRevealed) {
-          // When answer is revealed, show all cloze deletions with highlighting
-          if (clozeNum === activeClozeDeletion) {
-            return `<span class="cloze-revealed-active">${clozeText}</span>`;
-          } else {
-            return `<span class="cloze-revealed-inactive">${clozeText}</span>`;
-          }
+        // When question is shown
+        if (clozeNum === activeClozeDeletion) {
+          // The active cloze deletion being tested - show as blue question
+          return `<span class="cloze-question">[...]</span>`;
         } else {
-          // When question is shown
-          if (clozeNum === activeClozeDeletion) {
-            // The active cloze deletion being tested - show as blue question
-            return `<span class="cloze-question">[...]</span>`;
-          } else {
-            // Other cloze deletions - show the actual text but dimmed
-            return `<span class="cloze-other">${clozeText}</span>`;
-          }
+          // Other cloze deletions - show the actual text but dimmed
+          return `<span class="cloze-other">${clozeText}</span>`;
         }
       }
     });
@@ -171,7 +154,14 @@ export default function FlashcardStudyPage() {
         </div>
 
         <div className="flashcard-front">
-          {(deckType === "Cloze" || deckType === "Image-Occlusion") ? (
+          {deckType === "Image-Occlusion" ? (
+            // For Image Occlusion, show front for question, back for answer
+            <div
+              dangerouslySetInnerHTML={{
+                __html: showBack ? currentCard.back : currentCard.front
+              }}
+            />
+          ) : deckType === "Cloze" ? (
             <div
               dangerouslySetInnerHTML={{
                 __html: processClozeText(currentCard.front, showBack, 1),
@@ -243,7 +233,8 @@ export default function FlashcardStudyPage() {
 
         {deckType !== 'Basic-Type' && showBack && (
           <>
-            {(deckType !== "Cloze" || hasCustomBackContent) && (
+            {/* For Image Occlusion, don't show back content separately since it's handled above */}
+            {deckType !== "Image-Occlusion" && (deckType !== "Cloze" || hasCustomBackContent) && (
               <div className="flashcard-back">
                 <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
               </div>

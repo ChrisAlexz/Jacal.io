@@ -7,9 +7,9 @@ import '../styles/ImageOcclusionEditor.css';
 const ImageOcclusionEditor = ({ onSave, disabled }) => {
   const { user } = useContext(UserAuthContext);
   const [image, setImage] = useState(null);
-  const [imageFile, setImageFile] = useState(null); // Store the actual file
+  const [imageFile, setImageFile] = useState(null);
   const [imageUrl, setImageUrl] = useState('');
-  const [uploadedImageUrl, setUploadedImageUrl] = useState(''); // Permanent URL
+  const [uploadedImageUrl, setUploadedImageUrl] = useState('');
   const [occlusions, setOcclusions] = useState([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentRect, setCurrentRect] = useState(null);
@@ -20,12 +20,13 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
   
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  const startPosRef = useRef({ x: 0, y: 0 });
 
   // Load image and setup canvas
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
-      setImageFile(file); // Store the file for later upload
+      setImageFile(file);
       const url = URL.createObjectURL(file);
       setImageUrl(url);
       
@@ -36,7 +37,6 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
       };
       img.src = url;
 
-      // Upload image to Supabase Storage
       await uploadImageToSupabase(file);
     }
   };
@@ -46,11 +46,9 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
 
     setIsUploading(true);
     try {
-      // Create a unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
-      // Upload to Supabase Storage
       const { data, error } = await supabase.storage
         .from('flashcard-images')
         .upload(fileName, file);
@@ -60,7 +58,6 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
         return;
       }
 
-      // Get the public URL
       const { data: { publicUrl } } = supabase.storage
         .from('flashcard-images')
         .getPublicUrl(fileName);
@@ -78,11 +75,9 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     const canvas = canvasRef.current;
     if (!canvas || !img) return;
 
-    // Base target dimensions
     const BASE_WIDTH = 600;
     const BASE_HEIGHT = 400;
     
-    // Apply user size adjustment
     const sizeMultiplier = canvasSize / 100;
     const targetWidth = BASE_WIDTH * sizeMultiplier;
     const targetHeight = BASE_HEIGHT * sizeMultiplier;
@@ -93,11 +88,9 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     let canvasWidth, canvasHeight;
     
     if (imgAspectRatio > targetAspectRatio) {
-      // Image is wider - fit to width
       canvasWidth = targetWidth;
       canvasHeight = targetWidth / imgAspectRatio;
     } else {
-      // Image is taller - fit to height
       canvasHeight = targetHeight;
       canvasWidth = targetHeight * imgAspectRatio;
     }
@@ -108,7 +101,6 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     drawCanvas();
   };
 
-  // Update canvas size when user changes the slider
   useEffect(() => {
     if (image) {
       setupCanvas(image);
@@ -125,51 +117,70 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
     
-    // Draw occlusions
+    // Draw occlusions with improved opacity
     occlusions.forEach((occlusion) => {
-      // Black rectangle
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      // Black rectangle with higher opacity
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)'; // Increased from 0.8
       ctx.fillRect(occlusion.x, occlusion.y, occlusion.width, occlusion.height);
       
       // Blue border
       ctx.strokeStyle = '#4facfe';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 3; // Increased from 2
       ctx.strokeRect(occlusion.x, occlusion.y, occlusion.width, occlusion.height);
       
-      // Label
-      ctx.fillStyle = '#4facfe';
+      // Label with better contrast
+      ctx.fillStyle = '#ffffff'; // Changed to white for better contrast
       ctx.font = 'bold 18px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       
       const labelX = occlusion.x + occlusion.width / 2;
       const labelY = occlusion.y + occlusion.height / 2;
+      
+      // Add text shadow for better readability
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowBlur = 2;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
+      
       ctx.fillText(occlusion.id.toString(), labelX, labelY);
+      
+      // Reset shadow
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
     });
     
-    // Draw current rectangle
+    // Draw current rectangle being drawn
     if (currentRect) {
       ctx.strokeStyle = '#4facfe';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]);
+      ctx.lineWidth = 3; // Increased from 2
+      ctx.setLineDash([8, 4]); // Increased dash size
       ctx.strokeRect(currentRect.x, currentRect.y, currentRect.width, currentRect.height);
       ctx.setLineDash([]);
     }
   };
 
-  // Mouse event handlers with proper coordinate calculation
+  // Improved mouse position calculation
   const getMousePos = (event) => {
     const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    
     const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
     
     return {
-      x: ((event.clientX - rect.left) / rect.width) * canvas.width,
-      y: ((event.clientY - rect.top) / rect.height) * canvas.height
+      x: (event.clientX - rect.left) * scaleX,
+      y: (event.clientY - rect.top) * scaleY
     };
   };
 
   const handleMouseDown = (event) => {
     if (!image || disabled || !canvasRef.current) return;
+    
+    event.preventDefault(); // Prevent any default behavior
     
     const pos = getMousePos(event);
     
@@ -186,32 +197,46 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
       }
     }
     
+    // Start drawing
     setIsDrawing(true);
-    setCurrentRect({ x: pos.x, y: pos.y, width: 0, height: 0 });
+    startPosRef.current = pos;
+    setCurrentRect({ 
+      x: pos.x, 
+      y: pos.y, 
+      width: 0, 
+      height: 0 
+    });
   };
 
   const handleMouseMove = (event) => {
-    if (!isDrawing || !currentRect) return;
+    if (!isDrawing || !currentRect || !canvasRef.current) return;
+    
+    event.preventDefault();
     
     const pos = getMousePos(event);
-    setCurrentRect(prev => ({
-      ...prev,
-      width: pos.x - prev.x,
-      height: pos.y - prev.y
-    }));
+    const startPos = startPosRef.current;
+    
+    setCurrentRect({
+      x: Math.min(startPos.x, pos.x),
+      y: Math.min(startPos.y, pos.y),
+      width: Math.abs(pos.x - startPos.x),
+      height: Math.abs(pos.y - startPos.y)
+    });
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (event) => {
     if (!isDrawing || !currentRect) return;
     
-    // Only add if rectangle is large enough
-    if (Math.abs(currentRect.width) > 30 && Math.abs(currentRect.height) > 30) {
+    event.preventDefault();
+    
+    // Only add if rectangle is large enough (reduced threshold for better UX)
+    if (Math.abs(currentRect.width) > 20 && Math.abs(currentRect.height) > 20) {
       const normalizedRect = {
         id: nextId,
-        x: currentRect.width < 0 ? currentRect.x + currentRect.width : currentRect.x,
-        y: currentRect.height < 0 ? currentRect.y + currentRect.height : currentRect.y,
-        width: Math.abs(currentRect.width),
-        height: Math.abs(currentRect.height)
+        x: currentRect.x,
+        y: currentRect.y,
+        width: currentRect.width,
+        height: currentRect.height
       };
       
       setOcclusions(prev => [...prev, normalizedRect]);
@@ -222,7 +247,15 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     setCurrentRect(null);
   };
 
-  // Redraw when occlusions change
+  // Add mouse leave handler to stop drawing if mouse leaves canvas
+  const handleMouseLeave = () => {
+    if (isDrawing) {
+      setIsDrawing(false);
+      setCurrentRect(null);
+    }
+  };
+
+  // Redraw when occlusions or currentRect change
   useEffect(() => {
     if (image) {
       drawCanvas();
@@ -235,11 +268,10 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
       return;
     }
 
-    // Use the permanent Supabase URL instead of blob URL
     const cards = occlusions.map(occlusion => ({
       id: occlusion.id,
       title: `${cardTitle} - ${occlusion.id}`,
-      imageUrl: uploadedImageUrl, // Use the permanent URL
+      imageUrl: uploadedImageUrl,
       occlusions: occlusions,
       revealedId: occlusion.id
     }));
@@ -259,7 +291,6 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     }
   };
 
-  // Quick size presets
   const setSizePreset = (size) => {
     setCanvasSize(size);
   };
@@ -356,13 +387,14 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
-              onMouseLeave={() => setIsDrawing(false)}
+              onMouseLeave={handleMouseLeave}
               style={{ 
                 cursor: disabled ? 'default' : 'crosshair',
-                border: '1px solid #444',
+                border: '2px solid #444',
                 borderRadius: '8px',
                 maxWidth: '100%',
-                height: 'auto'
+                height: 'auto',
+                display: 'block'
               }}
             />
           </div>
