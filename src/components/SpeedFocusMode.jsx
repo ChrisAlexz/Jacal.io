@@ -37,7 +37,6 @@ export default function SpeedFocusMode() {
   // Settings
   const [settings, setSettings] = useState({
     timePerCard: 10,
-    soundEnabled: true,
     autoAdvance: true,
     showTimer: true
   });
@@ -138,10 +137,8 @@ export default function SpeedFocusMode() {
     setIsActive(true);
     setTimeLeft(settings.timePerCard);
     setCardStartTime(Date.now());
-    resetStats();
-  };
-
-  const resetStats = () => {
+    
+    // Reset all stats when starting
     setScore(0);
     setStreak(0);
     setCorrectAnswers(0);
@@ -149,10 +146,33 @@ export default function SpeedFocusMode() {
     setCurrentIndex(0);
     setSpeedBonus(1);
     setGameEnded(false);
+    setShowAnswer(false);
+    setUserAnswer('');
+    setLastAnswerCorrect(null);
+  };
+
+  const resetGame = () => {
+    // Reset all game state
+    setGameStarted(false);
+    setGameEnded(false);
+    setIsActive(false);
+    setCurrentIndex(0);
+    setShowAnswer(false);
+    setUserAnswer('');
+    setLastAnswerCorrect(null);
+    setTimeLeft(settings.timePerCard);
+    setCardStartTime(null);
+    
+    // Reset stats
+    setScore(0);
+    setStreak(0);
+    setBestStreak(0);
+    setCorrectAnswers(0);
+    setTotalAnswers(0);
+    setSpeedBonus(1);
   };
 
   const handleTimeOut = () => {
-    playSound('timeout');
     handleAnswer(false, 0); // Wrong answer, 0 speed
   };
 
@@ -221,11 +241,9 @@ export default function SpeedFocusMode() {
       
       setScore(prev => prev + totalPoints);
       setSpeedBonus(speedMultiplier);
-      playSound('correct');
     } else {
       setStreak(0);
       setSpeedBonus(1);
-      playSound('incorrect');
     }
 
     // Auto advance to next card after showing feedback
@@ -252,49 +270,6 @@ export default function SpeedFocusMode() {
   const endGame = () => {
     setIsActive(false);
     setGameEnded(true);
-    playSound('gameEnd');
-  };
-
-  const playSound = (type) => {
-    if (!settings.soundEnabled) return;
-    
-    // Create simple beep sounds using Web Audio API
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    let frequency, duration;
-    switch (type) {
-      case 'correct':
-        frequency = 800;
-        duration = 0.2;
-        break;
-      case 'incorrect':
-        frequency = 300;
-        duration = 0.3;
-        break;
-      case 'timeout':
-        frequency = 200;
-        duration = 0.5;
-        break;
-      case 'gameEnd':
-        frequency = 600;
-        duration = 0.8;
-        break;
-      default:
-        frequency = 400;
-        duration = 0.1;
-    }
-    
-    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + duration);
   };
 
   const getAccuracy = () => {
@@ -354,17 +329,6 @@ export default function SpeedFocusMode() {
                 <option value={20}>20 seconds</option>
                 <option value={30}>30 seconds</option>
               </select>
-            </div>
-            
-            <div className="option-group">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={settings.soundEnabled}
-                  onChange={(e) => setSettings(prev => ({...prev, soundEnabled: e.target.checked}))}
-                />
-                Sound effects
-              </label>
             </div>
             
             <div className="option-group">
@@ -437,10 +401,7 @@ export default function SpeedFocusMode() {
           </div>
           
           <div className="game-over-actions">
-            <button className="play-again-btn" onClick={() => {
-              setGameStarted(false);
-              setGameEnded(false);
-            }}>
+            <button className="play-again-btn" onClick={resetGame}>
               🔄 Play Again
             </button>
             <button className="back-btn" onClick={() => navigate(-1)}>
