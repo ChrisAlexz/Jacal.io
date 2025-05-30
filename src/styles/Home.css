@@ -1,4 +1,4 @@
-/* src/styles/Home.css */
+/* src/styles/Home.css - ENHANCED WITH ANIMATIONS */
 
 .home-container {
   min-height: 100vh;
@@ -108,7 +108,7 @@
   box-shadow: 0 12px 35px rgba(79, 172, 254, 0.4);
 }
 
-/* Welcome Section for Authenticated Users */
+/* Welcome Section for Authenticated Users - ENHANCED WITH ANIMATIONS */
 .welcome-section {
   padding: 120px 20px 40px 20px; /* Added top padding for navbar */
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -116,6 +116,7 @@
   overflow: hidden;
 }
 
+/* ANIMATED BACKGROUND */
 .welcome-section::before {
   content: '';
   position: absolute;
@@ -123,8 +124,70 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at 30% 40%, rgba(79, 172, 254, 0.1) 0%, transparent 50%);
+  background: 
+    radial-gradient(circle at 30% 40%, rgba(79, 172, 254, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 70% 20%, rgba(0, 242, 254, 0.1) 0%, transparent 40%),
+    radial-gradient(circle at 20% 80%, rgba(79, 172, 254, 0.08) 0%, transparent 60%);
+  animation: backgroundPulse 8s ease-in-out infinite;
   pointer-events: none;
+}
+
+@keyframes backgroundPulse {
+  0%, 100% {
+    background: 
+      radial-gradient(circle at 30% 40%, rgba(79, 172, 254, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 70% 20%, rgba(0, 242, 254, 0.1) 0%, transparent 40%),
+      radial-gradient(circle at 20% 80%, rgba(79, 172, 254, 0.08) 0%, transparent 60%);
+  }
+  50% {
+    background: 
+      radial-gradient(circle at 35% 45%, rgba(79, 172, 254, 0.2) 0%, transparent 55%),
+      radial-gradient(circle at 65% 25%, rgba(0, 242, 254, 0.15) 0%, transparent 45%),
+      radial-gradient(circle at 25% 75%, rgba(79, 172, 254, 0.12) 0%, transparent 65%);
+  }
+}
+
+/* FLOATING PARTICLES - MOVING VERSION */
+.welcome-section::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 20%, rgba(79, 172, 254, 0.4) 2px, transparent 2px),
+    radial-gradient(circle at 80% 40%, rgba(0, 242, 254, 0.3) 1px, transparent 1px),
+    radial-gradient(circle at 40% 80%, rgba(79, 172, 254, 0.3) 1px, transparent 1px),
+    radial-gradient(circle at 60% 10%, rgba(0, 242, 254, 0.2) 1px, transparent 1px),
+    radial-gradient(circle at 10% 60%, rgba(79, 172, 254, 0.2) 1px, transparent 1px),
+    radial-gradient(circle at 90% 80%, rgba(0, 242, 254, 0.25) 1px, transparent 1px);
+  background-size: 200px 200px, 300px 300px, 250px 250px, 180px 180px, 220px 220px, 190px 190px;
+  animation: movingParticles 25s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes movingParticles {
+  0% {
+    transform: translateY(0px) translateX(0px);
+    background-position: 0% 0%, 50% 50%, 100% 0%, 25% 75%, 75% 25%, 0% 100%;
+  }
+  25% {
+    transform: translateY(-20px) translateX(15px);
+    background-position: 25% 25%, 75% 25%, 50% 50%, 0% 100%, 100% 0%, 25% 75%;
+  }
+  50% {
+    transform: translateY(-10px) translateX(-10px);
+    background-position: 50% 50%, 100% 0%, 0% 100%, 75% 25%, 25% 75%, 50% 50%;
+  }
+  75% {
+    transform: translateY(-30px) translateX(25px);
+    background-position: 75% 75%, 25% 75%, 50% 0%, 100% 50%, 0% 25%, 75% 100%;
+  }
+  100% {
+    transform: translateY(0px) translateX(0px);
+    background-position: 100% 100%, 0% 100%, 100% 100%, 50% 0%, 50% 50%, 100% 0%;
+  }
 }
 
 .welcome-content {
@@ -140,8 +203,10 @@
 
 .greeting-text {
   flex: 1;
+  position: relative;
 }
 
+/* ANIMATED GREETING TIME */
 .greeting-time {
   display: block;
   font-size: 1rem;
@@ -150,21 +215,46 @@
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 1px;
+  animation: glow 3s ease-in-out infinite;
 }
 
+@keyframes glow {
+  0%, 100% {
+    text-shadow: 0 0 10px rgba(79, 172, 254, 0.3);
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(79, 172, 254, 0.6), 0 0 30px rgba(79, 172, 254, 0.3);
+  }
+}
+
+/* ANIMATED WELCOME TITLE */
 .welcome-title {
   font-size: 2.5rem;
   font-weight: 700;
   margin: 0 0 12px 0;
   color: white;
+  animation: slideInFade 1s ease-out;
+}
+
+@keyframes slideInFade {
+  0% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .welcome-subtitle {
   font-size: 1.1rem;
   color: #aaa;
   margin: 0;
+  animation: slideInFade 1s ease-out 0.2s both;
 }
 
+/* ENHANCED CTA BUTTON */
 .primary-cta {
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: white;
@@ -179,16 +269,45 @@
   align-items: center;
   gap: 12px;
   box-shadow: 0 4px 20px rgba(79, 172, 254, 0.3);
+  position: relative;
+  overflow: hidden;
+  animation: slideInFade 1s ease-out 0.4s both;
+}
+
+/* BUTTON SHIMMER EFFECT */
+.primary-cta::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.primary-cta:hover::before {
+  left: 100%;
 }
 
 .primary-cta:hover {
-  transform: translateY(-2px);
+  transform: translateY(-2px) scale(1.02);
   box-shadow: 0 8px 30px rgba(79, 172, 254, 0.4);
 }
 
 .cta-icon {
   font-size: 1.3rem;
   font-weight: bold;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 /* Stats Section */
@@ -596,6 +715,12 @@
   .sets-grid {
     grid-template-columns: 1fr;
   }
+
+  /* Reduce animation intensity on mobile */
+  .welcome-section::after {
+    animation-duration: 35s;
+    background-size: 120px 120px, 180px 180px, 150px 150px, 100px 100px, 130px 130px, 110px 110px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -613,5 +738,14 @@
   
   .home-container {
     padding: 0 10px;
+  }
+
+  /* Disable complex animations on very small screens for performance */
+  .welcome-section::before {
+    animation: none;
+  }
+  
+  .welcome-section::after {
+    display: none;
   }
 }

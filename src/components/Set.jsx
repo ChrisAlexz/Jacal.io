@@ -1,9 +1,10 @@
-// src/components/Set.jsx
+// src/components/Set.jsx - UPDATED WITH CUSTOM DELETE MODALS
 import React, { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
 import ClassDeckModal from './ClassDeckModal';
+import DeleteConfirmationModal from './DeleteConfirmationModal'; // Import the new component
 import '../styles/Set.css';
 import Layout from './Layout';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -19,6 +20,16 @@ export default function Set() {
   const [editingClassNames, setEditingClassNames] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('recent');
+  
+  // Delete modal state
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    type: '',
+    id: null,
+    name: '',
+    onConfirm: null
+  });
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -88,10 +99,27 @@ export default function Set() {
     setExpandedClasses(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const handleDeleteClass = async (classId, e) => {
+  // Updated delete class handler with custom modal
+  const handleDeleteClass = async (classId, className, e) => {
     e.stopPropagation();
-    if (!window.confirm('Delete this class and all its decks?')) return;
+    
+    const classObj = classes.find(c => c.id === classId);
+    const deckCount = classObj?.flashcard_sets?.length || 0;
+    
+    setDeleteModal({
+      isOpen: true,
+      type: 'class',
+      id: classId,
+      name: className,
+      onConfirm: () => performDeleteClass(classId),
+      title: 'Delete Class',
+      message: deckCount > 0 
+        ? `This will delete the class "${className}" and all ${deckCount} deck${deckCount !== 1 ? 's' : ''} inside it.`
+        : `This will delete the class "${className}".`
+    });
+  };
 
+  const performDeleteClass = async (classId) => {
     try {
       const { error } = await supabase
         .from('classes')
@@ -106,10 +134,27 @@ export default function Set() {
     }
   };
 
-  const handleDeleteDeck = async (deckId, e) => {
+  // Updated delete deck handler with custom modal
+  const handleDeleteDeck = async (deckId, deckTitle, e) => {
     e.stopPropagation();
-    if (!window.confirm('Delete this deck?')) return;
+    
+    const deck = classes.flatMap(c => c.flashcard_sets).find(d => d.id === deckId);
+    const cardCount = deck?.card_count || 0;
+    
+    setDeleteModal({
+      isOpen: true,
+      type: 'deck',
+      id: deckId,
+      name: deckTitle,
+      onConfirm: () => performDeleteDeck(deckId),
+      title: 'Delete Deck',
+      message: cardCount > 0 
+        ? `This will delete the deck "${deckTitle}" and all ${cardCount} card${cardCount !== 1 ? 's' : ''} inside it.`
+        : `This will delete the deck "${deckTitle}".`
+    });
+  };
 
+  const performDeleteDeck = async (deckId) => {
     try {
       const { error } = await supabase
         .from('flashcard_sets')
@@ -127,6 +172,16 @@ export default function Set() {
     } catch (err) {
       console.error('Error deleting deck:', err);
     }
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({
+      isOpen: false,
+      type: '',
+      id: null,
+      name: '',
+      onConfirm: null
+    });
   };
 
   const handleClassNameInputChange = (classId, value) => {
@@ -293,7 +348,7 @@ export default function Set() {
                         </button>
                         <button
                           className="delete-class-btn"
-                          onClick={(e) => handleDeleteClass(cls.id, e)}
+                          onClick={(e) => handleDeleteClass(cls.id, cls.name, e)}
                           title="Delete class"
                         >
                           <FontAwesomeIcon icon={faTrash} />
@@ -336,7 +391,7 @@ export default function Set() {
                                     </button>
                                     <button
                                       className="action-btn delete-btn"
-                                      onClick={(e) => handleDeleteDeck(deck.id, e)}
+                                      onClick={(e) => handleDeleteDeck(deck.id, deck.title, e)}
                                       title="Delete deck"
                                     >
                                       <FontAwesomeIcon icon={faTrash} />
@@ -393,6 +448,7 @@ export default function Set() {
           </div>
         </div>
 
+        {/* Modals */}
         {showModal && (
           <ClassDeckModal
             onClose={() => {
@@ -407,6 +463,17 @@ export default function Set() {
             preselectedClassId={selectedClassId}
           />
         )}
+
+        {/* Custom Delete Confirmation Modal */}
+        <DeleteConfirmationModal
+          isOpen={deleteModal.isOpen}
+          onClose={closeDeleteModal}
+          onConfirm={deleteModal.onConfirm}
+          title={deleteModal.title}
+          message={deleteModal.message}
+          itemName={deleteModal.name}
+          type={deleteModal.type}
+        />
       </div>
     </Layout>
   );

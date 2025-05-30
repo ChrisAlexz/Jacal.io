@@ -1,4 +1,4 @@
-// src/components/SpeedFocusMode.jsx
+// src/components/SpeedFocusMode.jsx - FIXED VERSION
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
@@ -48,13 +48,15 @@ export default function SpeedFocusMode() {
     }
   }, [id]);
 
-  // Timer effect
+  // Timer effect - FIXED: Better safety checks
   useEffect(() => {
     let interval;
-    if (isActive && timeLeft > 0 && !showAnswer) {
+    if (isActive && timeLeft > 0 && !showAnswer && !gameEnded && flashcards.length > 0 && currentIndex < flashcards.length) {
       interval = setInterval(() => {
         setTimeLeft(time => {
           if (time <= 1) {
+            // Stop the timer and handle timeout
+            setIsActive(false);
             handleTimeOut();
             return 0;
           }
@@ -63,7 +65,7 @@ export default function SpeedFocusMode() {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, showAnswer]);
+  }, [isActive, timeLeft, showAnswer, gameEnded, flashcards.length, currentIndex]);
 
   const fetchFlashcardSet = async (setId) => {
     try {
@@ -133,6 +135,12 @@ export default function SpeedFocusMode() {
   };
 
   const startGame = () => {
+    // FIXED: Check if we have flashcards before starting
+    if (flashcards.length === 0) {
+      console.error('No flashcards available to start game');
+      return;
+    }
+
     setGameStarted(true);
     setIsActive(true);
     setTimeLeft(settings.timePerCard);
@@ -173,7 +181,9 @@ export default function SpeedFocusMode() {
   };
 
   const handleTimeOut = () => {
-    handleAnswer(false, 0); // Wrong answer, 0 speed
+    // FIXED: Call handleAnswer directly without additional checks here
+    // The timer already verified the conditions before calling this
+    handleAnswer(false, settings.timePerCard); // Wrong answer, full time used
   };
 
   const handleReveal = () => {
@@ -184,7 +194,8 @@ export default function SpeedFocusMode() {
   };
 
   const handleSubmitTypedAnswer = () => {
-    if (deckType === 'Basic-Type' && userAnswer.trim()) {
+    // FIXED: Add safety check
+    if (deckType === 'Basic-Type' && userAnswer.trim() && flashcards.length > 0 && currentIndex < flashcards.length) {
       const currentCard = flashcards[currentIndex];
       const correctAnswer = currentCard.back.replace(/<[^>]*>/g, '').trim().toLowerCase();
       const userAnswerClean = userAnswer.trim().toLowerCase();
@@ -214,7 +225,7 @@ export default function SpeedFocusMode() {
         isCorrect = false;
     }
     
-    const responseTime = (Date.now() - cardStartTime) / 1000;
+    const responseTime = cardStartTime ? (Date.now() - cardStartTime) / 1000 : settings.timePerCard;
     handleAnswer(isCorrect, responseTime);
   };
 
@@ -246,19 +257,26 @@ export default function SpeedFocusMode() {
       setSpeedBonus(1);
     }
 
-    // Auto advance to next card after showing feedback
+    // FIXED: Auto advance to next card after showing feedback, with better timing
     setTimeout(() => {
-      nextCard();
+      // Check if we're still in the game before advancing
+      if (!gameEnded && flashcards.length > 0) {
+        nextCard();
+      }
     }, 1500);
   };
 
   const nextCard = () => {
-    if (currentIndex >= flashcards.length - 1) {
+    // FIXED: Better bounds checking and state management
+    const nextIndex = currentIndex + 1;
+    
+    if (flashcards.length === 0 || nextIndex >= flashcards.length) {
       endGame();
       return;
     }
     
-    setCurrentIndex(prev => prev + 1);
+    // Update to next card
+    setCurrentIndex(nextIndex);
     setShowAnswer(false);
     setUserAnswer('');
     setTimeLeft(settings.timePerCard);
@@ -287,7 +305,8 @@ export default function SpeedFocusMode() {
     return '#dc3545';
   };
 
-  const currentCard = flashcards[currentIndex];
+  // FIXED: Add safety check for currentCard
+  const currentCard = flashcards.length > 0 && currentIndex < flashcards.length ? flashcards[currentIndex] : null;
 
   if (flashcards.length === 0) {
     return (
@@ -297,9 +316,9 @@ export default function SpeedFocusMode() {
     );
   }
 
-  // Check if this is an image occlusion card
-  const isImageOcclusionCard = currentCard?.front?.includes('image-occlusion-card') || 
-                              currentCard?.front?.includes('occlusion-');
+  // FIXED: Add safety check before checking card properties
+  const isImageOcclusionCard = currentCard && (currentCard.front?.includes('image-occlusion-card') || 
+                              currentCard.front?.includes('occlusion-'));
 
   // Settings Screen
   if (!gameStarted) {
@@ -409,6 +428,15 @@ export default function SpeedFocusMode() {
             </button>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // FIXED: Add safety check for currentCard before rendering
+  if (!currentCard) {
+    return (
+      <div className="speed-focus-container">
+        <div className="loading">Loading card...</div>
       </div>
     );
   }
