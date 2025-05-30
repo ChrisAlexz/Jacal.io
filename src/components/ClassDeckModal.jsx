@@ -1,4 +1,4 @@
-// src/components/ClassDeckModal.jsx
+// src/components/ClassDeckModal.jsx - FIXED VERSION (keeping original functionality)
 import React, { useState, useEffect, useContext } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
@@ -15,6 +15,10 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
   const [deckName, setDeckName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Determine modal type and content
+  const isAddingToDeck = Boolean(preselectedClassId);
+  const selectedClass = classes.find(cls => cls.id === preselectedClassId);
 
   // Fetch existing classes for the user
   useEffect(() => {
@@ -50,7 +54,7 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
         throw new Error('User is not logged in or session has expired.');
       }
       if (!deckName.trim()) {
-        throw new Error('Set name is required.');
+        throw new Error('Deck name is required.');
       }
 
       // If "Create New Set" is selected, we also create a new class row
@@ -103,37 +107,60 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
     }
   };
 
+  const getModalTitle = () => {
+    if (isAddingToDeck) {
+      return 'Add New Deck';
+    } else {
+      return selectedOption === 'new' ? 'Create New Set' : 'Create New Deck';
+    }
+  };
+
   return (
     <div className="modal-overlay">
       <div className="class-deck-modal">
-        <h2>{selectedOption === 'new' ? 'Create New Set' : 'Create New Deck'}</h2>
-        {error && <div className="error-message">{error}</div>}
+        <div className="modal-header">
+          <h2>{getModalTitle()}</h2>
+          {isAddingToDeck && selectedClass && (
+            <p className="modal-subtitle">Adding to "{selectedClass.name}"</p>
+          )}
+        </div>
+
+        {error && (
+          <div className="error-message">
+            <span className="error-icon">⚠️</span>
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Set</label>
-            <select
-              value={selectedOption}
-              onChange={(e) => setSelectedOption(e.target.value)}
-              disabled={loading}
-            >
-              <option value="new">Create New Set</option>
-              {classes.map((cls) => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!isAddingToDeck && (
+            <div className="form-group">
+              <label>Set</label>
+              <div className="select-container">
+                <select
+                  value={selectedOption}
+                  onChange={(e) => setSelectedOption(e.target.value)}
+                  disabled={loading}
+                >
+                  <option value="new">Create New Set</option>
+                  {classes.map((cls) => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
 
-          {selectedOption === 'new' && (
+          {(selectedOption === 'new' && !isAddingToDeck) && (
             <div className="form-group">
               <label>Set Name</label>
               <input
                 type="text"
                 value={className}
                 onChange={(e) => setClassName(e.target.value)}
-                placeholder="Enter new set name"
+                placeholder="e.g., Spanish Vocabulary, Biology Chapter 1"
                 disabled={loading}
               />
             </div>
@@ -145,7 +172,7 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
               type="text"
               value={deckName}
               onChange={(e) => setDeckName(e.target.value)}
-              placeholder="Enter deck name"
+              placeholder="e.g., Basic Vocabulary, Unit 1 Terms"
               disabled={loading}
               required
             />
@@ -163,9 +190,19 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
             <button
               type="submit"
               className="create-btn"
-              disabled={loading}
+              disabled={loading || !deckName.trim()}
             >
-              {loading ? 'Creating...' : 'Create'}
+              {loading ? (
+                <>
+                  <span className="loading-spinner"></span>
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <span className="btn-icon"></span>
+                  {isAddingToDeck ? 'Add Deck' : 'Create'}
+                </>
+              )}
             </button>
           </div>
         </form>

@@ -659,3 +659,295 @@
     font-weight: bold;
     border: 2px solid #666;
   }
+  /* ADD ONLY THESE MINIMAL STYLES TO THE END OF FlashcardStudyPage.css */
+
+/* Study Header (doesn't interfere with study box) */
+/* ADD ONLY THESE MINIMAL STYLES TO THE END OF FlashcardStudyPage.css */
+
+/* Study Header with Gaming-Inspired Stats */
+.study-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(40, 40, 40, 0.95) 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(79, 172, 254, 0.2);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.study-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 50%, #4facfe 100%);
+  animation: headerGlow 3s ease-in-out infinite;
+}
+
+@keyframes headerGlow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.study-info h1 {
+  margin: 0 0 5px 0;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.progress-info {
+  color: #4facfe;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Gaming-Style Progress Stats */
+.study-stats-header {
+  display: flex;
+  gap: 12px;
+}
+
+.stat-item {
+  position: relative;
+  text-align: center;
+  padding: 12px 16px;
+  border-radius: 12px;
+  min-width: 70px;
+  transition: all 0.3s ease;
+  cursor: default;
+  backdrop-filter: blur(5px);
+  overflow: hidden;
+}
+
+.stat-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.1;
+  border-radius: 12px;
+  transition: opacity 0.3s ease;
+}
+
+.stat-item:hover::before {
+  opacity: 0.2;
+}
+
+/* Unique Color Schemes */
+.stat-item.new {
+  background: linear-gradient(135deg, rgba(138, 43, 226, 0.15) 0%, rgba(75, 0, 130, 0.15) 100%);
+  border: 2px solid rgba(138, 43, 226, 0.4);
+  box-shadow: 0 0 15px rgba(138, 43, 226, 0.2);
+}
+
+.stat-item.new::before {
+  background: radial-gradient(circle, rgba(138, 43, 226, 0.3) 0%, transparent 70%);
+}
+
+.stat-item.learning {
+  background: linear-gradient(135deg, rgba(255, 140, 0, 0.15) 0%, rgba(255, 69, 0, 0.15) 100%);
+  border: 2px solid rgba(255, 140, 0, 0.4);
+  box-shadow: 0 0 15px rgba(255, 140, 0, 0.2);
+}
+
+.stat-item.learning::before {
+  background: radial-gradient(circle, rgba(255, 140, 0, 0.3) 0%, transparent 70%);
+}
+
+.stat-item.review {
+  background: linear-gradient(135deg, rgba(0, 255, 127, 0.15) 0%, rgba(34, 139, 34, 0.15) 100%);
+  border: 2px solid rgba(0, 255, 127, 0.4);
+  box-shadow: 0 0 15px rgba(0, 255, 127, 0.2);
+}
+
+.stat-item.review::before {
+  background: radial-gradient(circle, rgba(0, 255, 127, 0.3) 0%, transparent 70%);
+}
+
+.stat-item .count {
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin-bottom: 2px;
+  text-shadow: 0 0 10px currentColor;
+}
+
+.stat-item.new .count {
+  color: #da70d6;
+}
+
+.stat-item.learning .count {
+  color: #ff8c00;
+}
+
+.stat-item.review .count {
+  color: #00ff7f;
+}
+
+.stat-item .label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.stat-item.new .label {
+  color: #dda0dd;
+}
+
+.stat-item.learning .label {
+  color: #ffb347;
+}
+
+.stat-item.review .label {
+  color: #90ee90;
+}
+
+/* Pulsing Animation for Active Stats */
+.stat-item:not(.zero) {
+  animation: statPulse 4s ease-in-out infinite;
+}
+
+@keyframes statPulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 0 15px rgba(var(--glow-color), 0.2);
+  }
+  50% { 
+    transform: scale(1.02);
+    box-shadow: 0 0 25px rgba(var(--glow-color), 0.4);
+  }
+}
+
+.stat-item.new:not(.zero) {
+  --glow-color: 138, 43, 226;
+}
+
+.stat-item.learning:not(.zero) {
+  --glow-color: 255, 140, 0;
+}
+
+.stat-item.review:not(.zero) {
+  --glow-color: 0, 255, 127;
+}
+
+/* Study Completion (separate from study box) */
+.study-completion {
+  text-align: center;
+  padding: 60px 20px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.completion-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+.study-completion h2 {
+  color: white;
+  margin-bottom: 10px;
+}
+
+.study-completion p {
+  color: #aaa;
+  margin-bottom: 30px;
+}
+
+.back-button {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 28px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
+}
+
+/* Show Intervals Button (in existing study-mode-selector) */
+.show-intervals-btn {
+  background: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.show-intervals-btn:hover {
+  background: rgba(255, 193, 7, 0.2);
+}
+
+/* Interval Preview (only shows when toggled) */
+.interval-preview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 15px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.interval-item {
+  text-align: center;
+}
+
+.interval-item button.preview {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  margin-bottom: 3px;
+  opacity: 0.7;
+}
+
+.interval-text {
+  font-size: 0.7rem;
+  color: #aaa;
+}
+
+/* Button Row (doesn't change existing difficulty-buttons) */
+.button-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .study-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .study-stats-header {
+    gap: 10px;
+  }
+  
+  .interval-preview {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

@@ -1,3 +1,4 @@
+/* ClassDeckModal.css - ENHANCED VERSION (keeping original class names) */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -5,102 +6,337 @@
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  animation: overlayFadeIn 0.3s ease-out;
+}
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(5px);
+  }
 }
 
 .class-deck-modal {
-  background-color: #222;
-  border-radius: 8px;
-  padding: 24px;
+  background-color: #1e1e1e;
+  border-radius: 20px;
+  padding: 0;
   width: 90%;
   max-width: 500px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  color: white;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  border: 1px solid #333;
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease-out;
 }
 
-.class-deck-modal h2 {
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Enhanced Header */
+.modal-header {
+  text-align: center;
+  padding: 30px 30px 25px 30px;
+  background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+  border-bottom: 1px solid #333;
+  position: relative;
+}
+
+.modal-header h2 {
   color: #fff;
   margin-top: 0;
-  margin-bottom: 20px;
-  font-size: 1.5rem;
+  margin-bottom: 15px;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.modal-subtitle {
+  color: #aaa;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+/* Enhanced Form */
+.class-deck-modal form {
+  padding: 40px 30px 30px 30px;
 }
 
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  font-weight: 500;
+  font-weight: 600;
   color: #ddd;
+  font-size: 0.95rem;
 }
 
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 4px;
-  border: 1px solid #444;
-  background-color: #333;
-  color: #fff;
-  font-size: 1rem;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: #4facfe;
-}
-
+/* Enhanced Select */
 .select-container {
   position: relative;
 }
 
-.select-container:after {
+.select-container::after {
   content: '▼';
   font-size: 0.8rem;
-  color: #aaa;
+  color: #666;
   position: absolute;
-  right: 12px;
+  right: 15px;
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 24px;
-  gap: 12px;
-}
-
-.modal-actions button {
-  padding: 10px 16px;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.cancel-btn {
-  background-color: transparent;
-  border: 1px solid #666;
-  color: #ddd;
+.form-group select:focus + .select-container::after {
+  color: #4facfe;
+  transform: translateY(-50%) rotate(180deg);
 }
 
-.cancel-btn:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+select, input {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 2px solid #333;
+  background-color: #2a2a2a;
+  color: white;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+select {
+  padding-right: 45px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+select:focus, input:focus {
+  outline: none;
+  border-color: #4facfe;
+  box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+  background-color: #333;
+  transform: translateY(-1px);
+}
+
+input::placeholder {
+  color: #666;
+  font-style: italic;
+}
+
+select:disabled, input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Enhanced Error Message */
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ff6b6b;
+  padding: 15px 30px;
+  margin: 0;
+  border-radius: 0;
+  background: rgba(220, 53, 69, 0.1);
+  border-top: 1px solid rgba(220, 53, 69, 0.3);
+  border-bottom: 1px solid rgba(220, 53, 69, 0.3);
+  font-size: 0.95rem;
+  animation: errorSlideIn 0.3s ease-out;
+}
+
+@keyframes errorSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.error-icon {
+  font-size: 1.2rem;
+  animation: errorPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes errorPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Enhanced Actions */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 30px;
+  gap: 15px;
+}
+
+.modal-actions button {
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.cancel-btn {
+  background-color: #333;
+  border: 1px solid #444;
+  color: #ccc;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background-color: #3a3a3a;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .create-btn {
-  background-color: #4facfe;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   border: none;
   color: white;
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+  position: relative;
+  overflow: hidden;
 }
 
-.create-btn:hover {
-  background-color: #45a0f5;
+.create-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.create-btn:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.create-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+}
+
+.create-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.2);
+}
+
+.btn-icon {
+  font-size: 1.1rem;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .class-deck-modal {
+    margin: 10px;
+    max-width: calc(100vw - 20px);
+  }
+  
+  .modal-header {
+    padding: 25px 20px 20px 20px;
+  }
+  
+  .class-deck-modal form {
+    padding: 25px 20px;
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .modal-actions button {
+    width: 100%;
+  }
+  
+  .modal-icon {
+    font-size: 2.5rem;
+  }
+  
+  .modal-header h2 {
+    font-size: 1.4rem;
+  }
+  
+  .modal-subtitle {
+    font-size: 0.9rem;
+  }
+}
+
+/* Focus and Accessibility */
+.modal-overlay:focus {
+  outline: none;
+}
+
+.class-deck-modal {
+  outline: none;
+}
+
+/* Enhanced focus states for accessibility */
+select:focus,
+input:focus,
+.cancel-btn:focus,
+.create-btn:focus {
+  outline: 2px solid #4facfe;
+  outline-offset: 2px;
+}
+
+/* Enhanced hover states */
+input:hover:not(:disabled) {
+  border-color: #444;
+}
+
+select:hover:not(:disabled) {
+  border-color: #444;
 }
