@@ -1,22 +1,27 @@
-// src/components/FlashcardStudyPage.jsx - WITH ANKI ALGORITHM & AUTO INTERVALS
+// src/components/FlashcardStudyPage.jsx - FIXED SESSION-BASED STUDYING
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
-import { calculateNextReview, getDueCards, getStudyStats } from "../utils/SpacedRepetition";
+import { calculateNextReview, getDueCards, getStudyStats, shouldRemoveFromSession } from "../utils/SpacedRepetition";
 import "../styles/FlashcardStudyPage.css";
 
 export default function FlashcardStudyPage() {
-  const { id } = useParams(); // ID of the flashcard set
+  const { id } = useParams();
   const navigate = useNavigate();
-  const [flashcards, setFlashcards] = useState([]);
-  const [dueCards, setDueCards] = useState([]);
+  
+  // All cards from the deck
+  const [allCards, setAllCards] = useState([]);
+  
+  // Cards currently in the study session
+  const [sessionCards, setSessionCards] = useState([]);
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showBack, setShowBack] = useState(false);
   const [deckType, setDeckType] = useState("Basic");
   const [setTitle, setSetTitle] = useState("");
   const [studyStats, setStudyStats] = useState(null);
   const [showCompletionPopup, setShowCompletionPopup] = useState(false);
-  const [justCompleted, setJustCompleted] = useState(false);
   
   // State for type-in-answer functionality
   const [userAnswer, setUserAnswer] = useState('');
@@ -60,11 +65,12 @@ export default function FlashcardStudyPage() {
       }
 
       const cards = data || [];
-      setFlashcards(cards);
+      setAllCards(cards);
       
-      // Get cards that are due for review
-      const due = getDueCards(cards);
-      setDueCards(due);
+      // Initialize session cards - get all cards that should be in current session
+      const sessionDueCards = getDueCards(cards);
+      setSessionCards(sessionDueCards);
+      setCurrentIndex(0);
       
       // Calculate study statistics
       const stats = getStudyStats(cards);
@@ -77,18 +83,17 @@ export default function FlashcardStudyPage() {
 
   // Calculate what the intervals would be for each button
   const getIntervalPreviews = () => {
-    if (dueCards.length === 0 || currentIndex >= dueCards.length || !dueCards[currentIndex]) {
+    if (sessionCards.length === 0 || currentIndex >= sessionCards.length || !sessionCards[currentIndex]) {
       return { again: "1m", hard: "10m", good: "1d", easy: "4d" };
     }
 
-    const currentCard = dueCards[currentIndex];
+    const currentCard = sessionCards[currentIndex];
     const previews = {};
     
     ['again', 'hard', 'good', 'easy'].forEach(rating => {
       try {
         const tempCard = calculateNextReview({ ...currentCard }, rating);
         
-        // Calculate interval based on the algorithm result
         let intervalText = "New";
         
         if (tempCard.due) {
@@ -121,30 +126,21 @@ export default function FlashcardStudyPage() {
           }
         }
         
-        // If we still have "New" or invalid result, use defaults based on card state and rating
+        // Fallback intervals if calculation failed
         if (intervalText === "New" || intervalText === "Now") {
           const cardState = currentCard.state || 'new';
           
           if (cardState === 'new' || !cardState) {
-            // New card intervals
             const newCardIntervals = {
-              again: "1m",
-              hard: "1m", 
-              good: "1m",
-              easy: "4d"
+              again: "1m", hard: "1m", good: "1m", easy: "4d"
             };
             intervalText = newCardIntervals[rating];
           } else if (cardState === 'learning') {
-            // Learning card intervals
             const learningIntervals = {
-              again: "1m",
-              hard: "10m",
-              good: "1d", 
-              easy: "4d"
+              again: "1m", hard: "10m", good: "1d", easy: "4d"
             };
             intervalText = learningIntervals[rating];
           } else if (cardState === 'review') {
-            // Review card intervals - base on current interval if available
             const currentInterval = currentCard.interval_days || 1;
             const reviewIntervals = {
               again: "10m",
@@ -154,13 +150,7 @@ export default function FlashcardStudyPage() {
             };
             intervalText = reviewIntervals[rating];
           } else {
-            // Fallback intervals
-            const fallbackIntervals = {
-              again: "1m",
-              hard: "10m", 
-              good: "1d",
-              easy: "4d"
-            };
+            const fallbackIntervals = { again: "1m", hard: "10m", good: "1d", easy: "4d" };
             intervalText = fallbackIntervals[rating];
           }
         }
@@ -168,7 +158,6 @@ export default function FlashcardStudyPage() {
         previews[rating] = intervalText;
       } catch (error) {
         console.error(`Error calculating interval for ${rating}:`, error);
-        // Fallback intervals
         const fallbacks = { again: "1m", hard: "10m", good: "1d", easy: "4d" };
         previews[rating] = fallbacks[rating];
       }
@@ -177,45 +166,8 @@ export default function FlashcardStudyPage() {
     return previews;
   };
 
-  // Format interval for display
-  const formatInterval = (card) => {
-    if (!card.due) return "New";
-    
-    const now = new Date();
-    const dueDate = new Date(card.due);
-    
-    // Check for invalid dates
-    if (isNaN(dueDate.getTime())) return "New";
-    
-    const diffMs = dueDate.getTime() - now.getTime();
-    const diffMinutes = Math.round(diffMs / (1000 * 60));
-    
-    // If in the past or very soon, show as due now
-    if (diffMinutes <= 0) {
-      return "Now";
-    }
-    
-    if (diffMinutes < 60) {
-      return `${diffMinutes}m`;
-    } else if (diffMinutes < 1440) { // Less than 24 hours
-      const hours = Math.round(diffMinutes / 60);
-      return `${hours}h`;
-    } else {
-      const days = Math.round(diffMinutes / 1440);
-      if (days >= 365) {
-        const years = Math.round(days / 365);
-        return `${years}y`;
-      } else if (days >= 30) {
-        const months = Math.round(days / 30);
-        return `${months}mo`;
-      } else {
-        return `${days}d`;
-      }
-    }
-  };
-
   // Show loading only if we truly have no cards
-  if (dueCards.length === 0 && flashcards.length === 0) {
+  if (sessionCards.length === 0 && allCards.length === 0) {
     return (
       <div className="study-container">
         <div className="loading-study">
@@ -226,30 +178,43 @@ export default function FlashcardStudyPage() {
     );
   }
 
-  // If we just completed and showing popup, don't interfere
-  if (justCompleted && showCompletionPopup) {
-    // Continue to render the study interface with the popup
-  }
-  // If we have flashcards but no due cards, and we're not in completion state
-  else if (dueCards.length === 0 && flashcards.length > 0 && !justCompleted) {
-    // This happens on initial load when cards aren't properly set as due
-    const allCardsWithUpdatedDue = flashcards.map(card => ({
-      ...card,
-      due: new Date().toISOString()
-    }));
-    setDueCards(allCardsWithUpdatedDue);
-    setCurrentIndex(0);
+  // Check if session is complete
+  if (sessionCards.length === 0 && allCards.length > 0) {
     return (
       <div className="study-container">
-        <div className="loading-study">
-          <div className="loading-spinner"></div>
-          <p>Preparing cards...</p>
+        <div className="study-completion">
+          <div className="completion-icon">🎉</div>
+          <h2>Study Session Complete!</h2>
+          <p>You've mastered all the cards in this session. Every card was marked as "Easy" - excellent work!</p>
+          <div className="completion-actions">
+            <button 
+              className="back-button"
+              onClick={() => navigate(-1)}
+            >
+              Back to Sets
+            </button>
+            <button 
+              className="restart-button"
+              onClick={() => {
+                // Restart session with all cards
+                const newSessionCards = getDueCards(allCards);
+                setSessionCards(newSessionCards);
+                setCurrentIndex(0);
+                setShowBack(false);
+                setShowCorrectAnswer(false);
+                setIsAnswerCorrect(null);
+                setUserAnswer('');
+              }}
+            >
+              Study Again
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  const currentCard = dueCards.length > 0 && currentIndex < dueCards.length ? dueCards[currentIndex] : null;
+  const currentCard = sessionCards.length > 0 && currentIndex < sessionCards.length ? sessionCards[currentIndex] : null;
   
   // Safety check - if no current card, show loading
   if (!currentCard) {
@@ -303,7 +268,7 @@ export default function FlashcardStudyPage() {
         .update({
           state: updatedCard.state,
           ease_factor: updatedCard.ease_factor,
-          interval_days: updatedCard.interval,
+          interval_days: updatedCard.interval_days,
           step: updatedCard.step,
           reviews: updatedCard.reviews,
           lapses: updatedCard.lapses,
@@ -317,61 +282,48 @@ export default function FlashcardStudyPage() {
         return;
       }
 
-      // Update local flashcards state
-      setFlashcards(prev => 
-        prev.map(card => 
-          card.id === currentCardData.id ? updatedCard : card
-        )
+      // Update all cards state
+      const newAllCards = allCards.map(card => 
+        card.id === currentCardData.id ? updatedCard : card
       );
+      setAllCards(newAllCards);
 
-      // Calculate new due cards (remove current card)
-      const newDueCards = dueCards.filter((_, index) => index !== currentIndex);
-
-      // Check if this was the last card
-      if (newDueCards.length === 0) {
-        // Show completion popup immediately
-        setJustCompleted(true);
-        setShowCompletionPopup(true);
+      // Check if this card should be removed from session
+      if (shouldRemoveFromSession(updatedCard, difficulty)) {
+        // Remove card from session
+        const newSessionCards = sessionCards.filter((_, index) => index !== currentIndex);
+        setSessionCards(newSessionCards);
         
-        // Set timeout to restart after popup
-        setTimeout(() => {
-          setShowCompletionPopup(false);
-          setJustCompleted(false);
-          
-          // Restart with all cards
-          const allCardsWithUpdatedDue = flashcards.map(card => ({
-            ...card,
-            due: new Date().toISOString()
-          }));
-          
-          setFlashcards(allCardsWithUpdatedDue);
-          setDueCards(allCardsWithUpdatedDue);
-          setCurrentIndex(0);
-          setShowBack(false);
-          setShowCorrectAnswer(false);
-          setIsAnswerCorrect(null);
-          setUserAnswer('');
-          
-          // Update study stats
-          const restartStats = getStudyStats(allCardsWithUpdatedDue);
-          setStudyStats(restartStats);
-        }, 2000);
+        // Check if session is complete
+        if (newSessionCards.length === 0) {
+          // Show completion popup briefly, then show completion screen
+          setShowCompletionPopup(true);
+          setTimeout(() => {
+            setShowCompletionPopup(false);
+          }, 2000);
+          return;
+        }
         
-        return; // Don't continue with normal flow
+        // Adjust current index if needed
+        const nextIndex = currentIndex >= newSessionCards.length ? 0 : currentIndex;
+        setCurrentIndex(nextIndex);
+      } else {
+        // Keep card in session, update it
+        const newSessionCards = sessionCards.map((card, index) => 
+          index === currentIndex ? updatedCard : card
+        );
+        setSessionCards(newSessionCards);
+        
+        // Move to next card (or loop back to start)
+        const nextIndex = (currentIndex + 1) % sessionCards.length;
+        setCurrentIndex(nextIndex);
       }
 
-      // Normal flow: move to next card
-      setDueCards(newDueCards);
-
-      // Update study stats for normal progression
-      const progressStats = getStudyStats(flashcards.map(card => 
-        card.id === currentCardData.id ? updatedCard : card
-      ));
+      // Update study stats
+      const progressStats = getStudyStats(newAllCards);
       setStudyStats(progressStats);
 
-      // Reset for next card
-      const nextIndex = currentIndex >= newDueCards.length ? 0 : currentIndex;
-      setCurrentIndex(nextIndex);
+      // Reset card state
       setShowBack(false);
       setShowCorrectAnswer(false);
       setIsAnswerCorrect(null);
@@ -425,8 +377,8 @@ export default function FlashcardStudyPage() {
           <div className="completion-popup-content">
             <div className="completion-popup-icon">🎉</div>
             <div className="completion-popup-text">
-              <h3>You studied all of them!</h3>
-              <p>Will start over again now!</p>
+              <h3>Session Complete!</h3>
+              <p>All cards have been studied!</p>
             </div>
           </div>
         </div>
@@ -437,7 +389,7 @@ export default function FlashcardStudyPage() {
         <div className="study-info">
           <h1>{setTitle}</h1>
           <div className="progress-info">
-            <span>{currentIndex + 1} / {dueCards.length} due cards</span>
+            <span>{currentIndex + 1} / {sessionCards.length} session cards</span>
           </div>
         </div>
         
@@ -474,7 +426,6 @@ export default function FlashcardStudyPage() {
         <div className="flashcard-front">
           {isImageOcclusionCard ? (
             // For Image Occlusion, ALWAYS show the front HTML (which has all areas masked)
-            // The front HTML contains the proper blocked areas with active question styling
             <div
               dangerouslySetInnerHTML={{
                 __html: currentCard.front

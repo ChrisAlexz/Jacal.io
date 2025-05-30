@@ -1,7 +1,9 @@
-// src/components/SpeedFocusMode.jsx - FIXED VERSION
+// src/components/SpeedFocusMode.jsx - COMPLETE UPDATED VERSION
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { calculateNextReview, getDueCards, shouldRemoveFromSession } from '../utils/SpacedRepetition';
 import '../styles/SpeedFocusMode.css';
 
 export default function SpeedFocusMode() {
@@ -9,7 +11,8 @@ export default function SpeedFocusMode() {
   const navigate = useNavigate();
   
   // Game State
-  const [flashcards, setFlashcards] = useState([]);
+  const [allCards, setAllCards] = useState([]);
+  const [sessionCards, setSessionCards] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [deckType, setDeckType] = useState("Basic");
   const [isActive, setIsActive] = useState(false);
@@ -17,7 +20,7 @@ export default function SpeedFocusMode() {
   const [gameEnded, setGameEnded] = useState(false);
   
   // Timer & Speed
-  const [timeLimit, setTimeLimit] = useState(10); // seconds per card
+  const [timeLimit, setTimeLimit] = useState(10);
   const [timeLeft, setTimeLeft] = useState(10);
   const [cardStartTime, setCardStartTime] = useState(null);
   
@@ -27,6 +30,7 @@ export default function SpeedFocusMode() {
   const [bestStreak, setBestStreak] = useState(0);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [totalAnswers, setTotalAnswers] = useState(0);
+  const [easyCount, setEasyCount] = useState(0);
   const [speedBonus, setSpeedBonus] = useState(1);
   
   // Card State
@@ -48,14 +52,13 @@ export default function SpeedFocusMode() {
     }
   }, [id]);
 
-  // Timer effect - FIXED: Better safety checks
+  // Timer effect with better safety checks
   useEffect(() => {
     let interval;
-    if (isActive && timeLeft > 0 && !showAnswer && !gameEnded && flashcards.length > 0 && currentIndex < flashcards.length) {
+    if (isActive && timeLeft > 0 && !showAnswer && !gameEnded && sessionCards.length > 0 && currentIndex < sessionCards.length) {
       interval = setInterval(() => {
         setTimeLeft(time => {
           if (time <= 1) {
-            // Stop the timer and handle timeout
             setIsActive(false);
             handleTimeOut();
             return 0;
@@ -65,7 +68,7 @@ export default function SpeedFocusMode() {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, showAnswer, gameEnded, flashcards.length, currentIndex]);
+  }, [isActive, timeLeft, showAnswer, gameEnded, sessionCards.length, currentIndex]);
 
   const fetchFlashcardSet = async (setId) => {
     try {
@@ -86,7 +89,13 @@ export default function SpeedFocusMode() {
         .eq("set_id", setId);
 
       if (error) throw error;
-      setFlashcards(data || []);
+      
+      const cards = data || [];
+      setAllCards(cards);
+      
+      // Initialize session cards - all cards available for speed study
+      const sessionDueCards = getDueCards(cards);
+      setSessionCards(sessionDueCards);
     } catch (error) {
       console.error("Error fetching flashcards:", error);
     }
@@ -96,36 +105,27 @@ export default function SpeedFocusMode() {
   const processClozeText = (text, isRevealed, activeClozeDeletion = 1) => {
     // Check if this is an image occlusion card
     if (text.includes('image-occlusion-card') || text.includes('occlusion-')) {
-      // For image occlusion cards, return the text as-is since it already contains
-      // the proper HTML structure with Anki-style formatting
       return text;
     }
     
     if (deckType !== "Cloze") return text;
     
-    // Replace all cloze deletions with appropriate styling
     let processedText = text;
-    
-    // Find all cloze deletions (c1, c2, c3, etc.)
     const clozePattern = /{{c(\d+)::(.*?)}}/g;
     
     processedText = processedText.replace(clozePattern, (match, clozeNumber, clozeText) => {
       const clozeNum = parseInt(clozeNumber);
       
       if (isRevealed) {
-        // When answer is revealed, show all cloze deletions with highlighting
         if (clozeNum === activeClozeDeletion) {
           return `<span class="cloze-revealed-active">${clozeText}</span>`;
         } else {
           return `<span class="cloze-revealed-inactive">${clozeText}</span>`;
         }
       } else {
-        // When question is shown
         if (clozeNum === activeClozeDeletion) {
-          // The active cloze deletion being tested - show as blue question
           return `<span class="cloze-question">[...]</span>`;
         } else {
-          // Other cloze deletions - show the actual text but dimmed
           return `<span class="cloze-other">${clozeText}</span>`;
         }
       }
@@ -135,8 +135,7 @@ export default function SpeedFocusMode() {
   };
 
   const startGame = () => {
-    // FIXED: Check if we have flashcards before starting
-    if (flashcards.length === 0) {
+    if (sessionCards.length === 0) {
       console.error('No flashcards available to start game');
       return;
     }
@@ -151,6 +150,7 @@ export default function SpeedFocusMode() {
     setStreak(0);
     setCorrectAnswers(0);
     setTotalAnswers(0);
+    setEasyCount(0);
     setCurrentIndex(0);
     setSpeedBonus(1);
     setGameEnded(false);
@@ -177,13 +177,16 @@ export default function SpeedFocusMode() {
     setBestStreak(0);
     setCorrectAnswers(0);
     setTotalAnswers(0);
+    setEasyCount(0);
     setSpeedBonus(1);
+    
+    // Reset session cards
+    const newSessionCards = getDueCards(allCards);
+    setSessionCards(newSessionCards);
   };
 
   const handleTimeOut = () => {
-    // FIXED: Call handleAnswer directly without additional checks here
-    // The timer already verified the conditions before calling this
-    handleAnswer(false, settings.timePerCard); // Wrong answer, full time used
+    handleAnswer(false, settings.timePerCard);
   };
 
   const handleReveal = () => {
@@ -194,9 +197,8 @@ export default function SpeedFocusMode() {
   };
 
   const handleSubmitTypedAnswer = () => {
-    // FIXED: Add safety check
-    if (deckType === 'Basic-Type' && userAnswer.trim() && flashcards.length > 0 && currentIndex < flashcards.length) {
-      const currentCard = flashcards[currentIndex];
+    if (deckType === 'Basic-Type' && userAnswer.trim() && sessionCards.length > 0 && currentIndex < sessionCards.length) {
+      const currentCard = sessionCards[currentIndex];
       const correctAnswer = currentCard.back.replace(/<[^>]*>/g, '').trim().toLowerCase();
       const userAnswerClean = userAnswer.trim().toLowerCase();
       const isCorrect = correctAnswer === userAnswerClean;
@@ -206,7 +208,7 @@ export default function SpeedFocusMode() {
     }
   };
 
-  const handleDifficultyChoice = (difficulty) => {
+  const handleDifficultyChoice = async (difficulty) => {
     let isCorrect;
     switch (difficulty) {
       case 'again':
@@ -226,10 +228,12 @@ export default function SpeedFocusMode() {
     }
     
     const responseTime = cardStartTime ? (Date.now() - cardStartTime) / 1000 : settings.timePerCard;
-    handleAnswer(isCorrect, responseTime);
+    
+    // Handle the answer first for scoring
+    await handleAnswer(isCorrect, responseTime, difficulty);
   };
 
-  const handleAnswer = (isCorrect, responseTime) => {
+  const handleAnswer = async (isCorrect, responseTime, difficulty = null) => {
     setLastAnswerCorrect(isCorrect);
     setTotalAnswers(prev => prev + 1);
     
@@ -246,36 +250,105 @@ export default function SpeedFocusMode() {
       // Calculate speed bonus (faster = more points)
       const speedMultiplier = Math.max(0.5, (settings.timePerCard - responseTime) / settings.timePerCard);
       const basePoints = 100;
-      const streakBonus = Math.min(streak * 10, 200); // Max 200 bonus
-      const speedPoints = Math.round(basePoints * speedMultiplier);
+      const streakBonus = Math.min(streak * 10, 200);
+      
+      // Extra bonus for "Easy" answers
+      const difficultyMultiplier = difficulty === 'easy' ? 1.5 : 1;
+      const speedPoints = Math.round(basePoints * speedMultiplier * difficultyMultiplier);
       const totalPoints = speedPoints + streakBonus;
       
       setScore(prev => prev + totalPoints);
       setSpeedBonus(speedMultiplier);
+      
+      // Track "Easy" count
+      if (difficulty === 'easy') {
+        setEasyCount(prev => prev + 1);
+      }
     } else {
       setStreak(0);
       setSpeedBonus(1);
     }
 
-    // FIXED: Auto advance to next card after showing feedback, with better timing
-    setTimeout(() => {
-      // Check if we're still in the game before advancing
-      if (!gameEnded && flashcards.length > 0) {
+    // If difficulty is provided, update the card in database
+    if (difficulty && sessionCards.length > 0 && currentIndex < sessionCards.length) {
+      const currentCard = sessionCards[currentIndex];
+      
+      try {
+        // Calculate next review using the spaced repetition algorithm
+        const updatedCard = calculateNextReview(currentCard, difficulty);
+        
+        // Update card in database
+        await supabase
+          .from('flashcard_cards')
+          .update({
+            state: updatedCard.state,
+            ease_factor: updatedCard.ease_factor,
+            interval_days: updatedCard.interval_days,
+            step: updatedCard.step,
+            reviews: updatedCard.reviews,
+            lapses: updatedCard.lapses,
+            due: updatedCard.due,
+            last_reviewed: updatedCard.last_reviewed
+          })
+          .eq('id', currentCard.id);
+
+        // Update all cards state
+        const newAllCards = allCards.map(card => 
+          card.id === currentCard.id ? updatedCard : card
+        );
+        setAllCards(newAllCards);
+
+        // Check if this card should be removed from session (only for "Easy")
+        if (shouldRemoveFromSession(updatedCard, difficulty)) {
+          // Remove card from session
+          const newSessionCards = sessionCards.filter((_, index) => index !== currentIndex);
+          setSessionCards(newSessionCards);
+          
+          // Check if session is complete
+          if (newSessionCards.length === 0) {
+            setTimeout(() => {
+              endGame();
+            }, 1500);
+            return;
+          }
+          
+          // Adjust current index if needed
+          const nextIndex = currentIndex >= newSessionCards.length ? 0 : currentIndex;
+          setCurrentIndex(nextIndex);
+        } else {
+          // Keep card in session, update it
+          const newSessionCards = sessionCards.map((card, index) => 
+            index === currentIndex ? updatedCard : card
+          );
+          setSessionCards(newSessionCards);
+          
+          // Move to next card
+          const nextIndex = (currentIndex + 1) % sessionCards.length;
+          setCurrentIndex(nextIndex);
+        }
+      } catch (error) {
+        console.error('Error updating card:', error);
+        // Continue game even if database update fails
         nextCard();
       }
-    }, 1500);
+    } else {
+      // Auto advance to next card after showing feedback
+      setTimeout(() => {
+        if (!gameEnded && sessionCards.length > 0) {
+          nextCard();
+        }
+      }, 1500);
+    }
   };
 
   const nextCard = () => {
-    // FIXED: Better bounds checking and state management
     const nextIndex = currentIndex + 1;
     
-    if (flashcards.length === 0 || nextIndex >= flashcards.length) {
+    if (sessionCards.length === 0 || nextIndex >= sessionCards.length) {
       endGame();
       return;
     }
     
-    // Update to next card
     setCurrentIndex(nextIndex);
     setShowAnswer(false);
     setUserAnswer('');
@@ -305,10 +378,9 @@ export default function SpeedFocusMode() {
     return '#dc3545';
   };
 
-  // FIXED: Add safety check for currentCard
-  const currentCard = flashcards.length > 0 && currentIndex < flashcards.length ? flashcards[currentIndex] : null;
+  const currentCard = sessionCards.length > 0 && currentIndex < sessionCards.length ? sessionCards[currentIndex] : null;
 
-  if (flashcards.length === 0) {
+  if (sessionCards.length === 0 && allCards.length === 0) {
     return (
       <div className="speed-focus-container">
         <div className="loading">Loading flashcards...</div>
@@ -316,7 +388,6 @@ export default function SpeedFocusMode() {
     );
   }
 
-  // FIXED: Add safety check before checking card properties
   const isImageOcclusionCard = currentCard && (currentCard.front?.includes('image-occlusion-card') || 
                               currentCard.front?.includes('occlusion-'));
 
@@ -328,6 +399,11 @@ export default function SpeedFocusMode() {
           <div className="setup-header">
             <h1>⚡ Speed Focus Mode</h1>
             <p>Test your knowledge under time pressure!</p>
+          </div>
+          
+          <div className="speed-goal">
+            <h3>🎯 Goal: Mark all cards as "Easy"</h3>
+            <p>Cards will cycle until you're confident enough to mark them as "Easy"!</p>
           </div>
           
           <div className="setup-options">
@@ -364,12 +440,12 @@ export default function SpeedFocusMode() {
           
           <div className="game-info">
             <div className="info-stat">
-              <div className="stat-number">{flashcards.length}</div>
+              <div className="stat-number">{sessionCards.length}</div>
               <div className="stat-label">Cards</div>
             </div>
             <div className="info-stat">
-              <div className="stat-number">{Math.round(flashcards.length * settings.timePerCard / 60)}</div>
-              <div className="stat-label">Minutes</div>
+              <div className="stat-number">{Math.round(sessionCards.length * settings.timePerCard / 60)}</div>
+              <div className="stat-label">Est. Minutes</div>
             </div>
           </div>
           
@@ -391,8 +467,11 @@ export default function SpeedFocusMode() {
       <div className="speed-focus-container">
         <div className="game-over">
           <div className="game-over-header">
-            <h1>🎉 Challenge Complete!</h1>
+            <h1>🎉 Speed Challenge Complete!</h1>
             <div className="final-score">{score.toLocaleString()} points</div>
+            <div className="completion-message">
+              You marked all {easyCount} cards as "Easy" under time pressure!
+            </div>
           </div>
           
           <div className="final-stats">
@@ -405,6 +484,10 @@ export default function SpeedFocusMode() {
               <div className="stat-label">Best Streak</div>
             </div>
             <div className="stat-card">
+              <div className="stat-value">{easyCount}</div>
+              <div className="stat-label">Cards Mastered</div>
+            </div>
+            <div className="stat-card">
               <div className="stat-value">{correctAnswers}/{totalAnswers}</div>
               <div className="stat-label">Correct</div>
             </div>
@@ -413,15 +496,16 @@ export default function SpeedFocusMode() {
           <div className="achievements">
             {getAccuracy() >= 90 && <div className="achievement">🎯 Accuracy Master</div>}
             {bestStreak >= 10 && <div className="achievement">🔥 Streak Champion</div>}
-            {score >= 5000 && <div className="achievement">⭐ Speed Demon</div>}
-            {totalAnswers === flashcards.length && getAccuracy() === 100 && (
-              <div className="achievement">👑 Perfect Game</div>
+            {score >= 5000 && <div className="achievement">⚡ Speed Demon</div>}
+            {easyCount === allCards.length && getAccuracy() === 100 && (
+              <div className="achievement">👑 Perfect Speed Run</div>
             )}
+            {easyCount >= 20 && <div className="achievement">🧠 Master Scholar</div>}
           </div>
           
           <div className="game-over-actions">
             <button className="play-again-btn" onClick={resetGame}>
-              🔄 Play Again
+              🔄 Challenge Again
             </button>
             <button className="back-btn" onClick={() => navigate(-1)}>
               ← Back to Study
@@ -432,7 +516,6 @@ export default function SpeedFocusMode() {
     );
   }
 
-  // FIXED: Add safety check for currentCard before rendering
   if (!currentCard) {
     return (
       <div className="speed-focus-container">
@@ -452,7 +535,10 @@ export default function SpeedFocusMode() {
         </div>
         <div className="hud-center">
           <div className="card-progress">
-            {currentIndex + 1} / {flashcards.length}
+            {currentIndex + 1} / {sessionCards.length} cards
+          </div>
+          <div className="easy-counter">
+            ⭐ {easyCount} marked Easy
           </div>
         </div>
         <div className="hud-right">
@@ -501,7 +587,6 @@ export default function SpeedFocusMode() {
         <div className="card-content">
           <div className="card-front">
             {isImageOcclusionCard ? (
-              // For Image Occlusion, show front (blocked) when question, back (revealed) when answer
               <div dangerouslySetInnerHTML={{ 
                 __html: showAnswer ? currentCard.back : currentCard.front 
               }} />
@@ -551,7 +636,6 @@ export default function SpeedFocusMode() {
           {showAnswer && (
             <div className="card-back">
               {isImageOcclusionCard ? (
-                // For Image Occlusion, show the back card content (revealed answer)
                 <div dangerouslySetInnerHTML={{ 
                   __html: currentCard.back 
                 }} />
@@ -573,7 +657,7 @@ export default function SpeedFocusMode() {
                   Good
                 </button>
                 <button className="speed-btn easy" onClick={() => handleDifficultyChoice('easy')}>
-                  Easy
+                  Easy ⭐
                 </button>
               </div>
             </div>

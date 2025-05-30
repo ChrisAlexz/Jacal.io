@@ -1048,3 +1048,198 @@
     font-weight: bold;
     border: 2px solid #666;
   }
+  /* Updated Study Completion Styles - Add this to your FlashcardStudyPage.css */
+
+.study-completion {
+    text-align: center;
+    padding: 80px 40px !important;
+    max-width: 600px !important;
+    margin: 0 auto !important;
+    background: linear-gradient(135deg, rgba(30, 30, 30, 0.98) 0%, rgba(40, 40, 40, 0.98) 100%) !important;
+    border-radius: 24px !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(79, 172, 254, 0.2) !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4) !important;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
+  
+  .study-completion::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 50%, #4facfe 100%);
+    animation: shimmer 2s ease-in-out infinite;
+  }
+  
+  @keyframes shimmer {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  
+  .completion-icon {
+    font-size: 5rem !important;
+    margin-bottom: 24px !important;
+    animation: bounce 2s ease-in-out infinite;
+    filter: drop-shadow(0 4px 12px rgba(255, 193, 7, 0.3));
+  }
+  
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+  }
+  
+  .study-completion h2 {
+    color: white !important;
+    font-size: 2.2rem !important;
+    font-weight: 700 !important;
+    margin: 0 0 12px 0 !important;
+    background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .study-completion p {
+    color: #aaa !important;
+    font-size: 1.1rem !important;
+    margin: 0 0 40px 0 !important;
+    line-height: 1.6;
+    max-width: 400px;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    margin-bottom: 40px !important;
+  }
+  
+  .completion-actions {
+    display: flex !important;
+    gap: 20px !important;
+    justify-content: center !important;
+    flex-wrap: wrap;
+  }
+  
+  .back-button, .restart-button {
+    padding: 16px 32px !important;
+    border: none !important;
+    border-radius: 16px !important;
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    min-width: 160px;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .back-button {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #ddd !important;
+    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(10px);
+  }
+  
+  .back-button::before {
+    content: '←';
+    font-size: 1.2rem;
+    margin-right: 4px;
+  }
+  
+  .back-button:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    color: white !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.1) !important;
+  }
+  
+  .restart-button {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+    color: white !important;
+    border: 2px solid transparent !important;
+    box-shadow: 0 4px 20px rgba(79, 172, 254, 0.3) !important;
+  }
+  
+  .restart-button::before {
+    content: '🔄';
+    font-size: 1.1rem;
+    margin-right: 4px;
+  }
+  
+  .restart-button::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+  
+  .restart-button:hover::after {
+    left: 100%;
+  }
+  
+  .restart-button:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 12px 35px rgba(79, 172, 254, 0.4) !important;
+    border-color: rgba(79, 172, 254, 0.5) !important;
+  }
+  
+  /* Mobile responsiveness for completion */
+  @media (max-width: 768px) {
+    .study-completion {
+      padding: 60px 30px !important;
+      margin: 20px !important;
+      border-radius: 20px !important;
+    }
+    
+    .completion-icon {
+      font-size: 4rem !important;
+      margin-bottom: 20px !important;
+    }
+    
+    .study-completion h2 {
+      font-size: 1.8rem !important;
+    }
+    
+    .study-completion p {
+      font-size: 1rem !important;
+      margin-bottom: 30px !important;
+    }
+    
+    .completion-actions {
+      flex-direction: column !important;
+      gap: 15px !important;
+    }
+    
+    .back-button, .restart-button {
+      width: 100% !important;
+      padding: 18px 24px !important;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .study-completion {
+      padding: 50px 20px !important;
+      margin: 15px !important;
+    }
+    
+    .completion-icon {
+      font-size: 3.5rem !important;
+    }
+    
+    .study-completion h2 {
+      font-size: 1.6rem !important;
+    }
+  }

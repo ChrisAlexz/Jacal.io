@@ -1,4 +1,4 @@
-// src/utils/SpacedRepetition.js - Anki-style Spaced Repetition Algorithm
+// src/utils/SpacedRepetition.js - FIXED Anki-style Spaced Repetition Algorithm
 
 /**
  * Anki-style Spaced Repetition Algorithm
@@ -58,7 +58,7 @@ export function calculateNextReview(card, rating, settings = DEFAULT_SETTINGS) {
   if (!updatedCard.state) {
     updatedCard.state = CARD_STATES.NEW;
     updatedCard.ease_factor = settings.startingEase;
-    updatedCard.interval = 0;
+    updatedCard.interval_days = 0;
     updatedCard.step = 0;
     updatedCard.reviews = 0;
     updatedCard.lapses = 0;
@@ -94,28 +94,35 @@ function handleNewCard(card, rating, settings, now) {
       // Stay in learning, start at step 0
       card.state = CARD_STATES.LEARNING;
       card.step = 0;
-      card.due = addMinutes(now, settings.learningSteps[0]);
+      card.due = addMinutes(now, settings.learningSteps[0]).toISOString();
       break;
       
     case 'hard':
       // Go to learning, start at step 0
       card.state = CARD_STATES.LEARNING;
       card.step = 0;
-      card.due = addMinutes(now, settings.learningSteps[0]);
+      card.due = addMinutes(now, settings.learningSteps[0]).toISOString();
       break;
       
     case 'good':
       // Go to learning, start at step 0
       card.state = CARD_STATES.LEARNING;
       card.step = 0;
-      card.due = addMinutes(now, settings.learningSteps[0]);
+      card.due = addMinutes(now, settings.learningSteps[0]).toISOString();
       break;
       
     case 'easy':
       // Skip learning phase, go directly to review
       card.state = CARD_STATES.REVIEW;
-      card.interval = settings.easyInterval;
-      card.due = addDays(now, settings.easyInterval);
+      card.interval_days = settings.easyInterval;
+      card.due = addDays(now, settings.easyInterval).toISOString();
+      break;
+      
+    default:
+      // Default case for unknown ratings
+      card.state = CARD_STATES.LEARNING;
+      card.step = 0;
+      card.due = addMinutes(now, settings.learningSteps[0]).toISOString();
       break;
   }
   
@@ -130,34 +137,40 @@ function handleLearningCard(card, rating, settings, now) {
     case 'again':
       // Reset to first learning step
       card.step = 0;
-      card.due = addMinutes(now, settings.learningSteps[0]);
+      card.due = addMinutes(now, settings.learningSteps[0]).toISOString();
       break;
       
     case 'hard':
-      // Repeat current step
+      // Repeat current step (don't advance)
       const currentStep = Math.min(card.step, settings.learningSteps.length - 1);
-      card.due = addMinutes(now, settings.learningSteps[currentStep]);
+      card.due = addMinutes(now, settings.learningSteps[currentStep]).toISOString();
       break;
       
     case 'good':
       // Advance to next step or graduate
       card.step++;
       if (card.step >= settings.learningSteps.length) {
-        // Graduate to review
+        // Graduate to review ONLY after completing ALL learning steps
         card.state = CARD_STATES.REVIEW;
-        card.interval = settings.graduatingInterval;
-        card.due = addDays(now, settings.graduatingInterval);
+        card.interval_days = settings.graduatingInterval;
+        card.due = addDays(now, settings.graduatingInterval).toISOString();
       } else {
-        // Next learning step
-        card.due = addMinutes(now, settings.learningSteps[card.step]);
+        // Stay in learning, move to next step
+        card.due = addMinutes(now, settings.learningSteps[card.step]).toISOString();
       }
       break;
       
     case 'easy':
-      // Graduate to review with easy interval
+      // Graduate to review with easy interval (skip remaining learning steps)
       card.state = CARD_STATES.REVIEW;
-      card.interval = settings.easyInterval;
-      card.due = addDays(now, settings.easyInterval);
+      card.interval_days = settings.easyInterval;
+      card.due = addDays(now, settings.easyInterval).toISOString();
+      break;
+      
+    default:
+      // Default case - repeat current step
+      const fallbackStep = Math.min(card.step, settings.learningSteps.length - 1);
+      card.due = addMinutes(now, settings.learningSteps[fallbackStep]).toISOString();
       break;
   }
   
@@ -168,6 +181,8 @@ function handleLearningCard(card, rating, settings, now) {
  * Handle REVIEW cards (graduated cards being reviewed)
  */
 function handleReviewCard(card, rating, settings, now) {
+  const currentInterval = card.interval_days || 1;
+  
   switch (rating) {
     case 'again':
       // Failed review - go to relearning
@@ -178,7 +193,7 @@ function handleReviewCard(card, rating, settings, now) {
         settings.minimumEase, 
         card.ease_factor + settings.againPenalty
       );
-      card.due = addMinutes(now, settings.relearningSteps[0]);
+      card.due = addMinutes(now, settings.relearningSteps[0]).toISOString();
       break;
       
     case 'hard':
@@ -187,24 +202,31 @@ function handleReviewCard(card, rating, settings, now) {
         settings.minimumEase, 
         card.ease_factor + settings.hardPenalty
       );
-      card.interval = Math.max(1, Math.round(card.interval * 1.2));
-      card.interval = Math.min(card.interval, settings.maximumInterval);
-      card.due = addDays(now, card.interval);
+      card.interval_days = Math.max(1, Math.round(currentInterval * 1.2));
+      card.interval_days = Math.min(card.interval_days, settings.maximumInterval);
+      card.due = addDays(now, card.interval_days).toISOString();
       break;
       
     case 'good':
       // Normal review - use ease factor
-      card.interval = Math.round(card.interval * card.ease_factor * settings.intervalModifier);
-      card.interval = Math.min(card.interval, settings.maximumInterval);
-      card.due = addDays(now, card.interval);
+      card.interval_days = Math.round(currentInterval * card.ease_factor * settings.intervalModifier);
+      card.interval_days = Math.min(card.interval_days, settings.maximumInterval);
+      card.due = addDays(now, card.interval_days).toISOString();
       break;
       
     case 'easy':
       // Increase ease and set longer interval
       card.ease_factor += settings.easyBonus;
-      card.interval = Math.round(card.interval * card.ease_factor * settings.intervalModifier * 1.3);
-      card.interval = Math.min(card.interval, settings.maximumInterval);
-      card.due = addDays(now, card.interval);
+      card.interval_days = Math.round(currentInterval * card.ease_factor * settings.intervalModifier * 1.3);
+      card.interval_days = Math.min(card.interval_days, settings.maximumInterval);
+      card.due = addDays(now, card.interval_days).toISOString();
+      break;
+      
+    default:
+      // Default case - treat as 'good'
+      card.interval_days = Math.round(currentInterval * card.ease_factor * settings.intervalModifier);
+      card.interval_days = Math.min(card.interval_days, settings.maximumInterval);
+      card.due = addDays(now, card.interval_days).toISOString();
       break;
   }
   
@@ -219,13 +241,13 @@ function handleRelearningCard(card, rating, settings, now) {
     case 'again':
       // Reset to first relearning step
       card.step = 0;
-      card.due = addMinutes(now, settings.relearningSteps[0]);
+      card.due = addMinutes(now, settings.relearningSteps[0]).toISOString();
       break;
       
     case 'hard':
       // Repeat current relearning step
       const currentStep = Math.min(card.step, settings.relearningSteps.length - 1);
-      card.due = addMinutes(now, settings.relearningSteps[currentStep]);
+      card.due = addMinutes(now, settings.relearningSteps[currentStep]).toISOString();
       break;
       
     case 'good':
@@ -234,19 +256,25 @@ function handleRelearningCard(card, rating, settings, now) {
       if (card.step >= settings.relearningSteps.length) {
         // Graduate back to review
         card.state = CARD_STATES.REVIEW;
-        card.interval = Math.max(1, Math.round(card.interval * 0.5)); // Reduced interval after lapse
-        card.due = addDays(now, card.interval);
+        card.interval_days = Math.max(1, Math.round((card.interval_days || 1) * 0.5)); // Reduced interval after lapse
+        card.due = addDays(now, card.interval_days).toISOString();
       } else {
         // Next relearning step
-        card.due = addMinutes(now, settings.relearningSteps[card.step]);
+        card.due = addMinutes(now, settings.relearningSteps[card.step]).toISOString();
       }
       break;
       
     case 'easy':
       // Graduate back to review with normal interval
       card.state = CARD_STATES.REVIEW;
-      card.interval = Math.max(1, Math.round(card.interval * 0.7)); // Slightly reduced interval
-      card.due = addDays(now, card.interval);
+      card.interval_days = Math.max(1, Math.round((card.interval_days || 1) * 0.7)); // Slightly reduced interval
+      card.due = addDays(now, card.interval_days).toISOString();
+      break;
+      
+    default:
+      // Default case - repeat current step
+      const fallbackStep = Math.min(card.step, settings.relearningSteps.length - 1);
+      card.due = addMinutes(now, settings.relearningSteps[fallbackStep]).toISOString();
       break;
   }
   
@@ -254,19 +282,37 @@ function handleRelearningCard(card, rating, settings, now) {
 }
 
 /**
- * Get cards that are due for review
+ * Get cards that are due for review in the current session
+ * All cards stay in session until marked as "Easy"
  * @param {Array} cards - Array of card objects
- * @returns {Array} Cards that are due for review
+ * @returns {Array} Cards that should be shown in the current session
  */
 export function getDueCards(cards) {
   const now = new Date();
   
   return cards.filter(card => {
-    if (!card.due) return true; // New cards are always due
+    // All cards are included in session until they're marked as "Easy"
+    // We can't determine "Easy" status from card data alone, so include all cards
+    // The session management will handle removing cards when "Easy" is pressed
     
-    const dueDate = new Date(card.due);
-    return dueDate <= now;
+    // Always include new cards
+    if (!card.due || !card.state) return true;
+    
+    // Include all other cards - they'll be managed by the session logic
+    return true;
   });
+}
+
+/**
+ * Check if a card should be removed from current session
+ * Cards only graduate when marked as "Easy"
+ * @param {Object} card - Card object
+ * @param {string} lastRating - The rating that was just applied
+ * @returns {boolean} True if card should be removed from session
+ */
+export function shouldRemoveFromSession(card, lastRating = null) {
+  // Only remove if the last rating was "Easy"
+  return lastRating === 'easy';
 }
 
 /**
@@ -290,6 +336,8 @@ export function getStudyStats(cards) {
     // Count by state
     switch (card.state) {
       case CARD_STATES.NEW:
+      case null:
+      case undefined:
         stats.new++;
         break;
       case CARD_STATES.LEARNING:
@@ -298,6 +346,9 @@ export function getStudyStats(cards) {
         break;
       case CARD_STATES.REVIEW:
         stats.review++;
+        break;
+      default:
+        stats.new++;
         break;
     }
     
@@ -324,10 +375,13 @@ function addDays(date, days) {
   return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
-export default {
+const SpacedRepetitionUtils = {
   calculateNextReview,
   getDueCards,
   getStudyStats,
+  shouldRemoveFromSession,
   CARD_STATES,
   DEFAULT_SETTINGS
 };
+
+export default SpacedRepetitionUtils;
