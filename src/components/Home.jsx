@@ -5,6 +5,8 @@ import { supabase } from '../supabase';
 import '../styles/Home.css';
 import UserAuthContext from './context/UserAuthContext';
 import ClassDeckModal from './ClassDeckModal';
+import { MdFlashOn,MdFolderOpen ,MdTrendingUp,MdViewList} from 'react-icons/md';
+
 
 export default function Home() {
   const navigate = useNavigate();
@@ -159,14 +161,14 @@ export default function Home() {
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon cards-icon">📄</div>
+          <div className="stat-icon cards-icon"><MdViewList /></div>
             <div className="stat-content">
               <div className="stat-number">{stats.totalCards}</div>
               <div className="stat-label">Total Cards</div>
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon study-icon">🔥</div>
+          <div className="stat-icon study-icon"><MdTrendingUp /></div>
             <div className="stat-content">
               <div className="stat-number">{stats.studiedToday}</div>
               <div className="stat-label">Studied Today</div>
@@ -193,7 +195,7 @@ export default function Home() {
             className="action-card"
             onClick={() => navigate('/set')}
           >
-            <div className="action-icon browse-icon">📂</div>
+          <div className="action-icon browse-icon"><MdFolderOpen /></div>
             <div className="action-content">
               <h3>Browse Sets</h3>
               <p>View and manage all your sets</p>
@@ -204,7 +206,7 @@ export default function Home() {
             onClick={() => recentSets.length > 0 && navigate(`/study/${recentSets[0].id}`)}
             disabled={recentSets.length === 0}
           >
-            <div className="action-icon study-icon">🧠</div>
+          <div className="action-icon study-icon"><MdFlashOn /></div>
             <div className="action-content">
               <h3>Quick Study</h3>
               <p>Jump into your latest set</p>

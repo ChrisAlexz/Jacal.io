@@ -377,7 +377,7 @@ export default function Set() {
                                     }}
                                     className="study-button-full"
                                   >
-                                    📚 Start Studying
+                                    Study
                                   </button>
                                 </div>
                               </div>

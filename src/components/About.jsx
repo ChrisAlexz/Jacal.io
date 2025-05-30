@@ -1,7 +1,7 @@
-// src/components/About.jsx
 import React from 'react';
 import Layout from './Layout';
 import '../styles/About.css';
+import { MdSchool, MdFolderSpecial, MdBrush, MdBarChart, MdEditNote, MdDevices } from 'react-icons/md';
 
 export default function About() {
   return (
@@ -38,7 +38,9 @@ export default function About() {
 
           <div className="features-grid">
             <div className="feature-card">
-              <div className="feature-icon brain-icon">🧠</div>
+              <div className="feature-icon tech-icon">
+                <MdSchool />
+              </div>
               <div className="feature-content">
                 <h3>Smart Spaced Repetition</h3>
                 <p>
@@ -49,7 +51,9 @@ export default function About() {
             </div>
 
             <div className="feature-card">
-              <div className="feature-icon design-icon">🎨</div>
+              <div className="feature-icon design-icon">
+                <MdBrush />
+              </div>
               <div className="feature-content">
                 <h3>Rich Text Formatting</h3>
                 <p>
@@ -60,7 +64,9 @@ export default function About() {
             </div>
 
             <div className="feature-card">
-              <div className="feature-icon cloze-icon">📝</div>
+              <div className="feature-icon cloze-icon">
+                <MdEditNote />
+              </div>
               <div className="feature-content">
                 <h3>Cloze Deletions</h3>
                 <p>
@@ -71,7 +77,9 @@ export default function About() {
             </div>
 
             <div className="feature-card">
-              <div className="feature-icon mobile-icon">📱</div>
+              <div className="feature-icon mobile-icon">
+                <MdDevices />
+              </div>
               <div className="feature-content">
                 <h3>Study Anywhere</h3>
                 <p>
@@ -82,7 +90,9 @@ export default function About() {
             </div>
 
             <div className="feature-card">
-              <div className="feature-icon progress-icon">📊</div>
+              <div className="feature-icon progress-icon">
+                <MdBarChart />
+              </div>
               <div className="feature-content">
                 <h3>Progress Tracking</h3>
                 <p>
@@ -93,7 +103,9 @@ export default function About() {
             </div>
 
             <div className="feature-card">
-              <div className="feature-icon organize-icon">📂</div>
+              <div className="feature-icon organize-icon">
+                <MdFolderSpecial />
+              </div>
               <div className="feature-content">
                 <h3>Organized Learning</h3>
                 <p>
@@ -176,7 +188,6 @@ export default function About() {
             </div>
           </div>
         </div>
-
         {/* Science Section */}
         <div className="science-section">
           <div className="science-content">
