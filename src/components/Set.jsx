@@ -1,10 +1,10 @@
-// src/components/Set.jsx - UPDATED WITH CUSTOM DELETE MODALS
+// src/components/Set.jsx - UPDATED WITH FIXED SPEED BUTTON LAYOUT
 import React, { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
 import ClassDeckModal from './ClassDeckModal';
-import DeleteConfirmationModal from './DeleteConfirmationModal'; // Import the new component
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 import '../styles/Set.css';
 import Layout from './Layout';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -399,18 +399,23 @@ export default function Set() {
                                   </div>
                                 </div>
                                 
+                                {/* FIXED: New layout for deck stats with better speed button positioning */}
                                 <div className="deck-stats">
-                                  <div className="stat-item">
-                                    <span className="stat-icon">📄</span>
-                                    <span className="stat-text">
-                                      {deck.card_count || 0} cards
-                                    </span>
-                                  </div>
-                                  <div className="stat-item">
-                                    <span className="stat-icon">📅</span>
-                                    <span className="stat-text">
-                                      {formatDate(deck.created_at)}
-                                    </span>
+                                  <div className="deck-stats-row">
+                                    <div className="deck-stats-left">
+                                      <div className="stat-item">
+                                        <span className="stat-icon">📄</span>
+                                        <span className="stat-text">
+                                          {deck.card_count || 0} cards
+                                        </span>
+                                      </div>
+                                      <div className="stat-item">
+                                        <span className="stat-icon">📅</span>
+                                        <span className="stat-text">
+                                          {formatDate(deck.created_at)}
+                                        </span>
+                                      </div>
+                                    </div>
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -419,7 +424,8 @@ export default function Set() {
                                       className="speed-button-inline"
                                       title="Speed Focus Mode"
                                     >
-                                      Speed Study <FontAwesomeIcon icon={faBolt} />
+                                      <span>Speed Study</span>
+                                      <FontAwesomeIcon icon={faBolt} />
                                     </button>
                                   </div>
                                 </div>

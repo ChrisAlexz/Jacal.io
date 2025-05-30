@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - WITH ANKI ALGORITHM
+// src/components/FlashcardStudyPage.jsx - WITH ANKI ALGORITHM & AUTO INTERVALS
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
@@ -15,7 +15,8 @@ export default function FlashcardStudyPage() {
   const [deckType, setDeckType] = useState("Basic");
   const [setTitle, setSetTitle] = useState("");
   const [studyStats, setStudyStats] = useState(null);
-  const [showIntervals, setShowIntervals] = useState(false);
+  const [showCompletionPopup, setShowCompletionPopup] = useState(false);
+  const [justCompleted, setJustCompleted] = useState(false);
   
   // State for type-in-answer functionality
   const [userAnswer, setUserAnswer] = useState('');
@@ -74,12 +75,211 @@ export default function FlashcardStudyPage() {
     }
   };
 
+  // Calculate what the intervals would be for each button
+  const getIntervalPreviews = () => {
+    if (dueCards.length === 0 || currentIndex >= dueCards.length || !dueCards[currentIndex]) {
+      return { again: "1m", hard: "10m", good: "1d", easy: "4d" };
+    }
+
+    const currentCard = dueCards[currentIndex];
+    const previews = {};
+    
+    ['again', 'hard', 'good', 'easy'].forEach(rating => {
+      try {
+        const tempCard = calculateNextReview({ ...currentCard }, rating);
+        
+        // Calculate interval based on the algorithm result
+        let intervalText = "New";
+        
+        if (tempCard.due) {
+          const now = new Date();
+          const dueDate = new Date(tempCard.due);
+          
+          if (!isNaN(dueDate.getTime())) {
+            const diffMs = dueDate.getTime() - now.getTime();
+            const diffMinutes = Math.round(diffMs / (1000 * 60));
+            
+            if (diffMinutes <= 1) {
+              intervalText = "1m";
+            } else if (diffMinutes < 60) {
+              intervalText = `${diffMinutes}m`;
+            } else if (diffMinutes < 1440) {
+              const hours = Math.round(diffMinutes / 60);
+              intervalText = `${hours}h`;
+            } else {
+              const days = Math.round(diffMinutes / 1440);
+              if (days >= 365) {
+                const years = Math.round(days / 365);
+                intervalText = `${years}y`;
+              } else if (days >= 30) {
+                const months = Math.round(days / 30);
+                intervalText = `${months}mo`;
+              } else {
+                intervalText = `${days}d`;
+              }
+            }
+          }
+        }
+        
+        // If we still have "New" or invalid result, use defaults based on card state and rating
+        if (intervalText === "New" || intervalText === "Now") {
+          const cardState = currentCard.state || 'new';
+          
+          if (cardState === 'new' || !cardState) {
+            // New card intervals
+            const newCardIntervals = {
+              again: "1m",
+              hard: "1m", 
+              good: "1m",
+              easy: "4d"
+            };
+            intervalText = newCardIntervals[rating];
+          } else if (cardState === 'learning') {
+            // Learning card intervals
+            const learningIntervals = {
+              again: "1m",
+              hard: "10m",
+              good: "1d", 
+              easy: "4d"
+            };
+            intervalText = learningIntervals[rating];
+          } else if (cardState === 'review') {
+            // Review card intervals - base on current interval if available
+            const currentInterval = currentCard.interval_days || 1;
+            const reviewIntervals = {
+              again: "10m",
+              hard: `${Math.max(1, Math.round(currentInterval * 1.2))}d`,
+              good: `${Math.max(1, Math.round(currentInterval * 2.5))}d`,
+              easy: `${Math.max(1, Math.round(currentInterval * 2.5 * 1.3))}d`
+            };
+            intervalText = reviewIntervals[rating];
+          } else {
+            // Fallback intervals
+            const fallbackIntervals = {
+              again: "1m",
+              hard: "10m", 
+              good: "1d",
+              easy: "4d"
+            };
+            intervalText = fallbackIntervals[rating];
+          }
+        }
+        
+        previews[rating] = intervalText;
+      } catch (error) {
+        console.error(`Error calculating interval for ${rating}:`, error);
+        // Fallback intervals
+        const fallbacks = { again: "1m", hard: "10m", good: "1d", easy: "4d" };
+        previews[rating] = fallbacks[rating];
+      }
+    });
+    
+    return previews;
+  };
+
+  // Format interval for display
+  const formatInterval = (card) => {
+    if (!card.due) return "New";
+    
+    const now = new Date();
+    const dueDate = new Date(card.due);
+    
+    // Check for invalid dates
+    if (isNaN(dueDate.getTime())) return "New";
+    
+    const diffMs = dueDate.getTime() - now.getTime();
+    const diffMinutes = Math.round(diffMs / (1000 * 60));
+    
+    // If in the past or very soon, show as due now
+    if (diffMinutes <= 0) {
+      return "Now";
+    }
+    
+    if (diffMinutes < 60) {
+      return `${diffMinutes}m`;
+    } else if (diffMinutes < 1440) { // Less than 24 hours
+      const hours = Math.round(diffMinutes / 60);
+      return `${hours}h`;
+    } else {
+      const days = Math.round(diffMinutes / 1440);
+      if (days >= 365) {
+        const years = Math.round(days / 365);
+        return `${years}y`;
+      } else if (days >= 30) {
+        const months = Math.round(days / 30);
+        return `${months}mo`;
+      } else {
+        return `${days}d`;
+      }
+    }
+  };
+
+  // Show loading only if we truly have no cards
+  if (dueCards.length === 0 && flashcards.length === 0) {
+    return (
+      <div className="study-container">
+        <div className="loading-study">
+          <div className="loading-spinner"></div>
+          <p>Loading cards...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If we just completed and showing popup, don't interfere
+  if (justCompleted && showCompletionPopup) {
+    // Continue to render the study interface with the popup
+  }
+  // If we have flashcards but no due cards, and we're not in completion state
+  else if (dueCards.length === 0 && flashcards.length > 0 && !justCompleted) {
+    // This happens on initial load when cards aren't properly set as due
+    const allCardsWithUpdatedDue = flashcards.map(card => ({
+      ...card,
+      due: new Date().toISOString()
+    }));
+    setDueCards(allCardsWithUpdatedDue);
+    setCurrentIndex(0);
+    return (
+      <div className="study-container">
+        <div className="loading-study">
+          <div className="loading-spinner"></div>
+          <p>Preparing cards...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentCard = dueCards.length > 0 && currentIndex < dueCards.length ? dueCards[currentIndex] : null;
+  
+  // Safety check - if no current card, show loading
+  if (!currentCard) {
+    return (
+      <div className="study-container">
+        <div className="loading-study">
+          <div className="loading-spinner"></div>
+          <p>Loading cards...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  const hasCustomBackContent =
+    deckType === "Cloze" &&
+    currentCard.back !== currentCard.front &&
+    currentCard.back.trim() !== "";
+
+  // Check if this is an image occlusion card by looking at the HTML content
+  const isImageOcclusionCard = currentCard.front.includes('image-occlusion-card') || 
+                              currentCard.front.includes('occlusion-');
+
+  // Get interval previews for current card
+  const intervalPreviews = getIntervalPreviews();
+
   const handleShowAnswer = () => setShowBack(true);
 
   const handleSubmitAnswer = () => {
-    if (deckType !== 'Basic-Type') return;
+    if (deckType !== 'Basic-Type' || !currentCard) return;
     
-    const currentCard = dueCards[currentIndex];
     const correctAnswer = currentCard.back.replace(/<[^>]*>/g, '').trim().toLowerCase();
     const userAnswerClean = userAnswer.trim().toLowerCase();
     
@@ -89,11 +289,13 @@ export default function FlashcardStudyPage() {
   };
 
   const handleDifficultyChoice = async (difficulty) => {
-    const currentCard = dueCards[currentIndex];
+    if (!currentCard) return;
+    
+    const currentCardData = currentCard;
     
     try {
       // Calculate next review using Anki algorithm
-      const updatedCard = calculateNextReview(currentCard, difficulty);
+      const updatedCard = calculateNextReview(currentCardData, difficulty);
       
       // Update card in database
       const { error } = await supabase
@@ -108,45 +310,72 @@ export default function FlashcardStudyPage() {
           due: updatedCard.due,
           last_reviewed: updatedCard.last_reviewed
         })
-        .eq('id', currentCard.id);
+        .eq('id', currentCardData.id);
 
       if (error) {
         console.error('Error updating card:', error);
         return;
       }
 
-      // Update local state
+      // Update local flashcards state
       setFlashcards(prev => 
         prev.map(card => 
-          card.id === currentCard.id ? updatedCard : card
+          card.id === currentCardData.id ? updatedCard : card
         )
       );
 
-      // Remove current card from due cards and move to next
+      // Calculate new due cards (remove current card)
       const newDueCards = dueCards.filter((_, index) => index !== currentIndex);
+
+      // Check if this was the last card
+      if (newDueCards.length === 0) {
+        // Show completion popup immediately
+        setJustCompleted(true);
+        setShowCompletionPopup(true);
+        
+        // Set timeout to restart after popup
+        setTimeout(() => {
+          setShowCompletionPopup(false);
+          setJustCompleted(false);
+          
+          // Restart with all cards
+          const allCardsWithUpdatedDue = flashcards.map(card => ({
+            ...card,
+            due: new Date().toISOString()
+          }));
+          
+          setFlashcards(allCardsWithUpdatedDue);
+          setDueCards(allCardsWithUpdatedDue);
+          setCurrentIndex(0);
+          setShowBack(false);
+          setShowCorrectAnswer(false);
+          setIsAnswerCorrect(null);
+          setUserAnswer('');
+          
+          // Update study stats
+          const restartStats = getStudyStats(allCardsWithUpdatedDue);
+          setStudyStats(restartStats);
+        }, 2000);
+        
+        return; // Don't continue with normal flow
+      }
+
+      // Normal flow: move to next card
       setDueCards(newDueCards);
 
-      // Update study stats
-      const updatedFlashcards = flashcards.map(card => 
-        card.id === currentCard.id ? updatedCard : card
-      );
-      const newStats = getStudyStats(updatedFlashcards);
-      setStudyStats(newStats);
+      // Update study stats for normal progression
+      const progressStats = getStudyStats(flashcards.map(card => 
+        card.id === currentCardData.id ? updatedCard : card
+      ));
+      setStudyStats(progressStats);
 
-      // Move to next card or finish session
-      if (newDueCards.length === 0) {
-        // No more cards due - show completion message
-        alert(`Study session complete! 🎉\n\nCards studied: ${flashcards.length - newDueCards.length}\nCome back later for more reviews.`);
-        navigate(-1);
-      } else {
-        // Reset for next card
-        const nextIndex = currentIndex >= newDueCards.length ? 0 : currentIndex;
-        setCurrentIndex(nextIndex);
-        setShowBack(false);
-        setShowCorrectAnswer(false);
-        setIsAnswerCorrect(null);
-        setUserAnswer('');
-      }
+      // Reset for next card
+      const nextIndex = currentIndex >= newDueCards.length ? 0 : currentIndex;
+      setCurrentIndex(nextIndex);
+      setShowBack(false);
+      setShowCorrectAnswer(false);
+      setIsAnswerCorrect(null);
+      setUserAnswer('');
 
     } catch (error) {
       console.error('Error processing difficulty choice:', error);
@@ -188,54 +417,21 @@ export default function FlashcardStudyPage() {
     return processedText;
   };
 
-  // Show loading or no cards states
-  if (dueCards.length === 0) {
-    return (
-      <div className="study-container">
-        <div className="study-completion">
-          <div className="completion-icon">🎉</div>
-          <h2>All caught up!</h2>
-          <p>No cards are due for review right now.</p>
-          {studyStats && (
-            <div className="study-stats">
-              <div className="stat">
-                <span className="stat-number">{studyStats.total}</span>
-                <span className="stat-label">Total Cards</span>
-              </div>
-              <div className="stat">
-                <span className="stat-number">{studyStats.new}</span>
-                <span className="stat-label">New</span>
-              </div>
-              <div className="stat">
-                <span className="stat-number">{studyStats.learning}</span>
-                <span className="stat-label">Learning</span>
-              </div>
-              <div className="stat">
-                <span className="stat-number">{studyStats.review}</span>
-                <span className="stat-label">Review</span>
-              </div>
-            </div>
-          )}
-          <button onClick={() => navigate(-1)} className="back-button">
-            ← Back to Sets
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const currentCard = dueCards[currentIndex];
-  const hasCustomBackContent =
-    deckType === "Cloze" &&
-    currentCard.back !== currentCard.front &&
-    currentCard.back.trim() !== "";
-
-  // Check if this is an image occlusion card by looking at the HTML content
-  const isImageOcclusionCard = currentCard.front.includes('image-occlusion-card') || 
-                              currentCard.front.includes('occlusion-');
-
   return (
     <div className="study-container">
+      {/* Completion Popup */}
+      {showCompletionPopup && (
+        <div className="completion-popup">
+          <div className="completion-popup-content">
+            <div className="completion-popup-icon">🎉</div>
+            <div className="completion-popup-text">
+              <h3>You studied all of them!</h3>
+              <p>Will start over again now!</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Study Progress and Stats */}
       <div className="study-header">
         <div className="study-info">
@@ -271,13 +467,6 @@ export default function FlashcardStudyPage() {
           title="Speed Focus Mode - Test your knowledge under time pressure!"
         >
           ⚡ Speed Focus Mode
-        </button>
-        <button 
-          className="show-intervals-btn"
-          onClick={() => setShowIntervals(!showIntervals)}
-          title="Show/hide next review intervals"
-        >
-          📅 {showIntervals ? 'Hide' : 'Show'} Intervals
         </button>
       </div>
 
@@ -346,26 +535,24 @@ export default function FlashcardStudyPage() {
               </div>
             </div>
             <div className="difficulty-buttons">
-              {showIntervals && (
-                <div className="interval-preview">
-                  <div className="interval-item">
-                    <button className="again-btn preview" disabled>Again</button>
-                    <span className="interval-text">1m</span>
-                  </div>
-                  <div className="interval-item">
-                    <button className="hard-btn preview" disabled>Hard</button>
-                    <span className="interval-text">10m</span>
-                  </div>
-                  <div className="interval-item">
-                    <button className="good-btn preview" disabled>Good</button>
-                    <span className="interval-text">1d</span>
-                  </div>
-                  <div className="interval-item">
-                    <button className="easy-btn preview" disabled>Easy</button>
-                    <span className="interval-text">4d</span>
-                  </div>
+              <div className="interval-preview">
+                <div className="interval-item">
+                  <button className="again-btn preview" disabled>Again</button>
+                  <span className="interval-text">{intervalPreviews.again}</span>
                 </div>
-              )}
+                <div className="interval-item">
+                  <button className="hard-btn preview" disabled>Hard</button>
+                  <span className="interval-text">{intervalPreviews.hard}</span>
+                </div>
+                <div className="interval-item">
+                  <button className="good-btn preview" disabled>Good</button>
+                  <span className="interval-text">{intervalPreviews.good}</span>
+                </div>
+                <div className="interval-item">
+                  <button className="easy-btn preview" disabled>Easy</button>
+                  <span className="interval-text">{intervalPreviews.easy}</span>
+                </div>
+              </div>
               <div className="button-row">
                 <button className="again-btn" onClick={() => handleDifficultyChoice('again')}>
                   Again
@@ -408,26 +595,24 @@ export default function FlashcardStudyPage() {
             )}
 
             <div className="difficulty-buttons">
-              {showIntervals && (
-                <div className="interval-preview">
-                  <div className="interval-item">
-                    <button className="again-btn preview" disabled>Again</button>
-                    <span className="interval-text">1m</span>
-                  </div>
-                  <div className="interval-item">
-                    <button className="hard-btn preview" disabled>Hard</button>
-                    <span className="interval-text">10m</span>
-                  </div>
-                  <div className="interval-item">
-                    <button className="good-btn preview" disabled>Good</button>
-                    <span className="interval-text">1d</span>
-                  </div>
-                  <div className="interval-item">
-                    <button className="easy-btn preview" disabled>Easy</button>
-                    <span className="interval-text">4d</span>
-                  </div>
+              <div className="interval-preview">
+                <div className="interval-item">
+                  <button className="again-btn preview" disabled>Again</button>
+                  <span className="interval-text">{intervalPreviews.again}</span>
                 </div>
-              )}
+                <div className="interval-item">
+                  <button className="hard-btn preview" disabled>Hard</button>
+                  <span className="interval-text">{intervalPreviews.hard}</span>
+                </div>
+                <div className="interval-item">
+                  <button className="good-btn preview" disabled>Good</button>
+                  <span className="interval-text">{intervalPreviews.good}</span>
+                </div>
+                <div className="interval-item">
+                  <button className="easy-btn preview" disabled>Easy</button>
+                  <span className="interval-text">{intervalPreviews.easy}</span>
+                </div>
+              </div>
               <div className="button-row">
                 <button className="again-btn" onClick={() => handleDifficultyChoice('again')}>
                   Again

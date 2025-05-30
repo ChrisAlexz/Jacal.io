@@ -1,4 +1,4 @@
-/* src/styles/Set.css */
+/* src/styles/Set.css - FIXED SPEED BUTTON LAYOUT */
 
 .set-page {
   min-height: 100vh;
@@ -384,7 +384,8 @@
   padding: 20px;
   transition: all 0.3s ease;
   position: relative;
-  overflow: hidden;
+  overflow: visible; /* FIXED: Changed from hidden to visible */
+  min-height: 200px; /* Ensure enough space for all content */
 }
 
 .deck-card::before {
@@ -476,13 +477,34 @@
   transform: scale(1.1);
 }
 
+/* FIXED: Deck Stats with Better Layout for Speed Button */
 .deck-stats {
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  gap: 12px;
   margin-bottom: 16px;
-  padding: 12px 0;
+  padding: 12px;
   border-top: 1px solid #333;
   border-bottom: 1px solid #333;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.1);
+  overflow: visible; /* Ensure button isn't clipped */
+}
+
+.deck-stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 40px; /* Ensure enough height for button */
+}
+
+.deck-stats-left {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  min-width: 0; /* Allow shrinking */
 }
 
 .stat-item {
@@ -491,43 +513,48 @@
   gap: 6px;
   color: #aaa;
   font-size: 0.85rem;
-  position: relative;
+  white-space: nowrap;
 }
 
 .stat-icon {
   font-size: 0.9rem;
 }
 
+/* FIXED: Speed Button - Now properly contained and visible */
 .speed-button-inline {
-  background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
-  color: #1a1a1a;
-  border: 2px solid #ffd700;
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  color: white;
+  border: 2px solid #ff8c00;
   border-radius: 8px;
-  padding: 8px 14px;
+  padding: 8px 12px;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  margin-left: 16px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  box-shadow: 0 3px 10px rgba(255, 193, 7, 0.3);
+  box-shadow: 0 3px 10px rgba(255, 107, 53, 0.3);
   white-space: nowrap;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  flex-shrink: 0;
+  min-width: fit-content;
+  max-width: 140px; /* Prevent it from being too wide */
+  height: 36px; /* Fixed height to prevent overflow */
+  line-height: 1;
 }
 
 .speed-button-inline:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 193, 7, 0.5);
-  border-color: #ffeb3b;
-  background: linear-gradient(135deg, #ffeb3b 0%, #ffc107 100%);
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.5);
+  border-color: #ff6b35;
+  background: linear-gradient(135deg, #f7931e 0%, #ff6b35 100%);
 }
 
 .speed-button-inline svg {
-  color: #ff6b35;
+  color: #fff;
   font-size: 1rem;
   filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
 }
@@ -655,6 +682,33 @@
     font-size: 1.1rem;
     min-width: 150px;
   }
+
+  /* FIXED: Mobile layout for speed button */
+  .deck-stats {
+    gap: 10px;
+    padding: 15px; /* Increased padding for mobile */
+  }
+  
+  .deck-stats-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    min-height: auto;
+  }
+  
+  .deck-stats-left {
+    gap: 12px;
+    justify-content: space-between;
+  }
+  
+  .speed-button-inline {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    max-width: none; /* Remove width restriction on mobile */
+    height: 44px; /* Larger height for mobile */
+  }
 }
 
 @media (max-width: 480px) {
@@ -684,298 +738,9 @@
     align-self: flex-end;
     margin-top: 8px;
   }
-}
 
-/* Science Section */
-.science-section {
-  padding: 80px 20px;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  position: relative;
-  overflow: hidden;
-}
-
-.science-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(circle at 80% 20%, rgba(79, 172, 254, 0.1) 0%, transparent 60%);
-  pointer-events: none;
-}
-
-.science-content {
-  max-width: 1000px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 60px;
-  align-items: center;
-  position: relative;
-  z-index: 1;
-}
-
-.science-text h2 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 24px;
-  color: white;
-}
-
-.science-text p {
-  font-size: 1.2rem;
-  color: #aaa;
-  line-height: 1.7;
-  margin-bottom: 40px;
-}
-
-.science-stats {
-  display: flex;
-  gap: 40px;
-}
-
-.science-stat {
-  text-align: center;
-}
-
-.stat-number {
-  font-size: 2.5rem;
-  font-weight: 800;
-  color: #4facfe;
-  margin-bottom: 8px;
-}
-
-.stat-label {
-  font-size: 0.9rem;
-  color: #aaa;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-/* Brain Visual */
-.brain-diagram {
-  position: relative;
-  width: 200px;
-  height: 200px;
-  margin: 0 auto;
-}
-
-.brain-section {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(79, 172, 254, 0.2);
-}
-
-.section-1 {
-  width: 80px;
-  height: 80px;
-  top: 20px;
-  left: 40px;
-  animation: brainPulse 3s ease-in-out infinite;
-}
-
-.section-2 {
-  width: 60px;
-  height: 60px;
-  top: 60px;
-  right: 20px;
-  animation: brainPulse 3s ease-in-out infinite 1s;
-}
-
-.section-3 {
-  width: 70px;
-  height: 70px;
-  bottom: 20px;
-  left: 60px;
-  animation: brainPulse 3s ease-in-out infinite 2s;
-}
-
-@keyframes brainPulse {
-  0%, 100% { opacity: 0.2; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.1); }
-}
-
-.brain-waves {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-}
-
-.wave {
-  position: absolute;
-  border: 2px solid #4facfe;
-  border-radius: 50%;
-  opacity: 0;
-  animation: waveExpand 4s ease-out infinite;
-}
-
-.wave-1 {
-  width: 100px;
-  height: 100px;
-  top: 50px;
-  left: 50px;
-}
-
-.wave-2 {
-  width: 150px;
-  height: 150px;
-  top: 25px;
-  left: 25px;
-  animation-delay: 1.3s;
-}
-
-.wave-3 {
-  width: 200px;
-  height: 200px;
-  top: 0;
-  left: 0;
-  animation-delay: 2.6s;
-}
-
-@keyframes waveExpand {
-  0% { transform: scale(0.5); opacity: 1; }
-  100% { transform: scale(1.2); opacity: 0; }
-}
-
-/* CTA Section */
-.cta-section {
-  padding: 80px 20px;
-  background: #121212;
-  text-align: center;
-}
-
-.cta-content {
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.cta-content h2 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 20px;
-  color: white;
-}
-
-.cta-content p {
-  font-size: 1.2rem;
-  color: #aaa;
-  line-height: 1.6;
-  margin-bottom: 40px;
-}
-
-.cta-buttons {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
-}
-
-.cta-primary {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
-  border: none;
-  border-radius: 50px;
-  padding: 16px 32px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
-}
-
-.cta-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
-}
-
-.cta-secondary {
-  background: transparent;
-  color: #4facfe;
-  border: 2px solid #4facfe;
-  border-radius: 50px;
-  padding: 14px 30px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.cta-secondary:hover {
-  background: rgba(79, 172, 254, 0.1);
-  transform: translateY(-2px);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .hero-title {
-    font-size: 2.2rem; /* Adjusted for smaller screens */
-  }
-  
-  .section-title {
-    font-size: 2rem;
-  }
-  
-  .features-grid {
-    grid-template-columns: 1fr;
-    gap: 24px;
-  }
-  
-  .step-item {
-    grid-template-columns: 1fr;
-    text-align: center;
-    gap: 20px;
-  }
-  
-  .step-item.reverse {
-    grid-template-columns: 1fr;
-  }
-  
-  .step-item.reverse .step-visual {
-    order: 0;
-  }
-  
-  .science-content {
-    grid-template-columns: 1fr;
-    text-align: center;
-    gap: 40px;
-  }
-  
-  .science-stats {
-    justify-content: center;
-  }
-  
-  .cta-buttons {
-    flex-direction: column;
-    align-items: center;
-  }
-}
-
-@media (max-width: 480px) {
-  .hero-title {
-    font-size: 1.8rem; /* Further reduced for mobile */
-  }
-  
-  .section-title {
-    font-size: 1.8rem;
-  }
-  
-  .feature-card {
-    padding: 24px;
-  }
-  
-  .science-stats {
-    flex-direction: column;
-    gap: 20px;
-  }
-  
-  .about-hero {
-    padding: 60px 15px 40px 15px; /* Further reduced padding for mobile */
-  }
-  
-  .features-section,
-  .how-it-works-section,
-  .science-section,
-  .cta-section {
-    padding: 60px 15px;
+  .speed-button-inline {
+    padding: 12px 16px;
+    font-size: 0.9rem;
   }
 }

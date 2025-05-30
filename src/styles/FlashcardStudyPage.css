@@ -1,4 +1,4 @@
-/* FlashcardStudyPage.css - Fixed Layout */
+/* FlashcardStudyPage.css - Fixed Layout with Better Spacing */
 .study-container {
     min-height: 100vh;
     width: 100vw;
@@ -409,11 +409,83 @@
   .difficulty-buttons {
     padding: 40px;
     display: flex;
-    justify-content: center;
-    gap: 15px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
     background: linear-gradient(135deg, rgba(245, 245, 245, 0.8) 0%, rgba(250, 250, 250, 0.8) 100%);
     border-radius: 0 0 24px 24px;
+  }
+  
+  /* FIXED: Always Show Interval Preview */
+  .interval-preview {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 600px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  
+  .interval-item {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .interval-item button.preview {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    opacity: 0.8;
+    cursor: default;
+    color: white;
+  }
+  
+  .interval-item button.again-btn.preview {
+    background: #dc3545;
+    border-color: #dc3545;
+  }
+  
+  .interval-item button.hard-btn.preview {
+    background: #ffc107;
+    color: #333;
+    border-color: #ffc107;
+  }
+  
+  .interval-item button.good-btn.preview {
+    background: #17a2b8;
+    border-color: #17a2b8;
+  }
+  
+  .interval-item button.easy-btn.preview {
+    background: #28a745;
+    border-color: #28a745;
+  }
+  
+  .interval-text {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #333;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Button Row */
+  .button-row {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    width: 100%;
+    max-width: 600px;
   }
   
   .difficulty-buttons button {
@@ -429,6 +501,7 @@
     letter-spacing: 0.5px;
     min-width: 120px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    flex: 1;
   }
   
   .again-btn { 
@@ -532,6 +605,293 @@
     }
   }
   
+  /* Completion Popup - Brief 2-second notification */
+  .completion-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: popupFadeIn 0.3s ease-out;
+  }
+  
+  @keyframes popupFadeIn {
+    from {
+      opacity: 0;
+      backdrop-filter: blur(0px);
+    }
+    to {
+      opacity: 1;
+      backdrop-filter: blur(5px);
+    }
+  }
+  
+  .completion-popup-content {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    border-radius: 20px;
+    padding: 40px 50px;
+    text-align: center;
+    color: white;
+    box-shadow: 0 20px 60px rgba(79, 172, 254, 0.4);
+    animation: popupBounce 0.4s ease-out;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  @keyframes popupBounce {
+    0% {
+      transform: scale(0.8) translateY(-20px);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.05) translateY(0);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  .completion-popup-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    animation: iconSpin 0.6s ease-out;
+  }
+  
+  @keyframes iconSpin {
+    0% { transform: rotate(-180deg) scale(0.5); }
+    100% { transform: rotate(0deg) scale(1); }
+  }
+  
+  .completion-popup-text h3 {
+    margin: 0 0 8px 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .completion-popup-text p {
+    margin: 0;
+    font-size: 1.1rem;
+    opacity: 0.9;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Mobile popup adjustments */
+  @media (max-width: 480px) {
+    .completion-popup-content {
+      padding: 30px 40px;
+      margin: 20px;
+    }
+    
+    .completion-popup-icon {
+      font-size: 2.5rem;
+    }
+    
+    .completion-popup-text h3 {
+      font-size: 1.3rem;
+    }
+    
+    .completion-popup-text p {
+      font-size: 1rem;
+    }
+  }
+  .study-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 25px 30px;
+    background: linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(40, 40, 40, 0.95) 100%);
+    border-radius: 16px;
+    border: 1px solid rgba(79, 172, 254, 0.2);
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 900px;
+  }
+  
+  .study-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 50%, #4facfe 100%);
+    animation: headerGlow 3s ease-in-out infinite;
+  }
+  
+  @keyframes headerGlow {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  
+  .study-info h1 {
+    margin: 0 0 8px 0;
+    color: white;
+    font-size: 1.8rem;
+    font-weight: 700;
+  }
+  
+  .progress-info {
+    color: #4facfe;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  
+  /* FIXED: Better spacing for stats */
+  .study-stats-header {
+    display: flex;
+    gap: 20px;
+  }
+  
+  .stat-item {
+    position: relative;
+    text-align: center;
+    padding: 16px 20px;
+    border-radius: 12px;
+    min-width: 80px;
+    transition: all 0.3s ease;
+    cursor: default;
+    backdrop-filter: blur(5px);
+    overflow: hidden;
+  }
+  
+  .stat-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.1;
+    border-radius: 12px;
+    transition: opacity 0.3s ease;
+  }
+  
+  .stat-item:hover::before {
+    opacity: 0.2;
+  }
+  
+  /* FIXED: Better color schemes with more spacing */
+  .stat-item.new {
+    background: linear-gradient(135deg, rgba(138, 43, 226, 0.15) 0%, rgba(75, 0, 130, 0.15) 100%);
+    border: 2px solid rgba(138, 43, 226, 0.4);
+    box-shadow: 0 0 15px rgba(138, 43, 226, 0.2);
+  }
+  
+  .stat-item.new::before {
+    background: radial-gradient(circle, rgba(138, 43, 226, 0.3) 0%, transparent 70%);
+  }
+  
+  .stat-item.learning {
+    background: linear-gradient(135deg, rgba(255, 140, 0, 0.15) 0%, rgba(255, 69, 0, 0.15) 100%);
+    border: 2px solid rgba(255, 140, 0, 0.4);
+    box-shadow: 0 0 15px rgba(255, 140, 0, 0.2);
+  }
+  
+  .stat-item.learning::before {
+    background: radial-gradient(circle, rgba(255, 140, 0, 0.3) 0%, transparent 70%);
+  }
+  
+  .stat-item.review {
+    background: linear-gradient(135deg, rgba(0, 255, 127, 0.15) 0%, rgba(34, 139, 34, 0.15) 100%);
+    border: 2px solid rgba(0, 255, 127, 0.4);
+    box-shadow: 0 0 15px rgba(0, 255, 127, 0.2);
+  }
+  
+  .stat-item.review::before {
+    background: radial-gradient(circle, rgba(0, 255, 127, 0.3) 0%, transparent 70%);
+  }
+  
+  .stat-item .count {
+    display: block;
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+    text-shadow: 0 0 10px currentColor;
+  }
+  
+  .stat-item.new .count {
+    color: #da70d6;
+  }
+  
+  .stat-item.learning .count {
+    color: #ff8c00;
+  }
+  
+  .stat-item.review .count {
+    color: #00ff7f;
+  }
+  
+  .stat-item .label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    opacity: 0.9;
+  }
+  
+  .stat-item.new .label {
+    color: #dda0dd;
+  }
+  
+  .stat-item.learning .label {
+    color: #ffb347;
+  }
+  
+  .stat-item.review .label {
+    color: #90ee90;
+  }
+  
+  /* Study Completion (separate from study box) */
+  .study-completion {
+    text-align: center;
+    padding: 60px 20px;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  
+  .completion-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+  }
+  
+  .study-completion h2 {
+    color: white;
+    margin-bottom: 10px;
+  }
+  
+  .study-completion p {
+    color: #aaa;
+    margin-bottom: 30px;
+  }
+  
+  .back-button {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 28px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .back-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
+  }
+  
   /* Responsive Design */
   @media (max-width: 768px) {
     .study-container {
@@ -560,7 +920,7 @@
     
     .difficulty-buttons {
       padding: 30px 20px;
-      gap: 10px;
+      gap: 15px;
     }
     
     .difficulty-buttons button {
@@ -589,6 +949,21 @@
       min-height: 18px;
       min-width: 18px;
     }
+    
+    .study-header {
+      flex-direction: column;
+      gap: 15px;
+      padding: 20px;
+    }
+    
+    .study-stats-header {
+      gap: 15px;
+    }
+    
+    .interval-preview {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
   }
   
   @media (max-width: 480px) {
@@ -606,7 +981,7 @@
       min-height: 200px;
     }
     
-    .difficulty-buttons {
+    .button-row {
       flex-direction: column;
       gap: 12px;
     }
@@ -640,6 +1015,20 @@
       min-height: 16px;
       min-width: 16px;
     }
+    
+    .study-stats-header {
+      flex-direction: row;
+      gap: 10px;
+    }
+    
+    .stat-item {
+      padding: 12px 16px;
+      min-width: 70px;
+    }
+    
+    .stat-item .count {
+      font-size: 1.4rem;
+    }
   }
   
   .cloze-question-active {
@@ -659,295 +1048,3 @@
     font-weight: bold;
     border: 2px solid #666;
   }
-  /* ADD ONLY THESE MINIMAL STYLES TO THE END OF FlashcardStudyPage.css */
-
-/* Study Header (doesn't interfere with study box) */
-/* ADD ONLY THESE MINIMAL STYLES TO THE END OF FlashcardStudyPage.css */
-
-/* Study Header with Gaming-Inspired Stats */
-.study-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 20px;
-  background: linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(40, 40, 40, 0.95) 100%);
-  border-radius: 16px;
-  border: 1px solid rgba(79, 172, 254, 0.2);
-  backdrop-filter: blur(10px);
-  position: relative;
-  overflow: hidden;
-}
-
-.study-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 50%, #4facfe 100%);
-  animation: headerGlow 3s ease-in-out infinite;
-}
-
-@keyframes headerGlow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-
-.study-info h1 {
-  margin: 0 0 5px 0;
-  color: white;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.progress-info {
-  color: #4facfe;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-/* Gaming-Style Progress Stats */
-.study-stats-header {
-  display: flex;
-  gap: 12px;
-}
-
-.stat-item {
-  position: relative;
-  text-align: center;
-  padding: 12px 16px;
-  border-radius: 12px;
-  min-width: 70px;
-  transition: all 0.3s ease;
-  cursor: default;
-  backdrop-filter: blur(5px);
-  overflow: hidden;
-}
-
-.stat-item::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  opacity: 0.1;
-  border-radius: 12px;
-  transition: opacity 0.3s ease;
-}
-
-.stat-item:hover::before {
-  opacity: 0.2;
-}
-
-/* Unique Color Schemes */
-.stat-item.new {
-  background: linear-gradient(135deg, rgba(138, 43, 226, 0.15) 0%, rgba(75, 0, 130, 0.15) 100%);
-  border: 2px solid rgba(138, 43, 226, 0.4);
-  box-shadow: 0 0 15px rgba(138, 43, 226, 0.2);
-}
-
-.stat-item.new::before {
-  background: radial-gradient(circle, rgba(138, 43, 226, 0.3) 0%, transparent 70%);
-}
-
-.stat-item.learning {
-  background: linear-gradient(135deg, rgba(255, 140, 0, 0.15) 0%, rgba(255, 69, 0, 0.15) 100%);
-  border: 2px solid rgba(255, 140, 0, 0.4);
-  box-shadow: 0 0 15px rgba(255, 140, 0, 0.2);
-}
-
-.stat-item.learning::before {
-  background: radial-gradient(circle, rgba(255, 140, 0, 0.3) 0%, transparent 70%);
-}
-
-.stat-item.review {
-  background: linear-gradient(135deg, rgba(0, 255, 127, 0.15) 0%, rgba(34, 139, 34, 0.15) 100%);
-  border: 2px solid rgba(0, 255, 127, 0.4);
-  box-shadow: 0 0 15px rgba(0, 255, 127, 0.2);
-}
-
-.stat-item.review::before {
-  background: radial-gradient(circle, rgba(0, 255, 127, 0.3) 0%, transparent 70%);
-}
-
-.stat-item .count {
-  display: block;
-  font-size: 1.4rem;
-  font-weight: 800;
-  margin-bottom: 2px;
-  text-shadow: 0 0 10px currentColor;
-}
-
-.stat-item.new .count {
-  color: #da70d6;
-}
-
-.stat-item.learning .count {
-  color: #ff8c00;
-}
-
-.stat-item.review .count {
-  color: #00ff7f;
-}
-
-.stat-item .label {
-  display: block;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-weight: 600;
-  opacity: 0.9;
-}
-
-.stat-item.new .label {
-  color: #dda0dd;
-}
-
-.stat-item.learning .label {
-  color: #ffb347;
-}
-
-.stat-item.review .label {
-  color: #90ee90;
-}
-
-/* Pulsing Animation for Active Stats */
-.stat-item:not(.zero) {
-  animation: statPulse 4s ease-in-out infinite;
-}
-
-@keyframes statPulse {
-  0%, 100% { 
-    transform: scale(1);
-    box-shadow: 0 0 15px rgba(var(--glow-color), 0.2);
-  }
-  50% { 
-    transform: scale(1.02);
-    box-shadow: 0 0 25px rgba(var(--glow-color), 0.4);
-  }
-}
-
-.stat-item.new:not(.zero) {
-  --glow-color: 138, 43, 226;
-}
-
-.stat-item.learning:not(.zero) {
-  --glow-color: 255, 140, 0;
-}
-
-.stat-item.review:not(.zero) {
-  --glow-color: 0, 255, 127;
-}
-
-/* Study Completion (separate from study box) */
-.study-completion {
-  text-align: center;
-  padding: 60px 20px;
-  max-width: 500px;
-  margin: 0 auto;
-}
-
-.completion-icon {
-  font-size: 4rem;
-  margin-bottom: 20px;
-}
-
-.study-completion h2 {
-  color: white;
-  margin-bottom: 10px;
-}
-
-.study-completion p {
-  color: #aaa;
-  margin-bottom: 30px;
-}
-
-.back-button {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 14px 28px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.back-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
-}
-
-/* Show Intervals Button (in existing study-mode-selector) */
-.show-intervals-btn {
-  background: rgba(255, 193, 7, 0.1);
-  color: #ffc107;
-  border: 1px solid rgba(255, 193, 7, 0.3);
-  border-radius: 12px;
-  padding: 12px 20px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.show-intervals-btn:hover {
-  background: rgba(255, 193, 7, 0.2);
-}
-
-/* Interval Preview (only shows when toggled) */
-.interval-preview {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 15px;
-  padding: 10px;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-}
-
-.interval-item {
-  text-align: center;
-}
-
-.interval-item button.preview {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid #444;
-  border-radius: 6px;
-  font-size: 0.7rem;
-  margin-bottom: 3px;
-  opacity: 0.7;
-}
-
-.interval-text {
-  font-size: 0.7rem;
-  color: #aaa;
-}
-
-/* Button Row (doesn't change existing difficulty-buttons) */
-.button-row {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-}
-
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  .study-header {
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .study-stats-header {
-    gap: 10px;
-  }
-  
-  .interval-preview {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
