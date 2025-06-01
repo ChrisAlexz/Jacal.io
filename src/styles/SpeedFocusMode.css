@@ -1,4 +1,4 @@
-/* src/styles/SpeedFocusMode.css - COMPLETE FIXED VERSION */
+/* src/styles/SpeedFocusMode.css - COMPLETE UPDATED FOR SIMPLIFIED VERSION */
 
 .speed-focus-container {
   min-height: 100vh;
@@ -69,7 +69,7 @@
 
 .speed-goal h3 {
   color: #4facfe;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   margin: 0 0 8px 0;
   font-weight: 700;
 }
@@ -77,7 +77,7 @@
 .speed-goal p {
   color: #aaa;
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.95rem;
   line-height: 1.5;
 }
 
@@ -99,6 +99,104 @@
   color: white;
   font-weight: 600;
   font-size: 1rem;
+  margin-bottom: 12px;
+  display: block;
+}
+
+/* Slider Container */
+.slider-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Custom Slider Styling */
+.time-slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: #333;
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+}
+
+.time-slider::-webkit-slider-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right, #28a745 0%, #ffc107 50%, #dc3545 100%);
+  border: none;
+}
+
+.time-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
+  border: 3px solid white;
+  transition: all 0.2s ease;
+}
+
+.time-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(79, 172, 254, 0.6);
+}
+
+.time-slider::-moz-range-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right, #28a745 0%, #ffc107 50%, #dc3545 100%);
+  border: none;
+}
+
+.time-slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
+  border: 3px solid white;
+  transition: all 0.2s ease;
+}
+
+.time-slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(79, 172, 254, 0.6);
+}
+
+/* Slider Labels */
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  color: #aaa;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-top: 4px;
+  padding: 0 12px;
+}
+
+.slider-labels span {
+  position: relative;
+}
+
+.slider-labels span::before {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 6px;
+  background: #555;
+  border-radius: 1px;
 }
 
 .option-group select {
@@ -209,7 +307,7 @@
 /* Game Active Container */
 .speed-focus-container.game-active {
   justify-content: flex-start;
-  padding: 140px 20px 40px 20px; /* Increased top padding to avoid navbar */
+  padding: 140px 20px 40px 20px;
   gap: 20px;
 }
 
@@ -226,7 +324,7 @@
   border: 1px solid rgba(79, 172, 254, 0.2);
   backdrop-filter: blur(10px);
   position: relative;
-  z-index: 50; /* Lower than navbar but higher than other game elements */
+  z-index: 50;
 }
 
 .hud-left,
@@ -246,16 +344,10 @@
   text-align: center;
 }
 
-.score {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #4facfe;
-}
-
-.streak {
-  font-size: 1rem;
+.deck-title {
+  font-size: 1.1rem;
   font-weight: 600;
-  color: #ff6b35;
+  color: #4facfe;
 }
 
 .card-progress {
@@ -264,20 +356,10 @@
   color: white;
 }
 
-.easy-counter {
+.cards-remaining {
   font-size: 0.9rem;
-  color: #ffc107;
-  font-weight: 600;
-  background: rgba(255, 193, 7, 0.1);
-  padding: 4px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 193, 7, 0.3);
-}
-
-.accuracy {
-  font-size: 1rem;
-  color: #28a745;
-  font-weight: 600;
+  color: #aaa;
+  font-weight: 500;
 }
 
 /* Timer */
@@ -305,86 +387,6 @@
   right: 0;
   font-size: 1.1rem;
   font-weight: 700;
-}
-
-/* Answer Feedback - FIXED POSITIONING AND TIMING */
-.answer-feedback {
-  position: fixed;
-  top: 250px; /* Moved down to avoid navbar and HUD */
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 200; /* Higher z-index to ensure it's above everything */
-  padding: 20px 30px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  backdrop-filter: blur(10px);
-  animation: feedbackSlideIn 0.3s ease-out;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  /* Ensure feedback is removed properly */
-  opacity: 1;
-  transition: opacity 0.3s ease-out;
-}
-
-/* Fade out animation for feedback removal */
-.answer-feedback.fade-out {
-  opacity: 0;
-  animation: feedbackSlideOut 0.3s ease-out forwards;
-}
-
-@keyframes feedbackSlideOut {
-  from {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-20px);
-  }
-}
-
-@keyframes feedbackSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
-.answer-feedback.correct {
-  background: linear-gradient(135deg, rgba(40, 167, 69, 0.9) 0%, rgba(32, 201, 151, 0.9) 100%);
-  border: 2px solid rgba(40, 167, 69, 0.8);
-  color: white;
-}
-
-.answer-feedback.incorrect {
-  background: linear-gradient(135deg, rgba(220, 53, 69, 0.9) 0%, rgba(255, 107, 107, 0.9) 100%);
-  border: 2px solid rgba(220, 53, 69, 0.8);
-  color: white;
-}
-
-.feedback-icon {
-  font-size: 2rem;
-}
-
-.feedback-text {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.feedback-text div:first-child {
-  font-size: 1.2rem;
-  font-weight: 700;
-}
-
-.bonus {
-  font-size: 0.9rem;
-  opacity: 0.9;
 }
 
 /* Main Speed Card */
@@ -437,75 +439,27 @@
   flex: 1;
 }
 
-.card-back {
-  padding: 40px;
+/* Answer Section Styles */
+.answer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
   background: linear-gradient(135deg, rgba(240, 240, 240, 0.8) 0%, rgba(250, 250, 250, 0.8) 100%);
   border-top: 3px solid #666;
+  border-radius: 0 0 24px 24px;
+}
+
+.card-back {
   color: #2c3e50;
   font-size: 1.8rem;
   font-weight: 600;
   line-height: 1.4;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* Speed Input Section */
-.speed-input-section {
-  padding: 40px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  align-items: center;
-  background: linear-gradient(135deg, rgba(245, 245, 245, 0.8) 0%, rgba(250, 250, 250, 0.8) 100%);
-  border-top: 3px solid #666;
-}
-
-.speed-answer-input {
-  width: 100%;
-  max-width: 500px;
-  padding: 20px 24px;
-  font-size: 1.4rem;
-  border: 3px solid #e1e8ed;
-  border-radius: 16px;
-  background: white;
-  color: #2c3e50;
   text-align: center;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(79, 172, 254, 0.1);
-}
-
-.speed-answer-input:focus {
-  outline: none;
-  border-color: #666;
-  box-shadow: 0 0 0 4px rgba(100, 100, 100, 0.2);
-  transform: scale(1.02);
-}
-
-.speed-submit-btn {
-  padding: 16px 40px;
-  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-  color: white;
-  border: none;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.9);
   border-radius: 12px;
-  font-size: 1.2rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
-}
-
-.speed-submit-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
-}
-
-.speed-submit-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Reveal Button */
@@ -531,91 +485,46 @@
   box-shadow: 0 8px 25px rgba(44, 62, 80, 0.4);
 }
 
-/* Speed Difficulty Buttons */
-.speed-difficulty-buttons {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-  width: 100%;
-  max-width: 600px;
-  margin-top: 20px;
-}
-
-.speed-btn {
-  padding: 16px 28px;
+/* Next Card Button */
+.next-card-btn {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
   border: none;
   border-radius: 12px;
-  cursor: pointer;
-  font-size: 1.1rem;
+  padding: 16px 32px;
+  font-size: 1.2rem;
   font-weight: 700;
-  color: white;
+  cursor: pointer;
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  min-width: 120px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  flex: 1;
-}
-
-.speed-btn.again { 
-  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); 
-}
-
-.speed-btn.hard { 
-  background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); 
-  color: #2c3e50;
-}
-
-.speed-btn.good { 
-  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); 
-}
-
-.speed-btn.easy {
-  background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
-  color: #333;
-  font-weight: 700;
-  box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
   position: relative;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
-.speed-btn.easy::before {
+.next-card-btn::before {
   content: '';
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   transition: left 0.5s;
 }
 
-.speed-btn.easy:hover::before {
+.next-card-btn:hover::before {
   left: 100%;
 }
 
-.speed-btn:hover {
-  transform: translateY(-2px);
-}
-
-.speed-btn.again:hover { 
-  background: linear-gradient(135deg, #c82333 0%, #dc3545 100%); 
-  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
-}
-
-.speed-btn.hard:hover { 
-  background: linear-gradient(135deg, #e0a800 0%, #ffc107 100%); 
-  box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4);
-}
-
-.speed-btn.good:hover { 
-  background: linear-gradient(135deg, #138496 0%, #17a2b8 100%); 
-  box-shadow: 0 6px 20px rgba(23, 162, 184, 0.4);
-}
-
-.speed-btn.easy:hover {
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 8px 25px rgba(255, 193, 7, 0.6);
+.next-card-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
 }
 
 /* Game Over Screen */
@@ -659,19 +568,11 @@
   background-clip: text;
 }
 
-.final-score {
-  font-size: 3rem;
-  font-weight: 800;
-  color: #4facfe;
-  margin-bottom: 15px;
-  text-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
-}
-
 .completion-message {
   color: #4facfe;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   margin-top: 10px;
-  font-weight: 600;
+  font-weight: 500;
   background: rgba(79, 172, 254, 0.1);
   padding: 12px 20px;
   border-radius: 12px;
@@ -681,7 +582,7 @@
 
 .final-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 20px;
   margin: 30px 0;
 }
@@ -703,10 +604,11 @@
 }
 
 .stat-value {
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: 1.8rem;
+  font-weight: 700;
   color: #4facfe;
   margin-bottom: 8px;
+  word-break: break-word;
 }
 
 .stat-label {
@@ -715,25 +617,6 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   font-weight: 600;
-}
-
-.achievements {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
-  margin: 30px 0;
-}
-
-.achievement {
-  background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
-  color: white;
-  padding: 10px 18px;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
-  border: 2px solid rgba(255, 193, 7, 0.4);
 }
 
 .game-over-actions {
@@ -791,10 +674,10 @@
   text-align: center;
 }
 
-/* Image Occlusion Support - FIXED FOR SPEED MODE LAYOUT */
+/* Image Occlusion Support */
 .speed-card .image-occlusion-card {
   position: relative;
-  display: inline-block; /* Changed to inline-block to wrap tightly around image */
+  display: inline-block;
   max-width: 100%;
   height: auto;
   margin: 0 auto;
@@ -820,7 +703,6 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
-  /* Ensure overlay matches image bounds exactly */
 }
 
 .speed-card .occlusion-question-active,
@@ -955,11 +837,26 @@
     gap: 15px;
   }
   
+  .time-slider::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .time-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .slider-labels {
+    font-size: 0.75rem;
+    padding: 0 10px;
+  }
+  
   .game-hud {
     flex-direction: column;
     gap: 15px;
     padding: 15px 20px;
-    z-index: 50; /* Maintain proper z-index on mobile */
+    z-index: 50;
   }
   
   .hud-left,
@@ -979,31 +876,19 @@
     min-height: 200px;
   }
   
-  .card-back {
-    padding: 30px 20px;
-    font-size: 1.5rem;
-  }
-  
-  .speed-answer-input {
-    font-size: 1.2rem;
-    padding: 16px 20px;
-  }
-  
-  .speed-input-section {
-    padding: 30px 20px;
+  .answer-section {
+    padding: 15px;
     gap: 15px;
   }
   
-  .speed-difficulty-buttons {
-    flex-direction: column;
-    gap: 12px;
+  .card-back {
+    font-size: 1.5rem;
+    padding: 15px;
   }
   
-  .speed-btn {
-    padding: 14px 20px;
-    font-size: 1rem;
-    min-width: 100px;
-    width: 100%;
+  .next-card-btn {
+    padding: 14px 24px;
+    font-size: 1.1rem;
   }
   
   .speed-reveal-btn {
@@ -1021,17 +906,8 @@
     font-size: 2rem;
   }
   
-  .final-score {
-    font-size: 2.5rem;
-  }
-  
-  .completion-message {
-    font-size: 1rem;
-    padding: 10px 16px;
-  }
-  
   .final-stats {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: 15px;
   }
   
@@ -1041,16 +917,6 @@
   
   .stat-value {
     font-size: 1.6rem;
-  }
-  
-  .cards-learned {
-    font-size: 0.8rem;
-    padding: 3px 10px;
-  }
-  
-  .cards-remaining {
-    font-size: 0.8rem;
-    padding: 3px 10px;
   }
   
   .speed-card .occlusion-image {
@@ -1064,14 +930,6 @@
     min-height: 18px;
     min-width: 18px;
   }
-  
-  .answer-feedback {
-    top: 200px; /* Adjusted for mobile navbar */
-    left: 10px;
-    right: 10px;
-    transform: translateX(0);
-    padding: 15px 20px;
-  }
 }
 
 @media (max-width: 480px) {
@@ -1080,7 +938,7 @@
   }
   
   .speed-focus-container.game-active {
-    padding: 120px 10px 15px 10px; /* Ensure proper spacing on small screens */
+    padding: 120px 10px 15px 10px;
   }
   
   .speed-focus-setup {
@@ -1106,30 +964,26 @@
     min-height: 180px;
   }
   
+  .answer-section {
+    padding: 12px;
+    gap: 12px;
+  }
+  
   .card-back {
-    padding: 25px 15px;
     font-size: 1.3rem;
+    padding: 12px;
   }
   
-  .speed-answer-input {
-    font-size: 1.1rem;
-    padding: 14px 18px;
-  }
-  
-  .speed-submit-btn {
-    padding: 14px 30px;
-    font-size: 1.1rem;
+  .next-card-btn {
+    padding: 16px 20px;
+    font-size: 1rem;
+    width: 100%;
   }
   
   .speed-reveal-btn {
     margin: 25px 15px;
     padding: 14px 25px;
     font-size: 1rem;
-  }
-  
-  .speed-btn {
-    padding: 16px;
-    font-size: 1.1rem;
   }
   
   .game-over {
@@ -1139,14 +993,6 @@
   
   .game-over-header h1 {
     font-size: 1.8rem;
-  }
-  
-  .final-score {
-    font-size: 2.2rem;
-  }
-  
-  .final-stats {
-    grid-template-columns: 1fr;
   }
   
   .game-over-actions {
@@ -1171,27 +1017,11 @@
     min-height: 16px;
     min-width: 16px;
   }
-  
-  .answer-feedback {
-    top: 140px; /* Further adjusted for small mobile navbar */
-    left: 5px;
-    right: 5px;
-    padding: 12px 16px;
-  }
-  
-  .feedback-text div:first-child {
-    font-size: 1rem;
-  }
-  
-  .feedback-icon {
-    font-size: 1.5rem;
-  }
 }
 
 /* Focus and accessibility improvements */
-.speed-btn:focus,
-.speed-submit-btn:focus,
 .speed-reveal-btn:focus,
+.next-card-btn:focus,
 .start-game-btn:focus,
 .play-again-btn:focus,
 .back-btn:focus {
@@ -1202,24 +1032,24 @@
 /* Performance optimizations */
 .speed-focus-container,
 .speed-card,
-.game-hud,
-.answer-feedback {
+.game-hud {
   will-change: transform;
 }
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
-  .answer-feedback,
-  .speed-btn,
   .start-game-btn,
-  .play-again-btn {
+  .play-again-btn,
+  .next-card-btn,
+  .speed-reveal-btn {
     animation: none;
     transition: none;
   }
   
-  .speed-btn:hover,
   .start-game-btn:hover,
-  .play-again-btn:hover {
+  .play-again-btn:hover,
+  .next-card-btn:hover,
+  .speed-reveal-btn:hover {
     transform: none;
   }
 }
@@ -1230,7 +1060,8 @@
     border: 3px solid #000;
   }
   
-  .speed-btn {
+  .next-card-btn,
+  .speed-reveal-btn {
     border: 2px solid #000;
   }
   
