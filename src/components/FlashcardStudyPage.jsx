@@ -393,22 +393,20 @@ export default function FlashcardStudyPage() {
           </div>
         </div>
         
-        {studyStats && (
-          <div className="study-stats-header">
-            <div className="stat-item new">
-              <span className="count">{studyStats.new}</span>
-              <span className="label">New</span>
-            </div>
-            <div className="stat-item learning">
-              <span className="count">{studyStats.learning}</span>
-              <span className="label">Learning</span>
-            </div>
-            <div className="stat-item review">
-              <span className="count">{studyStats.review}</span>
-              <span className="label">Review</span>
-            </div>
+        <div className="study-stats-header">
+          <div className="stat-item total-cards">
+            <span className="count">{allCards.length}</span>
+            <span className="label">Total Cards</span>
           </div>
-        )}
+          <div className="stat-item remaining">
+            <span className="count">{sessionCards.length}</span>
+            <span className="label">Remaining</span>
+          </div>
+          <div className="stat-item mastered">
+            <span className="count">{allCards.length - sessionCards.length}</span>
+            <span className="label">Mastered</span>
+          </div>
+        </div>
       </div>
 
       {/* Speed Focus Mode Button */}

@@ -1,21 +1,164 @@
-/* src/styles/Set.css - FIXED SPEED BUTTON LAYOUT */
+/* src/styles/Set.css - SUBTLE AESTHETIC ANIMATIONS */
 
 .set-page {
   min-height: 100vh;
   background: #121212;
   color: #ffffff;
   padding: 0;
+  position: relative;
+}
+
+/* Subtle animated background effects */
+.set-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(79, 172, 254, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0, 242, 254, 0.03) 0%, transparent 40%),
+    radial-gradient(circle at 30% 80%, rgba(79, 172, 254, 0.02) 0%, transparent 60%);
+  animation: subtleFloat 15s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes subtleFloat {
+  0%, 100% {
+    background: 
+      radial-gradient(circle at 20% 30%, rgba(79, 172, 254, 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(0, 242, 254, 0.03) 0%, transparent 40%),
+      radial-gradient(circle at 30% 80%, rgba(79, 172, 254, 0.02) 0%, transparent 60%);
+  }
+  33% {
+    background: 
+      radial-gradient(circle at 25% 35%, rgba(79, 172, 254, 0.05) 0%, transparent 55%),
+      radial-gradient(circle at 75% 25%, rgba(0, 242, 254, 0.04) 0%, transparent 45%),
+      radial-gradient(circle at 35% 75%, rgba(79, 172, 254, 0.03) 0%, transparent 65%);
+  }
+  66% {
+    background: 
+      radial-gradient(circle at 15% 25%, rgba(79, 172, 254, 0.03) 0%, transparent 45%),
+      radial-gradient(circle at 85% 30%, rgba(0, 242, 254, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 25% 85%, rgba(79, 172, 254, 0.04) 0%, transparent 70%);
+  }
+}
+
+/* Beautiful moving subtle particles background */
+.set-page::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    /* Large slow particles */
+    radial-gradient(circle at 10% 20%, rgba(79, 172, 254, 0.08) 2px, transparent 2px),
+    radial-gradient(circle at 90% 40%, rgba(0, 242, 254, 0.06) 1.5px, transparent 1.5px),
+    radial-gradient(circle at 50% 80%, rgba(79, 172, 254, 0.05) 2.5px, transparent 2.5px),
+    /* Medium particles */
+    radial-gradient(circle at 30% 10%, rgba(0, 242, 254, 0.07) 1px, transparent 1px),
+    radial-gradient(circle at 70% 60%, rgba(79, 172, 254, 0.09) 1.5px, transparent 1.5px),
+    radial-gradient(circle at 20% 70%, rgba(0, 242, 254, 0.04) 1px, transparent 1px),
+    /* Small fast particles */
+    radial-gradient(circle at 80% 10%, rgba(79, 172, 254, 0.06) 0.5px, transparent 0.5px),
+    radial-gradient(circle at 15% 45%, rgba(0, 242, 254, 0.08) 0.8px, transparent 0.8px),
+    radial-gradient(circle at 60% 25%, rgba(79, 172, 254, 0.05) 0.5px, transparent 0.5px),
+    radial-gradient(circle at 40% 90%, rgba(0, 242, 254, 0.07) 0.8px, transparent 0.8px);
+  background-size: 
+    400px 400px, 350px 350px, 500px 500px,
+    250px 250px, 300px 300px, 280px 280px,
+    150px 150px, 180px 180px, 160px 160px, 200px 200px;
+  animation: 
+    moveParticles1 35s linear infinite,
+    moveParticles2 28s linear infinite,
+    moveParticles3 42s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes moveParticles1 {
+  0% {
+    background-position: 0% 0%, 50% 50%, 100% 0%, 25% 75%, 75% 25%, 0% 100%, 80% 10%, 15% 45%, 60% 25%, 40% 90%;
+    transform: translateY(0px) translateX(0px);
+  }
+  25% {
+    background-position: 10% 15%, 60% 40%, 90% 25%, 15% 85%, 85% 15%, 10% 80%, 75% 20%, 25% 55%, 50% 35%, 30% 80%;
+    transform: translateY(-8px) translateX(5px);
+  }
+  50% {
+    background-position: 20% 30%, 70% 30%, 80% 50%, 5% 95%, 95% 5%, 20% 60%, 70% 30%, 35% 65%, 40% 45%, 20% 70%;
+    transform: translateY(-12px) translateX(-3px);
+  }
+  75% {
+    background-position: 10% 45%, 60% 70%, 90% 75%, 15% 5%, 85% 85%, 30% 40%, 65% 40%, 45% 75%, 30% 55%, 10% 60%;
+    transform: translateY(-5px) translateX(8px);
+  }
+  100% {
+    background-position: 0% 60%, 50% 90%, 100% 100%, 25% 15%, 75% 95%, 40% 20%, 60% 50%, 55% 85%, 20% 65%, 0% 50%;
+    transform: translateY(0px) translateX(0px);
+  }
+}
+
+@keyframes moveParticles2 {
+  0% {
+    background-position: 20% 10%, 80% 30%, 40% 70%, 60% 20%, 30% 80%, 70% 40%, 90% 60%, 10% 30%, 50% 10%, 80% 85%;
+  }
+  33% {
+    background-position: 30% 25%, 70% 45%, 50% 85%, 50% 35%, 40% 65%, 80% 25%, 85% 75%, 20% 45%, 40% 25%, 70% 70%;
+  }
+  66% {
+    background-position: 40% 40%, 60% 60%, 60% 100%, 40% 50%, 50% 50%, 90% 10%, 80% 90%, 30% 60%, 30% 40%, 60% 55%;
+  }
+  100% {
+    background-position: 20% 55%, 80% 75%, 40% 15%, 60% 65%, 30% 35%, 70% 85%, 90% 5%, 10% 75%, 50% 55%, 80% 40%;
+  }
+}
+
+@keyframes moveParticles3 {
+  0% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-3px) translateX(2px) rotate(0.5deg);
+  }
+  50% {
+    transform: translateY(-6px) translateX(-1px) rotate(-0.3deg);
+  }
+  75% {
+    transform: translateY(-2px) translateX(4px) rotate(0.8deg);
+  }
+  100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
 }
 
 .set-container {
   max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
+  position: relative;
+  z-index: 1;
 }
 
 /* Header Section */
 .set-header {
   margin-bottom: 40px;
+  animation: fadeInDown 0.6s ease-out;
+}
+
+@keyframes fadeInDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .header-content {
@@ -66,6 +209,11 @@
 .btn-icon {
   font-size: 1.2rem;
   font-weight: bold;
+  transition: transform 0.3s ease;
+}
+
+.create-set-btn:hover .btn-icon {
+  transform: rotate(90deg);
 }
 
 /* Controls Bar */
@@ -74,6 +222,18 @@
   gap: 20px;
   align-items: center;
   flex-wrap: wrap;
+  animation: fadeInUp 0.6s ease-out 0.1s both;
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .search-container {
@@ -89,6 +249,7 @@
   transform: translateY(-50%);
   color: #666;
   font-size: 1rem;
+  transition: color 0.3s ease;
 }
 
 .search-input {
@@ -99,13 +260,17 @@
   border-radius: 12px;
   color: white;
   font-size: 1rem;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .search-input:focus {
   outline: none;
   border-color: #4facfe;
   box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+}
+
+.search-input:focus ~ .search-icon {
+  color: #4facfe;
 }
 
 .search-input::placeholder {
@@ -125,7 +290,7 @@
   color: white;
   font-size: 1rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .sort-select:focus {
@@ -141,6 +306,7 @@
 /* Content Section */
 .set-content {
   margin-top: 40px;
+  animation: fadeInUp 0.6s ease-out 0.2s both;
 }
 
 /* Loading State */
@@ -181,12 +347,24 @@
   justify-content: center;
   padding: 80px 20px;
   text-align: center;
+  animation: fadeIn 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 .empty-icon {
   font-size: 4rem;
   margin-bottom: 20px;
   opacity: 0.6;
+  animation: gentleBob 3s ease-in-out infinite;
+}
+
+@keyframes gentleBob {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
 }
 
 .empty-state h3 {
@@ -227,13 +405,32 @@
   gap: 24px;
 }
 
-/* Class Item */
+/* Class Item - Subtle staggered entrance */
 .class-item {
   background: #1e1e1e;
   border: 1px solid #333;
   border-radius: 16px;
   overflow: hidden;
   transition: all 0.3s ease;
+  animation: slideInLeft 0.5s ease-out;
+  animation-fill-mode: both;
+}
+
+.class-item:nth-child(1) { animation-delay: 0.1s; }
+.class-item:nth-child(2) { animation-delay: 0.15s; }
+.class-item:nth-child(3) { animation-delay: 0.2s; }
+.class-item:nth-child(4) { animation-delay: 0.25s; }
+.class-item:nth-child(n+5) { animation-delay: 0.3s; }
+
+@keyframes slideInLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .class-item:hover {
@@ -265,7 +462,11 @@
 .expand-icon {
   color: #4facfe;
   font-size: 1rem;
-  transition: transform 0.2s ease;
+  transition: transform 0.3s ease;
+}
+
+.class-header:hover .expand-icon {
+  transform: scale(1.1);
 }
 
 .class-name-with-count {
@@ -283,6 +484,7 @@
   font-weight: 600;
   min-width: 200px;
   padding: 4px 0;
+  transition: all 0.3s ease;
 }
 
 .inline-class-title-input:focus {
@@ -297,6 +499,11 @@
   background: #333;
   padding: 4px 12px;
   border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.class-header:hover .deck-count {
+  background: #3a3a3a;
 }
 
 .class-actions {
@@ -313,7 +520,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   font-size: 0.9rem;
 }
 
@@ -376,7 +583,7 @@
   gap: 20px;
 }
 
-/* Deck Card */
+/* Deck Card - Subtle entrance animation */
 .deck-card {
   background: #2a2a2a;
   border: 1px solid #333;
@@ -384,9 +591,18 @@
   padding: 20px;
   transition: all 0.3s ease;
   position: relative;
-  overflow: visible; /* FIXED: Changed from hidden to visible */
-  min-height: 200px; /* Ensure enough space for all content */
+  overflow: visible;
+  min-height: 200px;
+  animation: fadeInUp 0.5s ease-out;
+  animation-fill-mode: both;
 }
+
+.deck-card:nth-child(1) { animation-delay: 0.1s; }
+.deck-card:nth-child(2) { animation-delay: 0.15s; }
+.deck-card:nth-child(3) { animation-delay: 0.2s; }
+.deck-card:nth-child(4) { animation-delay: 0.25s; }
+.deck-card:nth-child(5) { animation-delay: 0.3s; }
+.deck-card:nth-child(n+6) { animation-delay: 0.35s; }
 
 .deck-card::before {
   content: '';
@@ -410,12 +626,21 @@
   opacity: 1;
 }
 
+/* Updated deck card header to include speed button */
 .deck-card-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 16px;
   gap: 12px;
+}
+
+.deck-title-with-speed {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .deck-title {
@@ -425,6 +650,48 @@
   color: #fff;
   line-height: 1.3;
   flex: 1;
+  min-width: 0;
+  transition: color 0.3s ease;
+}
+
+.deck-card:hover .deck-title {
+  color: #4facfe;
+}
+
+/* Speed button next to deck title - compact version */
+.speed-button-compact {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  color: white;
+  border: 2px solid #ff8c00;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+  height: 28px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.speed-button-compact:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.5);
+  border-color: #ff6b35;
+}
+
+.speed-button-compact svg {
+  color: #fff;
+  font-size: 0.8rem;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
 }
 
 .deck-actions {
@@ -442,7 +709,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   font-size: 0.9rem;
 }
 
@@ -477,34 +744,30 @@
   transform: scale(1.1);
 }
 
-/* FIXED: Deck Stats with Better Layout for Speed Button */
+/* Updated deck stats to show date and cards in a horizontal row */
 .deck-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
   margin-bottom: 16px;
   padding: 12px;
   border-top: 1px solid #333;
   border-bottom: 1px solid #333;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.1);
-  overflow: visible; /* Ensure button isn't clipped */
 }
 
 .deck-stats-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   width: 100%;
-  min-height: 40px; /* Ensure enough height for button */
 }
 
-.deck-stats-left {
+/* Stats in horizontal layout */
+.deck-stats-horizontal {
   display: flex;
-  gap: 16px;
+  align-items: center;
+  gap: 20px;
   flex: 1;
-  min-width: 0; /* Allow shrinking */
 }
 
 .stat-item {
@@ -513,50 +776,25 @@
   gap: 6px;
   color: #aaa;
   font-size: 0.85rem;
+  line-height: 1.4;
+  transition: color 0.3s ease;
   white-space: nowrap;
+}
+
+.deck-card:hover .stat-item {
+  color: #ccc;
 }
 
 .stat-icon {
   font-size: 0.9rem;
-}
-
-/* FIXED: Speed Button - Now properly contained and visible */
-.speed-button-inline {
-  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
-  color: white;
-  border: 2px solid #ff8c00;
-  border-radius: 8px;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  box-shadow: 0 3px 10px rgba(255, 107, 53, 0.3);
-  white-space: nowrap;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   flex-shrink: 0;
-  min-width: fit-content;
-  max-width: 140px; /* Prevent it from being too wide */
-  height: 36px; /* Fixed height to prevent overflow */
-  line-height: 1;
+  min-width: 14px;
 }
 
-.speed-button-inline:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.5);
-  border-color: #ff6b35;
-  background: linear-gradient(135deg, #f7931e 0%, #ff6b35 100%);
-}
-
-.speed-button-inline svg {
-  color: #fff;
-  font-size: 1rem;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+.stat-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .deck-card-footer {
@@ -588,6 +826,7 @@
   justify-content: center;
   min-height: 60vh;
   padding: 40px 20px;
+  animation: fadeIn 0.8s ease-out;
 }
 
 .auth-required-card {
@@ -598,12 +837,18 @@
   text-align: center;
   max-width: 400px;
   width: 100%;
+  transition: all 0.3s ease;
+}
+
+.auth-required-card:hover {
+  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.1);
 }
 
 .auth-icon {
   font-size: 3rem;
   margin-bottom: 20px;
   opacity: 0.7;
+  animation: gentleBob 3s ease-in-out infinite;
 }
 
 .auth-required-card h2 {
@@ -635,7 +880,7 @@
   box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
 }
 
-/* Responsive Design */
+/* Mobile responsive adjustments */
 @media (max-width: 768px) {
   .set-container {
     padding: 15px;
@@ -683,31 +928,32 @@
     min-width: 150px;
   }
 
-  /* FIXED: Mobile layout for speed button */
-  .deck-stats {
-    gap: 10px;
-    padding: 15px; /* Increased padding for mobile */
+  .deck-title-with-speed {
+    gap: 8px;
   }
   
-  .deck-stats-row {
-    flex-direction: column;
-    align-items: stretch;
+  .speed-button-compact {
+    padding: 4px 8px;
+    font-size: 0.65rem;
+    height: 24px;
+    gap: 3px;
+  }
+  
+  .deck-stats-horizontal {
     gap: 12px;
-    min-height: auto;
   }
   
-  .deck-stats-left {
-    gap: 12px;
-    justify-content: space-between;
+  .stat-item {
+    font-size: 0.8rem;
   }
-  
-  .speed-button-inline {
-    width: 100%;
-    justify-content: center;
-    padding: 12px 16px;
-    font-size: 0.85rem;
-    max-width: none; /* Remove width restriction on mobile */
-    height: 44px; /* Larger height for mobile */
+
+  /* Reduce background animation intensity on mobile for performance */
+  .set-page::after {
+    background-size: 
+      300px 300px, 250px 250px, 350px 350px,
+      200px 200px, 220px 220px, 180px 180px,
+      120px 120px, 140px 140px, 130px 130px, 150px 150px;
+    animation-duration: 45s, 35s, 50s;
   }
 }
 
@@ -732,15 +978,63 @@
   .deck-card-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .deck-title-with-speed {
+    width: 100%;
+    justify-content: space-between;
   }
   
   .deck-actions {
     align-self: flex-end;
-    margin-top: 8px;
   }
 
-  .speed-button-inline {
-    padding: 12px 16px;
-    font-size: 0.9rem;
+  .deck-stats-horizontal {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .stat-item {
+    font-size: 0.85rem;
+  }
+
+  /* Simplified animations on very small screens for performance */
+  .set-page::before {
+    animation-duration: 25s;
+  }
+  
+  .set-page::after {
+    background-size: 
+      200px 200px, 180px 180px, 250px 250px,
+      150px 150px, 160px 160px, 140px 140px,
+      100px 100px, 110px 110px, 105px 105px, 120px 120px;
+    animation-duration: 60s, 45s, 65s;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .set-page::before,
+  .set-page::after,
+  .loading-spinner,
+  .empty-icon,
+  .auth-icon {
+    animation: none;
+  }
+  
+  .class-item,
+  .deck-card,
+  .set-header,
+  .controls-bar,
+  .set-content {
+    animation: none;
+  }
+  
+  .create-set-btn:hover,
+  .deck-card:hover,
+  .action-btn:hover {
+    transform: none;
   }
 }

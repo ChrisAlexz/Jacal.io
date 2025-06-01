@@ -377,7 +377,20 @@ export default function Set() {
                             {cls.flashcard_sets.map(deck => (
                               <div key={deck.id} className="deck-card">
                                 <div className="deck-card-header">
-                                  <h4 className="deck-title">{deck.title}</h4>
+                                  <div className="deck-title-with-speed">
+                                    <h4 className="deck-title">{deck.title}</h4>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/speed/${deck.id}`);
+                                      }}
+                                      className="speed-button-compact"
+                                      title="Speed Focus Mode"
+                                    >
+                                      <FontAwesomeIcon icon={faBolt} />
+                                      <span>Speed</span>
+                                    </button>
+                                  </div>
                                   <div className="deck-actions">
                                     <button
                                       className="action-btn edit-btn"
@@ -399,10 +412,10 @@ export default function Set() {
                                   </div>
                                 </div>
                                 
-                                {/* FIXED: New layout for deck stats with better speed button positioning */}
+                                {/* Updated stats layout - horizontal row for date and cards */}
                                 <div className="deck-stats">
                                   <div className="deck-stats-row">
-                                    <div className="deck-stats-left">
+                                    <div className="deck-stats-horizontal">
                                       <div className="stat-item">
                                         <span className="stat-icon">📄</span>
                                         <span className="stat-text">
@@ -416,17 +429,6 @@ export default function Set() {
                                         </span>
                                       </div>
                                     </div>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigate(`/speed/${deck.id}`);
-                                      }}
-                                      className="speed-button-inline"
-                                      title="Speed Focus Mode"
-                                    >
-                                      <span>Speed Study</span>
-                                      <FontAwesomeIcon icon={faBolt} />
-                                    </button>
                                   </div>
                                 </div>
                                 

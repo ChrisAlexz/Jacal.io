@@ -781,34 +781,34 @@
   }
   
   /* FIXED: Better color schemes with more spacing */
-  .stat-item.new {
-    background: linear-gradient(135deg, rgba(138, 43, 226, 0.15) 0%, rgba(75, 0, 130, 0.15) 100%);
-    border: 2px solid rgba(138, 43, 226, 0.4);
-    box-shadow: 0 0 15px rgba(138, 43, 226, 0.2);
+  .stat-item.total-cards {
+    background: linear-gradient(135deg, rgba(79, 172, 254, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
+    border: 2px solid rgba(79, 172, 254, 0.4);
+    box-shadow: 0 0 15px rgba(79, 172, 254, 0.2);
   }
   
-  .stat-item.new::before {
-    background: radial-gradient(circle, rgba(138, 43, 226, 0.3) 0%, transparent 70%);
+  .stat-item.total-cards::before {
+    background: radial-gradient(circle, rgba(79, 172, 254, 0.3) 0%, transparent 70%);
   }
   
-  .stat-item.learning {
+  .stat-item.remaining {
     background: linear-gradient(135deg, rgba(255, 140, 0, 0.15) 0%, rgba(255, 69, 0, 0.15) 100%);
     border: 2px solid rgba(255, 140, 0, 0.4);
     box-shadow: 0 0 15px rgba(255, 140, 0, 0.2);
   }
   
-  .stat-item.learning::before {
+  .stat-item.remaining::before {
     background: radial-gradient(circle, rgba(255, 140, 0, 0.3) 0%, transparent 70%);
   }
   
-  .stat-item.review {
-    background: linear-gradient(135deg, rgba(0, 255, 127, 0.15) 0%, rgba(34, 139, 34, 0.15) 100%);
-    border: 2px solid rgba(0, 255, 127, 0.4);
-    box-shadow: 0 0 15px rgba(0, 255, 127, 0.2);
+  .stat-item.mastered {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%);
+    border: 2px solid rgba(34, 197, 94, 0.4);
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
   }
   
-  .stat-item.review::before {
-    background: radial-gradient(circle, rgba(0, 255, 127, 0.3) 0%, transparent 70%);
+  .stat-item.mastered::before {
+    background: radial-gradient(circle, rgba(34, 197, 94, 0.3) 0%, transparent 70%);
   }
   
   .stat-item .count {
@@ -819,16 +819,16 @@
     text-shadow: 0 0 10px currentColor;
   }
   
-  .stat-item.new .count {
-    color: #da70d6;
+  .stat-item.total-cards .count {
+    color: #4facfe;
   }
   
-  .stat-item.learning .count {
+  .stat-item.remaining .count {
     color: #ff8c00;
   }
   
-  .stat-item.review .count {
-    color: #00ff7f;
+  .stat-item.mastered .count {
+    color: #22c55e;
   }
   
   .stat-item .label {
@@ -840,16 +840,16 @@
     opacity: 0.9;
   }
   
-  .stat-item.new .label {
-    color: #dda0dd;
+  .stat-item.total-cards .label {
+    color: #87ceeb;
   }
   
-  .stat-item.learning .label {
+  .stat-item.remaining .label {
     color: #ffb347;
   }
   
-  .stat-item.review .label {
-    color: #90ee90;
+  .stat-item.mastered .label {
+    color: #86efac;
   }
   
   /* Study Completion (separate from study box) */
