@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - FIXED SESSION-BASED STUDYING
+// src/components/FlashcardStudyPage.jsx - COMPLETE FIXED VERSION WITH HEATMAP TRACKING
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -36,6 +36,8 @@ export default function FlashcardStudyPage() {
 
   const fetchFlashcardSet = async (setId) => {
     try {
+      console.log(`Fetching flashcard set: ${setId}`);
+      
       // First, get the flashcard set to determine its type
       const { data: setData, error: setError } = await supabase
         .from("flashcard_sets")
@@ -51,6 +53,7 @@ export default function FlashcardStudyPage() {
       if (setData) {
         setDeckType(setData.type);
         setSetTitle(setData.title);
+        console.log(`Loaded deck: ${setData.title} (Type: ${setData.type})`);
       }
 
       // Then, get the cards with spaced repetition data
@@ -65,10 +68,12 @@ export default function FlashcardStudyPage() {
       }
 
       const cards = data || [];
+      console.log(`Loaded ${cards.length} cards`);
       setAllCards(cards);
       
       // Initialize session cards - get all cards that should be in current session
       const sessionDueCards = getDueCards(cards);
+      console.log(`${sessionDueCards.length} cards due for study`);
       setSessionCards(sessionDueCards);
       setCurrentIndex(0);
       
@@ -259,10 +264,19 @@ export default function FlashcardStudyPage() {
     const currentCardData = currentCard;
     
     try {
+      console.log(`Processing difficulty choice: ${difficulty} for card ${currentCardData.id}`);
+      
       // Calculate next review using Anki algorithm
       const updatedCard = calculateNextReview(currentCardData, difficulty);
       
-      // Update card in database
+      // CRITICAL: Always update last_reviewed to current timestamp for heatmap tracking
+      const now = new Date().toISOString();
+      updatedCard.last_reviewed = now;
+      
+      console.log(`Card ${currentCardData.id} studied at ${now} with rating: ${difficulty}`);
+      console.log(`Next due: ${updatedCard.due}, State: ${updatedCard.state}, Interval: ${updatedCard.interval_days} days`);
+      
+      // Update card in database - ENSURE last_reviewed is always set for heatmap
       const { error } = await supabase
         .from('flashcard_cards')
         .update({
@@ -273,7 +287,7 @@ export default function FlashcardStudyPage() {
           reviews: updatedCard.reviews,
           lapses: updatedCard.lapses,
           due: updatedCard.due,
-          last_reviewed: updatedCard.last_reviewed
+          last_reviewed: now  // This is crucial for heatmap tracking
         })
         .eq('id', currentCardData.id);
 
@@ -281,6 +295,8 @@ export default function FlashcardStudyPage() {
         console.error('Error updating card:', error);
         return;
       }
+
+      console.log(`Successfully updated card ${currentCardData.id} in database`);
 
       // Update all cards state
       const newAllCards = allCards.map(card => 
@@ -290,12 +306,15 @@ export default function FlashcardStudyPage() {
 
       // Check if this card should be removed from session
       if (shouldRemoveFromSession(updatedCard, difficulty)) {
+        console.log(`Removing card from session (marked as ${difficulty})`);
+        
         // Remove card from session
         const newSessionCards = sessionCards.filter((_, index) => index !== currentIndex);
         setSessionCards(newSessionCards);
         
         // Check if session is complete
         if (newSessionCards.length === 0) {
+          console.log('Study session completed!');
           // Show completion popup briefly, then show completion screen
           setShowCompletionPopup(true);
           setTimeout(() => {
@@ -308,6 +327,8 @@ export default function FlashcardStudyPage() {
         const nextIndex = currentIndex >= newSessionCards.length ? 0 : currentIndex;
         setCurrentIndex(nextIndex);
       } else {
+        console.log(`Keeping card in session (marked as ${difficulty})`);
+        
         // Keep card in session, update it
         const newSessionCards = sessionCards.map((card, index) => 
           index === currentIndex ? updatedCard : card
