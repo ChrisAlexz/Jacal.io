@@ -1,9 +1,9 @@
-// src/components/SpeedFocusMode.jsx - COMPLETE UPDATED VERSION
+// src/components/SpeedFocusMode.jsx - COMPLETE FIXED VERSION
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
-import { calculateNextReview, getDueCards, shouldRemoveFromSession } from '../utils/SpacedRepetition';
+import { calculateNextReview, getDueCards, getStudyStats, shouldRemoveFromSession } from '../utils/SpacedRepetition';
 import '../styles/SpeedFocusMode.css';
 
 export default function SpeedFocusMode() {
@@ -20,7 +20,6 @@ export default function SpeedFocusMode() {
   const [gameEnded, setGameEnded] = useState(false);
   
   // Timer & Speed
-  const [timeLimit, setTimeLimit] = useState(10);
   const [timeLeft, setTimeLeft] = useState(10);
   const [cardStartTime, setCardStartTime] = useState(null);
   
@@ -38,6 +37,9 @@ export default function SpeedFocusMode() {
   const [userAnswer, setUserAnswer] = useState('');
   const [lastAnswerCorrect, setLastAnswerCorrect] = useState(null);
   
+  // Add studyStats state
+  const [studyStats, setStudyStats] = useState(null);
+  
   // Settings
   const [settings, setSettings] = useState({
     timePerCard: 10,
@@ -51,6 +53,12 @@ export default function SpeedFocusMode() {
       fetchFlashcardSet(id);
     }
   }, [id]);
+
+  // FIXED: Handle timeout function
+  const handleTimeOut = () => {
+    setIsActive(false);
+    handleAnswer(false, settings.timePerCard, 'again'); // Default to 'again' for timeouts
+  };
 
   // Timer effect with better safety checks
   useEffect(() => {
@@ -68,7 +76,18 @@ export default function SpeedFocusMode() {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, showAnswer, gameEnded, sessionCards.length, currentIndex]);
+  }, [isActive, timeLeft, showAnswer, gameEnded, sessionCards.length, currentIndex, settings.timePerCard]);
+
+  // FIXED: Handle timeout function - moved to before useEffect that uses it
+
+  // FIXED: Clear any lingering feedback when card changes
+  useEffect(() => {
+    if (currentIndex >= 0) {
+      setLastAnswerCorrect(null);
+      setShowAnswer(false);
+      setUserAnswer('');
+    }
+  }, [currentIndex]);
 
   const fetchFlashcardSet = async (setId) => {
     try {
@@ -159,6 +178,7 @@ export default function SpeedFocusMode() {
     setLastAnswerCorrect(null);
   };
 
+  // FIXED: Reset game function with proper state clearing
   const resetGame = () => {
     // Reset all game state
     setGameStarted(false);
@@ -167,7 +187,7 @@ export default function SpeedFocusMode() {
     setCurrentIndex(0);
     setShowAnswer(false);
     setUserAnswer('');
-    setLastAnswerCorrect(null);
+    setLastAnswerCorrect(null);      // CRITICAL: Clear feedback
     setTimeLeft(settings.timePerCard);
     setCardStartTime(null);
     
@@ -185,25 +205,25 @@ export default function SpeedFocusMode() {
     setSessionCards(newSessionCards);
   };
 
-  const handleTimeOut = () => {
-    handleAnswer(false, settings.timePerCard);
-  };
-
+  // FIXED: Handle reveal function
   const handleReveal = () => {
     if (deckType !== 'Basic-Type') {
       setShowAnswer(true);
-      setIsActive(false);
+      setIsActive(false); // Stop timer when answer is revealed
     }
   };
 
+  // FIXED: Handle submit typed answer function
   const handleSubmitTypedAnswer = () => {
     if (deckType === 'Basic-Type' && userAnswer.trim() && sessionCards.length > 0 && currentIndex < sessionCards.length) {
+      setIsActive(false); // Stop timer immediately
+      
       const currentCard = sessionCards[currentIndex];
       const correctAnswer = currentCard.back.replace(/<[^>]*>/g, '').trim().toLowerCase();
       const userAnswerClean = userAnswer.trim().toLowerCase();
       const isCorrect = correctAnswer === userAnswerClean;
       
-      const responseTime = (Date.now() - cardStartTime) / 1000;
+      const responseTime = cardStartTime ? (Date.now() - cardStartTime) / 1000 : settings.timePerCard;
       handleAnswer(isCorrect, responseTime);
     }
   };
@@ -233,7 +253,12 @@ export default function SpeedFocusMode() {
     await handleAnswer(isCorrect, responseTime, difficulty);
   };
 
+  // FIXED: Handle answer function with proper state management
   const handleAnswer = async (isCorrect, responseTime, difficulty = null) => {
+    // Stop the timer immediately
+    setIsActive(false);
+    
+    // Show feedback
     setLastAnswerCorrect(isCorrect);
     setTotalAnswers(prev => prev + 1);
     
@@ -247,12 +272,10 @@ export default function SpeedFocusMode() {
         return newStreak;
       });
       
-      // Calculate speed bonus (faster = more points)
+      // Calculate points
       const speedMultiplier = Math.max(0.5, (settings.timePerCard - responseTime) / settings.timePerCard);
       const basePoints = 100;
       const streakBonus = Math.min(streak * 10, 200);
-      
-      // Extra bonus for "Easy" answers
       const difficultyMultiplier = difficulty === 'easy' ? 1.5 : 1;
       const speedPoints = Math.round(basePoints * speedMultiplier * difficultyMultiplier);
       const totalPoints = speedPoints + streakBonus;
@@ -260,7 +283,6 @@ export default function SpeedFocusMode() {
       setScore(prev => prev + totalPoints);
       setSpeedBonus(speedMultiplier);
       
-      // Track "Easy" count
       if (difficulty === 'easy') {
         setEasyCount(prev => prev + 1);
       }
@@ -269,15 +291,13 @@ export default function SpeedFocusMode() {
       setSpeedBonus(1);
     }
 
-    // If difficulty is provided, update the card in database
+    // Handle spaced repetition if difficulty is provided
     if (difficulty && sessionCards.length > 0 && currentIndex < sessionCards.length) {
       const currentCard = sessionCards[currentIndex];
       
       try {
-        // Calculate next review using the spaced repetition algorithm
         const updatedCard = calculateNextReview(currentCard, difficulty);
         
-        // Update card in database
         await supabase
           .from('flashcard_cards')
           .update({
@@ -292,48 +312,64 @@ export default function SpeedFocusMode() {
           })
           .eq('id', currentCard.id);
 
-        // Update all cards state
         const newAllCards = allCards.map(card => 
           card.id === currentCard.id ? updatedCard : card
         );
         setAllCards(newAllCards);
 
-        // Check if this card should be removed from session (only for "Easy")
         if (shouldRemoveFromSession(updatedCard, difficulty)) {
-          // Remove card from session
           const newSessionCards = sessionCards.filter((_, index) => index !== currentIndex);
           setSessionCards(newSessionCards);
           
-          // Check if session is complete
           if (newSessionCards.length === 0) {
+            // FIXED: Clear feedback before ending game
             setTimeout(() => {
+              setLastAnswerCorrect(null);
               endGame();
             }, 1500);
             return;
           }
           
-          // Adjust current index if needed
           const nextIndex = currentIndex >= newSessionCards.length ? 0 : currentIndex;
           setCurrentIndex(nextIndex);
         } else {
-          // Keep card in session, update it
           const newSessionCards = sessionCards.map((card, index) => 
             index === currentIndex ? updatedCard : card
           );
           setSessionCards(newSessionCards);
           
-          // Move to next card
           const nextIndex = (currentIndex + 1) % sessionCards.length;
           setCurrentIndex(nextIndex);
         }
+
+        const progressStats = getStudyStats(newAllCards);
+        setStudyStats(progressStats);
+
+        // FIXED: Clear feedback and advance after showing it briefly
+        setTimeout(() => {
+          setLastAnswerCorrect(null); // Clear feedback
+          if (!gameEnded && sessionCards.length > 0) {
+            // Reset card state for next card
+            setShowAnswer(false);
+            setUserAnswer('');
+            setTimeLeft(settings.timePerCard);
+            setCardStartTime(Date.now());
+            setIsActive(true);
+          }
+        }, 1500);
+
       } catch (error) {
         console.error('Error updating card:', error);
-        // Continue game even if database update fails
-        nextCard();
+        // Still advance even if database update fails
+        setTimeout(() => {
+          setLastAnswerCorrect(null);
+          nextCard();
+        }, 1500);
       }
     } else {
-      // Auto advance to next card after showing feedback
+      // For non-difficulty based answers, use the original nextCard logic
       setTimeout(() => {
+        setLastAnswerCorrect(null); // Clear feedback
         if (!gameEnded && sessionCards.length > 0) {
           nextCard();
         }
@@ -341,6 +377,7 @@ export default function SpeedFocusMode() {
     }
   };
 
+  // FIXED: Next card function with proper state reset
   const nextCard = () => {
     const nextIndex = currentIndex + 1;
     
@@ -349,13 +386,14 @@ export default function SpeedFocusMode() {
       return;
     }
     
+    // FIXED: Reset ALL card-specific state before moving to next card
     setCurrentIndex(nextIndex);
-    setShowAnswer(false);
-    setUserAnswer('');
-    setTimeLeft(settings.timePerCard);
-    setCardStartTime(Date.now());
-    setIsActive(true);
-    setLastAnswerCorrect(null);
+    setShowAnswer(false);           // Reset answer visibility
+    setUserAnswer('');              // Clear typed answer
+    setLastAnswerCorrect(null);     // Clear feedback state
+    setTimeLeft(settings.timePerCard); // Reset timer
+    setCardStartTime(Date.now());   // Reset timer start
+    setIsActive(true);              // Restart timer
   };
 
   const endGame = () => {
@@ -414,7 +452,6 @@ export default function SpeedFocusMode() {
                 onChange={(e) => {
                   const newTime = parseInt(e.target.value);
                   setSettings(prev => ({...prev, timePerCard: newTime}));
-                  setTimeLimit(newTime);
                   setTimeLeft(newTime);
                 }}
               >
@@ -537,11 +574,14 @@ export default function SpeedFocusMode() {
           <div className="card-progress">
             {currentIndex + 1} / {sessionCards.length} cards
           </div>
-          <div className="easy-counter">
-            ⭐ {easyCount} marked Easy
+          <div className="cards-learned">
+            ⭐ {easyCount} Cards Learned
           </div>
         </div>
         <div className="hud-right">
+          <div className="cards-remaining">
+            📚 {sessionCards.length - easyCount} Cards to Learn
+          </div>
           <div className="accuracy">Accuracy: {getAccuracy()}%</div>
         </div>
       </div>
