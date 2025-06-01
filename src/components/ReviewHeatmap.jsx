@@ -1,4 +1,4 @@
-// src/components/ReviewHeatmap.jsx
+// src/components/ReviewHeatmap.jsx - YEAR-BASED HEATMAP WITH NAVIGATION
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
@@ -13,6 +13,9 @@ const ReviewHeatmap = () => {
     totalReviews: 0
   });
   const [loading, setLoading] = useState(true);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [availableYears, setAvailableYears] = useState([]);
+  const [accountCreatedYear, setAccountCreatedYear] = useState(null);
 
   // Helper function to get intensity level
   const getIntensityLevel = (count) => {
@@ -51,12 +54,35 @@ const ReviewHeatmap = () => {
     return { current: currentStreak, longest: longestStreak };
   };
 
+  // Get user account creation date
+  const getUserCreationDate = useCallback(async () => {
+    if (!user) return null;
+    
+    try {
+      // Try to get from user metadata first
+      if (user.created_at) {
+        return new Date(user.created_at);
+      }
+      
+      // Fallback: get from auth.users if we have access
+      const { data, error } = await supabase.auth.getUser();
+      if (!error && data.user && data.user.created_at) {
+        return new Date(data.user.created_at);
+      }
+      
+      // Ultimate fallback: assume current year
+      return new Date();
+    } catch (error) {
+      console.error('Error getting user creation date:', error);
+      return new Date();
+    }
+  }, [user]);
+
   // Generate mock data for demo
-  const generateMockHeatmapData = useCallback(() => {
+  const generateMockHeatmapData = useCallback((year) => {
     const heatmapArray = [];
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 364);
+    const startDate = new Date(year, 0, 1); // January 1st of the year
+    const endDate = new Date(year, 11, 31); // December 31st of the year
     
     const currentDate = new Date(startDate);
     
@@ -88,24 +114,17 @@ const ReviewHeatmap = () => {
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
-    setHeatmapData(heatmapArray);
-    setStats({
-      longestStreak: 12,
-      currentStreak: 5,
-      dailyAverage: 15.3,
-      totalReviews: 1247
-    });
+    return heatmapArray;
   }, []);
 
-  // Fetch real review data
-  const fetchReviewData = useCallback(async () => {
+  // Fetch real review data for a specific year
+  const fetchReviewDataForYear = useCallback(async (year) => {
     try {
       setLoading(true);
       
-      // Calculate date range (last 365 days)
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 364);
+      // Calculate date range for the specific year
+      const startDate = new Date(year, 0, 1);
+      const endDate = new Date(year, 11, 31, 23, 59, 59);
 
       // Fetch review history from flashcard_cards where last_reviewed is set
       const { data: cards, error } = await supabase
@@ -118,7 +137,14 @@ const ReviewHeatmap = () => {
       if (error) {
         console.error('Error fetching review data:', error);
         // Fallback to mock data
-        generateMockHeatmapData();
+        const mockData = generateMockHeatmapData(year);
+        setHeatmapData(mockData);
+        setStats({
+          longestStreak: 12,
+          currentStreak: year === new Date().getFullYear() ? 5 : 0, // Only show current streak for current year
+          dailyAverage: 15.3,
+          totalReviews: 1247
+        });
         return;
       }
 
@@ -136,7 +162,7 @@ const ReviewHeatmap = () => {
         });
       }
 
-      // Generate heatmap data for the last 365 days
+      // Generate heatmap data for the entire year
       const heatmapArray = [];
       const currentDate = new Date(startDate);
       
@@ -157,11 +183,12 @@ const ReviewHeatmap = () => {
       
       // Calculate statistics
       const streakStats = calculateStreaks(heatmapArray);
-      const dailyAvg = totalReviews > 0 ? Math.round(totalReviews / 365 * 10) / 10 : 0;
+      const daysInYear = heatmapArray.length;
+      const dailyAvg = totalReviews > 0 ? Math.round(totalReviews / daysInYear * 10) / 10 : 0;
       
       setStats({
         longestStreak: streakStats.longest,
-        currentStreak: streakStats.current,
+        currentStreak: year === new Date().getFullYear() ? streakStats.current : 0, // Only show current streak for current year
         dailyAverage: dailyAvg,
         totalReviews
       });
@@ -169,22 +196,70 @@ const ReviewHeatmap = () => {
     } catch (error) {
       console.error('Error processing review data:', error);
       // Fallback to mock data
-      generateMockHeatmapData();
+      const mockData = generateMockHeatmapData(year);
+      setHeatmapData(mockData);
+      setStats({
+        longestStreak: 12,
+        currentStreak: year === new Date().getFullYear() ? 5 : 0,
+        dailyAverage: 15.3,
+        totalReviews: 1247
+      });
     } finally {
       setLoading(false);
     }
   }, [generateMockHeatmapData]);
 
-  // Load data on mount
-  useEffect(() => {
+  // Initialize available years based on account creation
+  const initializeAvailableYears = useCallback(async () => {
     if (user) {
-      fetchReviewData();
+      const creationDate = await getUserCreationDate();
+      const creationYear = creationDate.getFullYear();
+      const currentYear = new Date().getFullYear();
+      
+      setAccountCreatedYear(creationYear);
+      
+      // Generate array of years from account creation to current year
+      const years = [];
+      for (let year = creationYear; year <= currentYear; year++) {
+        years.push(year);
+      }
+      
+      setAvailableYears(years);
+      
+      // Set selected year to current year by default
+      setSelectedYear(currentYear);
+      
+      // Load data for current year
+      await fetchReviewDataForYear(currentYear);
     } else {
       // Show demo data for non-logged in users
-      generateMockHeatmapData();
+      const currentYear = new Date().getFullYear();
+      setAvailableYears([currentYear]);
+      setSelectedYear(currentYear);
+      const mockData = generateMockHeatmapData(currentYear);
+      setHeatmapData(mockData);
+      setStats({
+        longestStreak: 12,
+        currentStreak: 5,
+        dailyAverage: 15.3,
+        totalReviews: 1247
+      });
       setLoading(false);
     }
-  }, [user, fetchReviewData, generateMockHeatmapData]);
+  }, [user, getUserCreationDate, fetchReviewDataForYear, generateMockHeatmapData]);
+
+  // Load data on mount
+  useEffect(() => {
+    initializeAvailableYears();
+  }, [initializeAvailableYears]);
+
+  // Handle year change
+  const handleYearChange = async (year) => {
+    if (year !== selectedYear) {
+      setSelectedYear(year);
+      await fetchReviewDataForYear(year);
+    }
+  };
 
   // Helper functions for rendering
   const formatDate = (dateStr) => {
@@ -251,7 +326,7 @@ const ReviewHeatmap = () => {
         const date = new Date(firstDayOfWeek.date);
         const month = date.getMonth();
         
-        if (month !== currentMonth) {
+        if (month !== currentMonth && date.getDate() <= 7) { // Only add label at beginning of month
           const monthName = date.toLocaleDateString('en-US', { month: 'short' });
           monthLabels.push({
             name: monthName,
@@ -288,8 +363,43 @@ const ReviewHeatmap = () => {
   return (
     <div className="heatmap-container">
       <div className="heatmap-header">
-        <h3>📊 Study Activity</h3>
-        <span className="total-reviews">{stats.totalReviews} reviews in the last year</span>
+        <div className="heatmap-title-section">
+          <h3>📊 Study Activity</h3>
+          <span className="total-reviews">{stats.totalReviews} reviews in {selectedYear}</span>
+        </div>
+        
+        {/* Year Navigation */}
+        {availableYears.length > 1 && (
+          <div className="year-navigation">
+            <button 
+              className="year-nav-btn"
+              onClick={() => handleYearChange(selectedYear - 1)}
+              disabled={selectedYear <= Math.min(...availableYears)}
+              title="Previous year"
+            >
+              ←
+            </button>
+            <div className="year-selector">
+              <select 
+                value={selectedYear} 
+                onChange={(e) => handleYearChange(parseInt(e.target.value))}
+                className="year-select"
+              >
+                {availableYears.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+            <button 
+              className="year-nav-btn"
+              onClick={() => handleYearChange(selectedYear + 1)}
+              disabled={selectedYear >= Math.max(...availableYears)}
+              title="Next year"
+            >
+              →
+            </button>
+          </div>
+        )}
       </div>
       
       <div className="heatmap-grid">
@@ -352,7 +462,7 @@ const ReviewHeatmap = () => {
         </div>
         <div className="stat-item">
           <div className="stat-value">{stats.currentStreak}</div>
-          <div className="stat-label">Current Streak</div>
+          <div className="stat-label">{selectedYear === new Date().getFullYear() ? 'Current Streak' : 'Final Streak'}</div>
         </div>
         <div className="stat-item">
           <div className="stat-value">{stats.dailyAverage}</div>
@@ -372,6 +482,19 @@ const ReviewHeatmap = () => {
         </div>
         <span className="legend-text">More</span>
       </div>
+      
+      {/* Previous Years Toggle - only show if user has previous years and not viewing current year */}
+      {availableYears.length > 1 && selectedYear < new Date().getFullYear() && (
+        <div className="previous-years-toggle">
+          <button 
+            className="toggle-previous-btn"
+            onClick={() => handleYearChange(new Date().getFullYear())}
+            title="Return to current year"
+          >
+            📊 View Current Year Stats
+          </button>
+        </div>
+      )}
     </div>
   );
 };

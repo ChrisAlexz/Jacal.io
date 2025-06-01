@@ -1,4 +1,4 @@
-/* src/styles/ReviewHeatmap.css */
+/* src/styles/ReviewHeatmap.css - YEAR-BASED HEATMAP WITH NAVIGATION */
 
 .heatmap-container {
   background: #1e1e1e;
@@ -41,7 +41,13 @@
   align-items: center;
   margin-bottom: 20px;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
+}
+
+.heatmap-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .heatmap-header h3 {
@@ -58,6 +64,87 @@
   font-size: 0.9rem;
   color: #aaa;
   font-weight: 500;
+}
+
+/* Year Navigation */
+.year-navigation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.year-nav-btn {
+  background: rgba(79, 172, 254, 0.1);
+  border: 1px solid rgba(79, 172, 254, 0.3);
+  color: #4facfe;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.year-nav-btn:hover:not(:disabled) {
+  background: rgba(79, 172, 254, 0.2);
+  border-color: rgba(79, 172, 254, 0.5);
+  transform: scale(1.05);
+}
+
+.year-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.year-selector {
+  position: relative;
+}
+
+.year-select {
+  background: rgba(30, 30, 30, 0.8);
+  border: 1px solid #444;
+  color: white;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  min-width: 80px;
+  text-align: center;
+}
+
+.year-select:focus {
+  outline: none;
+  border-color: #4facfe;
+  box-shadow: 0 0 0 2px rgba(79, 172, 254, 0.2);
+}
+
+.year-select:hover {
+  border-color: #555;
+  background: rgba(30, 30, 30, 0.9);
+}
+
+/* Add a custom dropdown arrow */
+.year-selector::after {
+  content: '▼';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+  font-size: 0.7rem;
+  pointer-events: none;
 }
 
 /* Loading */
@@ -278,6 +365,7 @@
   justify-content: center;
   gap: 8px;
   opacity: 0.8;
+  margin-bottom: 16px;
 }
 
 .legend-text {
@@ -323,6 +411,52 @@
   background: #39d353;
 }
 
+/* Previous Years Toggle */
+.previous-years-toggle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.toggle-previous-btn {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.toggle-previous-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.toggle-previous-btn:hover::before {
+  left: 100%;
+}
+
+.toggle-previous-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+}
+
 /* Heatmap Section in Home.css */
 .heatmap-section {
   padding: 40px 20px;
@@ -353,7 +487,15 @@
   .heatmap-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: 12px;
+  }
+  
+  .heatmap-title-section {
+    align-self: stretch;
+  }
+  
+  .year-navigation {
+    align-self: center;
   }
   
   .heatmap-header h3 {
@@ -414,6 +556,23 @@
   
   .heatmap-section {
     padding: 30px 15px;
+  }
+  
+  .year-nav-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+  
+  .year-select {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    min-width: 70px;
+  }
+  
+  .toggle-previous-btn {
+    padding: 10px 16px;
+    font-size: 0.8rem;
   }
 }
 
@@ -488,6 +647,29 @@
   .heatmap-section {
     padding: 25px 10px;
   }
+  
+  .year-navigation {
+    padding: 4px;
+    gap: 6px;
+  }
+  
+  .year-nav-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 0.8rem;
+  }
+  
+  .year-select {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    min-width: 60px;
+  }
+  
+  .toggle-previous-btn {
+    padding: 8px 14px;
+    font-size: 0.75rem;
+    gap: 6px;
+  }
 }
 
 /* Enhanced animations */
@@ -502,23 +684,117 @@
   }
 }
 
-/* Tooltip enhancement */
+/* Tooltip enhancement - Smart positioning */
 .heatmap-day[title]:hover::after {
   content: attr(title);
   position: absolute;
-  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(0, 0, 0, 0.9);
   color: white;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 0.7rem;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
   white-space: nowrap;
   z-index: 1000;
   pointer-events: none;
   border: 1px solid #4facfe;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  
+  /* Smart positioning - show above for top rows, below for bottom rows */
+  bottom: 100%;
+  margin-bottom: 8px;
+}
+
+/* For days in the bottom half, show tooltip above */
+.heatmap-week:nth-child(n+4) .heatmap-day[title]:hover::after {
+  bottom: auto;
+  top: 100%;
+  margin-bottom: 0;
+  margin-top: 8px;
+}
+
+/* Tooltip arrow for better visual connection */
+.heatmap-day[title]:hover::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgba(0, 0, 0, 0.9);
+  z-index: 1001;
+  pointer-events: none;
+  
+  /* Position arrow below tooltip */
+  bottom: 100%;
+  margin-bottom: 2px;
+}
+
+/* Arrow for bottom-positioned tooltips */
+.heatmap-week:nth-child(n+4) .heatmap-day[title]:hover::before {
+  bottom: auto;
+  top: 100%;
+  margin-bottom: 0;
+  margin-top: 2px;
+  border-top: none;
+  border-bottom: 6px solid rgba(0, 0, 0, 0.9);
+}
+
+/* Ensure heatmap container doesn't clip tooltips */
+.heatmap-container {
+  overflow: visible;
+}
+
+.heatmap-grid {
+  overflow: visible;
+}
+
+.heatmap-main-grid {
+  overflow: visible;
+}
+
+.heatmap-weeks {
+  overflow: visible;
+}
+
+/* Year navigation animation */
+.year-nav-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.year-nav-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.3s;
+}
+
+.year-nav-btn:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+/* Year selector focus styles */
+.year-select option {
+  background: #1e1e1e;
+  color: white;
+}
+
+/* Enhanced loading spinner */
+.loading-spinner {
+  background: conic-gradient(from 0deg, #4facfe, #00f2fe, #4facfe);
+  border-radius: 50%;
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), white calc(100% - 3px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), white calc(100% - 3px));
 }
 
 /* Accessibility improvements */
@@ -527,14 +803,16 @@
   .heatmap-day,
   .stat-item,
   .legend-square,
-  .heatmap-section {
+  .heatmap-section,
+  .year-nav-btn {
     animation: none;
     transition: none;
   }
   
   .heatmap-container:hover,
   .heatmap-day:hover,
-  .stat-item:hover {
+  .stat-item:hover,
+  .year-nav-btn:hover {
     transform: none;
   }
 }
@@ -565,4 +843,42 @@
     background: #00cc00;
     border: 1px solid #000;
   }
+  
+  .year-nav-btn {
+    border: 2px solid #4facfe;
+  }
+  
+  .year-select {
+    border: 2px solid #4facfe;
+  }
+}
+
+/* Focus states for keyboard navigation */
+.year-nav-btn:focus,
+.year-select:focus,
+.toggle-previous-btn:focus {
+  outline: 2px solid #4facfe;
+  outline-offset: 2px;
+}
+
+/* Smooth year transition effect */
+.heatmap-grid {
+  transition: opacity 0.3s ease;
+}
+
+.heatmap-grid.loading {
+  opacity: 0.5;
+}
+
+/* Enhanced month labels positioning */
+.month-labels {
+  overflow: hidden;
+}
+
+.month-label {
+  transition: color 0.3s ease;
+}
+
+.month-label:hover {
+  color: #4facfe;
 }
