@@ -3,10 +3,11 @@ import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import '../styles/Home.css';
+import '../styles/ReviewHeatmap.css';
 import UserAuthContext from './context/UserAuthContext';
 import ClassDeckModal from './ClassDeckModal';
-import { MdFlashOn,MdFolderOpen ,MdTrendingUp,MdViewList} from 'react-icons/md';
-
+import ReviewHeatmap from './ReviewHeatmap';
+import { MdFlashOn, MdFolderOpen, MdTrendingUp, MdViewList } from 'react-icons/md';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -161,14 +162,14 @@ export default function Home() {
             </div>
           </div>
           <div className="stat-card">
-          <div className="stat-icon cards-icon"><MdViewList /></div>
+            <div className="stat-icon cards-icon"><MdViewList /></div>
             <div className="stat-content">
               <div className="stat-number">{stats.totalCards}</div>
               <div className="stat-label">Total Cards</div>
             </div>
           </div>
           <div className="stat-card">
-          <div className="stat-icon study-icon"><MdTrendingUp /></div>
+            <div className="stat-icon study-icon"><MdTrendingUp /></div>
             <div className="stat-content">
               <div className="stat-number">{stats.studiedToday}</div>
               <div className="stat-label">Studied Today</div>
@@ -195,7 +196,7 @@ export default function Home() {
             className="action-card"
             onClick={() => navigate('/set')}
           >
-          <div className="action-icon browse-icon"><MdFolderOpen /></div>
+            <div className="action-icon browse-icon"><MdFolderOpen /></div>
             <div className="action-content">
               <h3>Browse Sets</h3>
               <p>View and manage all your sets</p>
@@ -206,13 +207,18 @@ export default function Home() {
             onClick={() => recentSets.length > 0 && navigate(`/study/${recentSets[0].id}`)}
             disabled={recentSets.length === 0}
           >
-          <div className="action-icon study-icon"><MdFlashOn /></div>
+            <div className="action-icon study-icon"><MdFlashOn /></div>
             <div className="action-content">
               <h3>Quick Study</h3>
               <p>Jump into your latest set</p>
             </div>
           </button>
         </div>
+      </div>
+
+      {/* Review Heatmap */}
+      <div className="heatmap-section">
+        <ReviewHeatmap />
       </div>
 
       {/* Recent Sets */}
