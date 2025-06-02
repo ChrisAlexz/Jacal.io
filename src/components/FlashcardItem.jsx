@@ -4,7 +4,7 @@ import '../styles/FlashcardList.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 
-const FlashcardItem = ({ index, front, back, updateFlashcard, onDelete }) => {
+const FlashcardItem = ({ index, front, back, updateFlashcard, onDelete, cardType }) => {
   const [frontContent, setFrontContent] = useState('');
   const [backContent, setBackContent] = useState('');
 
@@ -53,10 +53,43 @@ const FlashcardItem = ({ index, front, back, updateFlashcard, onDelete }) => {
     };
   }, []);
 
+  // Check if this is an image occlusion card
+  const isImageOcclusionCard = cardType === 'Image-Occlusion' || 
+    (frontContent && (frontContent.includes('image-occlusion-card') || frontContent.includes('occlusion-')));
+
+  // Render content based on card type
+  const renderContent = (content, isBack = false) => {
+    if (isImageOcclusionCard) {
+      return (
+        <div className="image-occlusion-preview">
+          <div dangerouslySetInnerHTML={{ __html: content }} />
+          <div className="edit-overlay">
+            <span className="edit-notice">
+              {isBack ? '🖼️ Back: Answer revealed' : '🖼️ Front: Question view'}
+            </span>
+          </div>
+        </div>
+      );
+    } else {
+      // Regular rich text editor for non-image cards
+      return (
+        <div className="editor-container">
+          <SimpleRichTextEditor
+            value={content}
+            onChange={isBack ? handleBackChange : handleFrontChange}
+          />
+        </div>
+      );
+    }
+  };
+
   return (
-    <div className="flashcard-item">
+    <div className={`flashcard-item ${isImageOcclusionCard ? 'image-occlusion-item' : ''}`}>
       <div className="flashcard-top-row">
         <div className="index-num">{index + 1}</div>
+        {isImageOcclusionCard && (
+          <div className="card-type-badge">Image Occlusion</div>
+        )}
         <button className="delete-btn" onClick={() => onDelete(index)}>
           <FontAwesomeIcon icon={faTrash} />
         </button>
@@ -65,24 +98,25 @@ const FlashcardItem = ({ index, front, back, updateFlashcard, onDelete }) => {
       <div className="front-back">
         <div className="front">
           <label>Front</label>
-          <div className="editor-container">
-            <SimpleRichTextEditor
-              value={frontContent}
-              onChange={handleFrontChange}
-            />
-          </div>
+          {renderContent(frontContent, false)}
         </div>
 
         <div className="back">
           <label>Back</label>
-          <div className="editor-container">
-            <SimpleRichTextEditor
-              value={backContent}
-              onChange={handleBackChange}
-            />
-          </div>
+          {renderContent(backContent, true)}
         </div>
       </div>
+
+      {isImageOcclusionCard && (
+        <div className="image-occlusion-info">
+          <div className="info-item">
+            <span className="info-icon">⚠️</span>
+            <span className="info-text">
+              Image Occlusion cards are not editable here. To modify, delete and recreate using the Image Occlusion Editor.
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

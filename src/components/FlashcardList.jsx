@@ -1,4 +1,4 @@
-// src/components/FlashcardList.jsx
+// src/components/FlashcardList.jsx - UPDATED WITH CARD TYPE SUPPORT
 import React from 'react';
 import FlashcardItem from './FlashcardItem';
 import '../styles/FlashcardList.css';
@@ -15,6 +15,7 @@ const FlashcardList = ({ flashcards, updateFlashcard, onDelete }) => {
             index={index}
             front={card.front}
             back={card.back}
+            cardType={card.card_type} // Pass the card type
             updateFlashcard={updateFlashcard}
             onDelete={onDelete}
           />

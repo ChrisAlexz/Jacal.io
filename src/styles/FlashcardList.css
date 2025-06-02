@@ -1,4 +1,4 @@
-/* src/styles/FlashcardList.css */
+/* src/styles/FlashcardList.css - UPDATED WITH IMAGE OCCLUSION SUPPORT */
 
 .flashcard-list {
   max-width: 1200px;
@@ -20,11 +20,23 @@
   box-shadow: 0 4px 15px rgba(79, 172, 254, 0.1);
 }
 
+/* Special styling for Image Occlusion cards */
+.flashcard-item.image-occlusion-item {
+  border-color: #ff6b35;
+  background: linear-gradient(135deg, #1e1e1e 0%, #2a1f1a 100%);
+}
+
+.flashcard-item.image-occlusion-item:hover {
+  border-color: #ff8c00;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.2);
+}
+
 .flashcard-top-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
+  gap: 12px;
 }
 
 .index-num {
@@ -38,6 +50,25 @@
   justify-content: center;
   font-weight: 600;
   font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.image-occlusion-item .index-num {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+}
+
+/* Card type badge for Image Occlusion */
+.card-type-badge {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid #ff8c00;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
 }
 
 .delete-btn {
@@ -48,6 +79,7 @@
   padding: 8px 12px;
   cursor: pointer;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .delete-btn:hover {
@@ -84,6 +116,169 @@
   margin-bottom: 10px;
 }
 
+/* IMAGE OCCLUSION PREVIEW STYLES */
+.image-occlusion-preview {
+  position: relative;
+  background: #2a2a2a;
+  border: 2px solid #444;
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.image-occlusion-item .image-occlusion-preview {
+  border-color: #ff6b35;
+  background: linear-gradient(135deg, #2a2a2a 0%, #2d2419 100%);
+}
+
+/* OVERRIDE: Force occlusion overlays to show in flashcard list context */
+.flashcard-list .image-occlusion-card .occlusion-overlay {
+  display: block !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none !important;
+  z-index: 5 !important;
+}
+
+/* Remove any hiding styles that might be applied elsewhere */
+.flashcard-list .image-occlusion-card .occlusion-overlay * {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Image Occlusion Card Content in Edit View */
+.flashcard-list .image-occlusion-card {
+  position: relative !important;
+  display: inline-block !important;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.flashcard-list .occlusion-image {
+  max-width: 100%;
+  max-height: 180px;
+  height: auto;
+  width: auto;
+  border-radius: 6px;
+  display: block;
+  object-fit: contain;
+  margin: 0 auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* CRITICAL: Force show occlusion areas in edit view - override any hiding styles */
+.flashcard-list .occlusion-question-active,
+.flashcard-list .occlusion-blocked, 
+.flashcard-list .occlusion-answer-revealed {
+  position: absolute !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  border-radius: 3px;
+  box-sizing: border-box;
+  min-height: 16px;
+  min-width: 16px;
+  font-size: 10px;
+  line-height: 1;
+  text-align: center;
+  border: 2px solid;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+}
+
+/* Edit view - show all occlusions with strong visibility */
+.flashcard-list .occlusion-question-active {
+  background: rgba(79, 172, 254, 0.9) !important;
+  border-color: #4facfe !important;
+  color: white !important;
+  box-shadow: 0 0 8px rgba(79, 172, 254, 0.7);
+}
+
+.flashcard-list .occlusion-blocked {
+  background: rgba(0, 0, 0, 0.85) !important;
+  border-color: #666 !important;
+  color: #fff !important;
+}
+
+.flashcard-list .occlusion-answer-revealed {
+  background: rgba(40, 167, 69, 0.9) !important;
+  border-color: #28a745 !important;
+  color: white !important;
+  box-shadow: 0 0 8px rgba(40, 167, 69, 0.7);
+}
+
+/* Ensure overlay container is properly positioned */
+.flashcard-list .occlusion-overlay {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none !important;
+  z-index: 5 !important;
+}
+
+/* Edit overlay for Image Occlusion cards */
+.edit-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #ff6b35;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid #ff6b35;
+  backdrop-filter: blur(4px);
+}
+
+.edit-notice {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+/* Image Occlusion info section */
+.image-occlusion-info {
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(255, 107, 53, 0.1);
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  border-radius: 8px;
+}
+
+.info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.info-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.info-text {
+  color: #ff8c00;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .front-back {
@@ -94,6 +289,32 @@
   .flashcard-item {
     padding: 15px;
     margin-bottom: 15px;
+  }
+  
+  .flashcard-top-row {
+    gap: 8px;
+  }
+  
+  .card-type-badge {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+  }
+  
+  .flashcard-list .occlusion-image {
+    max-height: 150px;
+  }
+  
+  .flashcard-list .occlusion-question-active,
+  .flashcard-list .occlusion-blocked,
+  .flashcard-list .occlusion-answer-revealed {
+    min-height: 14px;
+    min-width: 14px;
+    font-size: 9px;
+  }
+  
+  .edit-overlay {
+    font-size: 0.7rem;
+    padding: 4px 8px;
   }
 }
 
@@ -108,5 +329,37 @@
   
   .front-back {
     gap: 12px;
+  }
+  
+  .flashcard-top-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  
+  .card-type-badge {
+    order: 3;
+    flex-basis: 100%;
+    text-align: center;
+    margin-top: 8px;
+  }
+  
+  .flashcard-list .occlusion-image {
+    max-height: 120px;
+  }
+  
+  .flashcard-list .occlusion-question-active,
+  .flashcard-list .occlusion-blocked,
+  .flashcard-list .occlusion-answer-revealed {
+    min-height: 12px;
+    min-width: 12px;
+    font-size: 8px;
+  }
+  
+  .image-occlusion-info {
+    padding: 10px;
+  }
+  
+  .info-text {
+    font-size: 0.8rem;
   }
 }

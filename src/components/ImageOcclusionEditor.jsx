@@ -1,4 +1,4 @@
-// src/components/ImageOcclusionEditor.jsx - FIXED RESET AFTER SAVE
+// src/components/ImageOcclusionEditor.jsx - FIXED DUPLICATE OCCLUSION ISSUE
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
@@ -29,6 +29,10 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
       setImageFile(file);
       const url = URL.createObjectURL(file);
       setImageUrl(url);
+      
+      // Reset occlusions when new image is uploaded
+      setOcclusions([]);
+      setNextId(1);
       
       const img = new Image();
       img.onload = () => {
@@ -262,56 +266,74 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     }
   }, [occlusions, currentRect, image]);
 
-  // FIXED: Reset everything after saving cards
+  // FIXED: Create cards ONLY from CURRENT occlusions and reset properly
   const handleSave = () => {
     if (!image || occlusions.length === 0 || !uploadedImageUrl) {
       alert('Please upload an image and create at least one occlusion. Make sure the image is uploaded before saving.');
       return;
     }
 
-    const cards = occlusions.map(occlusion => ({
+    console.log('Creating cards from occlusions:', occlusions);
+
+    // Create a snapshot of current occlusions to avoid state issues
+    const currentOcclusions = [...occlusions];
+
+    const cards = currentOcclusions.map(occlusion => ({
       id: occlusion.id,
       title: `${cardTitle} - ${occlusion.id}`,
       imageUrl: uploadedImageUrl,
-      occlusions: occlusions,
+      occlusions: currentOcclusions, // Use the snapshot
       revealedId: occlusion.id
     }));
+
+    console.log('Cards being created:', cards);
 
     // Save the cards first
     onSave(cards);
 
-    // CRITICAL FIX: Reset everything after saving
-    resetEditor();
-  };
-
-  // NEW: Reset function to clear all editor state
-  const resetEditor = () => {
+    // CRITICAL FIX: Clear occlusions immediately after saving
     setOcclusions([]);
     setNextId(1);
     setCurrentRect(null);
     setIsDrawing(false);
     
-    // Redraw canvas to show clean image
-    if (image) {
-      drawCanvas();
+    console.log('Editor state reset - occlusions cleared');
+    
+    // IMMEDIATE VISUAL RESET: Force canvas redraw immediately
+    if (image && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      
+      // Clear canvas and redraw just the image (no occlusions)
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      
+      console.log('Canvas visually cleared - no more occlusion marks');
     }
   };
 
   const clearAll = () => {
     setOcclusions([]);
     setNextId(1);
+    console.log('All occlusions cleared manually');
   };
 
   const undoLast = () => {
     if (occlusions.length > 0) {
       setOcclusions(prev => prev.slice(0, -1));
       setNextId(prev => prev - 1);
+      console.log('Last occlusion undone');
     }
   };
 
   const setSizePreset = (size) => {
     setCanvasSize(size);
   };
+
+  // Debug logging for occlusions state
+  useEffect(() => {
+    console.log('Occlusions state updated:', occlusions);
+  }, [occlusions]);
 
   return (
     <div className="image-occlusion-editor" ref={containerRef}>
