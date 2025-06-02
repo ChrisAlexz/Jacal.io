@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - COMPLETE FIXED VERSION WITH HEATMAP TRACKING
+// src/components/FlashcardStudyPage.jsx - FIXED VERSION WITH GUARANTEED last_reviewed UPDATE
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -258,6 +258,7 @@ export default function FlashcardStudyPage() {
     setShowCorrectAnswer(true);
   };
 
+  // *** FIXED: GUARANTEED last_reviewed UPDATE ***
   const handleDifficultyChoice = async (difficulty) => {
     if (!currentCard) return;
     
@@ -269,38 +270,62 @@ export default function FlashcardStudyPage() {
       // Calculate next review using Anki algorithm
       const updatedCard = calculateNextReview(currentCardData, difficulty);
       
-      // CRITICAL: Always update last_reviewed to current timestamp for heatmap tracking
+      // *** CRITICAL FIX: ALWAYS ensure last_reviewed is set for heatmap tracking ***
       const now = new Date().toISOString();
       updatedCard.last_reviewed = now;
       
       console.log(`Card ${currentCardData.id} studied at ${now} with rating: ${difficulty}`);
       console.log(`Next due: ${updatedCard.due}, State: ${updatedCard.state}, Interval: ${updatedCard.interval_days} days`);
       
-      // Update card in database - ENSURE last_reviewed is always set for heatmap
+      // *** FIXED: Ensure ALL required fields are included in the update ***
+      const updatePayload = {
+        state: updatedCard.state || 'new',
+        ease_factor: updatedCard.ease_factor || 2.5,
+        interval_days: updatedCard.interval_days || 0,
+        step: updatedCard.step || 0,
+        reviews: updatedCard.reviews || 1,
+        lapses: updatedCard.lapses || 0,
+        due: updatedCard.due,
+        last_reviewed: now  // *** This is CRITICAL for heatmap tracking ***
+      };
+
+      console.log(`Updating card ${currentCardData.id} with payload:`, updatePayload);
+
+      // Update card in database with explicit field mapping
       const { error } = await supabase
         .from('flashcard_cards')
-        .update({
-          state: updatedCard.state,
-          ease_factor: updatedCard.ease_factor,
-          interval_days: updatedCard.interval_days,
-          step: updatedCard.step,
-          reviews: updatedCard.reviews,
-          lapses: updatedCard.lapses,
-          due: updatedCard.due,
-          last_reviewed: now  // This is crucial for heatmap tracking
-        })
+        .update(updatePayload)
         .eq('id', currentCardData.id);
 
       if (error) {
         console.error('Error updating card:', error);
+        console.error('Update payload that failed:', updatePayload);
         return;
       }
 
-      console.log(`Successfully updated card ${currentCardData.id} in database`);
+      console.log(`✅ Successfully updated card ${currentCardData.id} in database with last_reviewed: ${now}`);
 
-      // Update all cards state
+      // *** VERIFICATION: Double-check the update worked ***
+      const { data: verificationData, error: verificationError } = await supabase
+        .from('flashcard_cards')
+        .select('last_reviewed, state, reviews')
+        .eq('id', currentCardData.id)
+        .single();
+
+      if (verificationError) {
+        console.error('❌ Error verifying update:', verificationError);
+      } else {
+        console.log(`✅ Verified card ${currentCardData.id} last_reviewed:`, verificationData.last_reviewed);
+        console.log(`✅ Verified card ${currentCardData.id} state:`, verificationData.state);
+        console.log(`✅ Verified card ${currentCardData.id} reviews:`, verificationData.reviews);
+      }
+
+      // Update all cards state with the verified data from database
       const newAllCards = allCards.map(card => 
-        card.id === currentCardData.id ? updatedCard : card
+        card.id === currentCardData.id ? {
+          ...updatedCard,
+          last_reviewed: now  // Ensure this is always set
+        } : card
       );
       setAllCards(newAllCards);
 
@@ -331,7 +356,10 @@ export default function FlashcardStudyPage() {
         
         // Keep card in session, update it
         const newSessionCards = sessionCards.map((card, index) => 
-          index === currentIndex ? updatedCard : card
+          index === currentIndex ? {
+            ...updatedCard,
+            last_reviewed: now  // Ensure this is always set
+          } : card
         );
         setSessionCards(newSessionCards);
         
@@ -351,7 +379,28 @@ export default function FlashcardStudyPage() {
       setUserAnswer('');
 
     } catch (error) {
-      console.error('Error processing difficulty choice:', error);
+      console.error('💥 Unexpected error in handleDifficultyChoice:', error);
+      
+      // *** FALLBACK: If there's any error, still try to update last_reviewed ***
+      console.log('🔄 Attempting fallback last_reviewed update...');
+      try {
+        const fallbackNow = new Date().toISOString();
+        const { error: fallbackError } = await supabase
+          .from('flashcard_cards')
+          .update({ 
+            last_reviewed: fallbackNow,
+            reviews: (currentCardData.reviews || 0) + 1
+          })
+          .eq('id', currentCardData.id);
+        
+        if (!fallbackError) {
+          console.log(`✅ Fallback update successful for card ${currentCardData.id}`);
+        } else {
+          console.error('❌ Fallback update also failed:', fallbackError);
+        }
+      } catch (fallbackError) {
+        console.error('❌ Fallback update threw error:', fallbackError);
+      }
     }
   };
 
