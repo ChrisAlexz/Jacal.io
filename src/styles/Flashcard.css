@@ -1,4 +1,4 @@
-/* src/styles/Flashcard.css */
+/* src/styles/Flashcard.css - WITH ANIMATED BACKGROUND */
 
 .flashcard-page {
   max-width: 1200px;
@@ -7,10 +7,159 @@
   background: #121212;
   min-height: 100vh;
   color: white;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ANIMATED BACKGROUND EFFECTS - Same as Home, About, and Set Pages */
+.flashcard-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(79, 172, 254, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0, 242, 254, 0.03) 0%, transparent 40%),
+    radial-gradient(circle at 30% 80%, rgba(79, 172, 254, 0.02) 0%, transparent 60%);
+  animation: subtleFloat 15s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes subtleFloat {
+  0%, 100% {
+    background: 
+      radial-gradient(circle at 20% 30%, rgba(79, 172, 254, 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(0, 242, 254, 0.03) 0%, transparent 40%),
+      radial-gradient(circle at 30% 80%, rgba(79, 172, 254, 0.02) 0%, transparent 60%);
+  }
+  33% {
+    background: 
+      radial-gradient(circle at 25% 35%, rgba(79, 172, 254, 0.05) 0%, transparent 55%),
+      radial-gradient(circle at 75% 25%, rgba(0, 242, 254, 0.04) 0%, transparent 45%),
+      radial-gradient(circle at 35% 75%, rgba(79, 172, 254, 0.03) 0%, transparent 65%);
+  }
+  66% {
+    background: 
+      radial-gradient(circle at 15% 25%, rgba(79, 172, 254, 0.03) 0%, transparent 45%),
+      radial-gradient(circle at 85% 30%, rgba(0, 242, 254, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 25% 85%, rgba(79, 172, 254, 0.04) 0%, transparent 70%);
+  }
+}
+
+/* FLOATING PARTICLES BACKGROUND - Same as Home, About, and Set Pages */
+.flashcard-page::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    /* Large slow particles */
+    radial-gradient(circle at 10% 20%, rgba(79, 172, 254, 0.08) 2px, transparent 2px),
+    radial-gradient(circle at 90% 40%, rgba(0, 242, 254, 0.06) 1.5px, transparent 1.5px),
+    radial-gradient(circle at 50% 80%, rgba(79, 172, 254, 0.05) 2.5px, transparent 2.5px),
+    /* Medium particles */
+    radial-gradient(circle at 30% 10%, rgba(0, 242, 254, 0.07) 1px, transparent 1px),
+    radial-gradient(circle at 70% 60%, rgba(79, 172, 254, 0.09) 1.5px, transparent 1.5px),
+    radial-gradient(circle at 20% 70%, rgba(0, 242, 254, 0.04) 1px, transparent 1px),
+    /* Small fast particles */
+    radial-gradient(circle at 80% 10%, rgba(79, 172, 254, 0.06) 0.5px, transparent 0.5px),
+    radial-gradient(circle at 15% 45%, rgba(0, 242, 254, 0.08) 0.8px, transparent 0.8px),
+    radial-gradient(circle at 60% 25%, rgba(79, 172, 254, 0.05) 0.5px, transparent 0.5px),
+    radial-gradient(circle at 40% 90%, rgba(0, 242, 254, 0.07) 0.8px, transparent 0.8px);
+  background-size: 
+    400px 400px, 350px 350px, 500px 500px,
+    250px 250px, 300px 300px, 280px 280px,
+    150px 150px, 180px 180px, 160px 160px, 200px 200px;
+  animation: 
+    moveParticles1 35s linear infinite,
+    moveParticles2 28s linear infinite,
+    moveParticles3 42s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes moveParticles1 {
+  0% {
+    background-position: 0% 0%, 50% 50%, 100% 0%, 25% 75%, 75% 25%, 0% 100%, 80% 10%, 15% 45%, 60% 25%, 40% 90%;
+    transform: translateY(0px) translateX(0px);
+  }
+  25% {
+    background-position: 10% 15%, 60% 40%, 90% 25%, 15% 85%, 85% 15%, 10% 80%, 75% 20%, 25% 55%, 50% 35%, 30% 80%;
+    transform: translateY(-8px) translateX(5px);
+  }
+  50% {
+    background-position: 20% 30%, 70% 30%, 80% 50%, 5% 95%, 95% 5%, 20% 60%, 70% 30%, 35% 65%, 40% 45%, 20% 70%;
+    transform: translateY(-12px) translateX(-3px);
+  }
+  75% {
+    background-position: 10% 45%, 60% 70%, 90% 75%, 15% 5%, 85% 85%, 30% 40%, 65% 40%, 45% 75%, 30% 55%, 10% 60%;
+    transform: translateY(-5px) translateX(8px);
+  }
+  100% {
+    background-position: 0% 60%, 50% 90%, 100% 100%, 25% 15%, 75% 95%, 40% 20%, 60% 50%, 55% 85%, 20% 65%, 0% 50%;
+    transform: translateY(0px) translateX(0px);
+  }
+}
+
+@keyframes moveParticles2 {
+  0% {
+    background-position: 20% 10%, 80% 30%, 40% 70%, 60% 20%, 30% 80%, 70% 40%, 90% 60%, 10% 30%, 50% 10%, 80% 85%;
+  }
+  33% {
+    background-position: 30% 25%, 70% 45%, 50% 85%, 50% 35%, 40% 65%, 80% 25%, 85% 75%, 20% 45%, 40% 25%, 70% 70%;
+  }
+  66% {
+    background-position: 40% 40%, 60% 60%, 60% 100%, 40% 50%, 50% 50%, 90% 10%, 80% 90%, 30% 60%, 30% 40%, 60% 55%;
+  }
+  100% {
+    background-position: 20% 55%, 80% 75%, 40% 15%, 60% 65%, 30% 35%, 70% 85%, 90% 5%, 10% 75%, 50% 55%, 80% 40%;
+  }
+}
+
+@keyframes moveParticles3 {
+  0% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-3px) translateX(2px) rotate(0.5deg);
+  }
+  50% {
+    transform: translateY(-6px) translateX(-1px) rotate(-0.3deg);
+  }
+  75% {
+    transform: translateY(-2px) translateX(4px) rotate(0.8deg);
+  }
+  100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+}
+
+/* Ensure all content is above the animated background */
+.flashcard-container,
+.flashcard-list {
+  position: relative;
+  z-index: 1;
 }
 
 .flashcard-container {
   margin-bottom: 30px;
+  animation: fadeInDown 0.6s ease-out;
+}
+
+@keyframes fadeInDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .flashcard-header {
@@ -19,7 +168,7 @@
 }
 
 .flashcard-header h2 {
-  color: #121212;
+  color: white;
   font-size: 2rem;
   margin: 0;
 }
@@ -31,6 +180,18 @@
   gap: 20px;
   margin-bottom: 30px;
   flex-wrap: wrap;
+  animation: fadeInUp 0.6s ease-out 0.1s both;
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Deck name container */
@@ -63,41 +224,6 @@
   border-color: #4facfe;
 }
 
-/* Type selector container */
-.flashcard-type-container {
-  display: flex;
-  flex-direction: column;
-  min-width: 120px;
-}
-
-.flashcard-type-label {
-  color: white !important;
-  font-weight: 600;
-  margin-bottom: 8px;
-  font-size: 0.9rem;
-}
-
-.flashcard-type-container select {
-  padding: 12px 16px;
-  border: 2px solid #333;
-  border-radius: 8px;
-  background: white !important;
-  color: black !important;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: border-color 0.2s ease;
-}
-
-.flashcard-type-container select:focus {
-  outline: none;
-  border-color: #4facfe;
-}
-
-.flashcard-type-container select:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 /* Study button */
 .study-button {
   padding: 12px 24px;
@@ -112,6 +238,23 @@
   align-self: flex-end;
   margin-top: auto;
   height: fit-content;
+  position: relative;
+  overflow: hidden;
+}
+
+.study-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.study-button:hover::before {
+  left: 100%;
 }
 
 .study-button:hover {
@@ -144,6 +287,15 @@
   100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
 }
 
+/* Flashcard list item labels */
+.front label,
+.back label {
+  color: white !important;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: block;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .flashcard-header-row {
@@ -156,23 +308,19 @@
     min-width: unset;
   }
   
-  .flashcard-type-container {
-    min-width: unset;
-  }
-  
   .study-button {
     align-self: stretch;
     margin-top: 0;
   }
-}
 
-/* Flashcard list item labels */
-.front label,
-.back label {
-  color: white !important;
-  font-weight: 600;
-  margin-bottom: 8px;
-  display: block;
+  /* Reduce animation intensity on mobile */
+  .flashcard-page::after {
+    background-size: 
+      300px 300px, 250px 250px, 350px 350px,
+      200px 200px, 220px 220px, 180px 180px,
+      120px 120px, 140px 140px, 130px 130px, 150px 150px;
+    animation-duration: 45s, 35s, 50s;
+  }
 }
 
 @media (max-width: 480px) {
@@ -186,5 +334,32 @@
   
   .flashcard-header-row {
     gap: 12px;
+  }
+
+  /* Simplified animations on very small screens for performance */
+  .flashcard-page::before {
+    animation-duration: 25s;
+  }
+  
+  .flashcard-page::after {
+    background-size: 
+      200px 200px, 180px 180px, 250px 250px,
+      150px 150px, 160px 160px, 140px 140px,
+      100px 100px, 110px 110px, 105px 105px, 120px 120px;
+    animation-duration: 60s, 45s, 65s;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .flashcard-page::before,
+  .flashcard-page::after,
+  .flashcard-container,
+  .flashcard-header-row {
+    animation: none;
+  }
+  
+  .study-button:hover {
+    transform: none;
   }
 }

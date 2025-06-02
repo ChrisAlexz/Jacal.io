@@ -1,9 +1,15 @@
-// src/components/SpeedFocusMode.jsx - REDESIGNED SIMPLIFIED VERSION
+// src/components/SpeedFocusMode.jsx - REDESIGNED SIMPLIFIED VERSION WITH TYPE-IN-ANSWER SUPPORT
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import '../styles/SpeedFocusMode.css';
+
+// Key function to determine card type - prioritizes individual card type over deck type
+const getCardType = (card, deckType) => {
+  // If card has a specific type, use it; otherwise use deck type
+  return card.card_type || deckType;
+};
 
 export default function SpeedFocusMode() {
   const { id } = useParams();
@@ -23,6 +29,11 @@ export default function SpeedFocusMode() {
   
   // Card State
   const [showAnswer, setShowAnswer] = useState(false);
+  
+  // State for type-in-answer functionality
+  const [userAnswer, setUserAnswer] = useState('');
+  const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
+  const [isAnswerCorrect, setIsAnswerCorrect] = useState(null);
   
   // Settings
   const [settings, setSettings] = useState({
@@ -130,6 +141,9 @@ export default function SpeedFocusMode() {
     setCurrentIndex(0);
     setGameEnded(false);
     setShowAnswer(false);
+    setShowCorrectAnswer(false);
+    setIsAnswerCorrect(null);
+    setUserAnswer('');
   };
 
   const resetGame = () => {
@@ -138,6 +152,9 @@ export default function SpeedFocusMode() {
     setIsActive(false);
     setCurrentIndex(0);
     setShowAnswer(false);
+    setShowCorrectAnswer(false);
+    setIsAnswerCorrect(null);
+    setUserAnswer('');
     setTimeLeft(settings.timePerCard);
   };
 
@@ -149,6 +166,18 @@ export default function SpeedFocusMode() {
   const handleShowAnswer = () => {
     setShowAnswer(true);
     setIsActive(false); // Stop timer when answer is shown
+  };
+
+  const handleSubmitAnswer = () => {
+    if (currentCardType !== 'Basic-Type' || !currentCard) return;
+    
+    const correctAnswer = currentCard.back.replace(/<[^>]*>/g, '').trim().toLowerCase();
+    const userAnswerClean = userAnswer.trim().toLowerCase();
+    
+    const isCorrect = correctAnswer === userAnswerClean;
+    setIsAnswerCorrect(isCorrect);
+    setShowCorrectAnswer(true);
+    setIsActive(false); // Stop timer when answer is submitted
   };
 
   const nextCard = () => {
@@ -163,6 +192,9 @@ export default function SpeedFocusMode() {
     // Move to next card
     setCurrentIndex(nextIndex);
     setShowAnswer(false);
+    setShowCorrectAnswer(false);
+    setIsAnswerCorrect(null);
+    setUserAnswer('');
     setTimeLeft(settings.timePerCard);
     setIsActive(true); // Restart timer for next card
   };
@@ -193,8 +225,20 @@ export default function SpeedFocusMode() {
     );
   }
 
-  const isImageOcclusionCard = currentCard && (currentCard.front?.includes('image-occlusion-card') || 
-                              currentCard.front?.includes('occlusion-'));
+  // Get the actual type for this specific card
+  const currentCardType = getCardType(currentCard, deckType);
+  
+  const hasCustomBackContent =
+    currentCardType === "Cloze" &&
+    currentCard.back !== currentCard.front &&
+    currentCard.back.trim() !== "";
+
+  // Check if this is an image occlusion card by looking at the HTML content
+  const isImageOcclusionCard = currentCard.front && (
+    currentCard.front.includes('image-occlusion-card') || 
+    currentCard.front.includes('occlusion-') ||
+    currentCardType === 'Image-Occlusion'
+  );
 
   // Settings Screen
   if (!gameStarted) {
@@ -353,7 +397,7 @@ export default function SpeedFocusMode() {
               <div dangerouslySetInnerHTML={{ 
                 __html: showAnswer ? currentCard.back : currentCard.front 
               }} />
-            ) : (deckType === "Cloze") ? (
+            ) : (currentCardType === "Cloze") ? (
               <div dangerouslySetInnerHTML={{ 
                 __html: processClozeText(currentCard.front, showAnswer, 1) 
               }} />
@@ -363,14 +407,68 @@ export default function SpeedFocusMode() {
           </div>
 
           {/* Show Answer Button or Next Button */}
-          {!showAnswer ? (
-            <button className="speed-reveal-btn" onClick={handleShowAnswer}>
-              Show Answer
-            </button>
+          {!showAnswer && !showCorrectAnswer ? (
+            currentCardType === 'Basic-Type' ? (
+              <div className="type-answer-section">
+                <input
+                  type="text"
+                  value={userAnswer}
+                  onChange={(e) => setUserAnswer(e.target.value)}
+                  placeholder="Type your answer here..."
+                  className="answer-input"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && userAnswer.trim()) {
+                      handleSubmitAnswer();
+                    }
+                  }}
+                  autoFocus
+                />
+                <button 
+                  className="submit-answer-btn" 
+                  onClick={handleSubmitAnswer}
+                  disabled={!userAnswer.trim()}
+                >
+                  Submit Answer
+                </button>
+              </div>
+            ) : (
+              <button className="speed-reveal-btn" onClick={handleShowAnswer}>
+                Show Answer
+              </button>
+            )
           ) : (
             <div className="answer-section">
+              {/* Show results for Basic-Type */}
+              {currentCardType === 'Basic-Type' && showCorrectAnswer && (
+                <div className="answer-results">
+                  <div className={`answer-feedback ${isAnswerCorrect ? 'correct' : 'incorrect'}`}>
+                    <span>{isAnswerCorrect ? '✅' : '❌'}</span>
+                    <span>{isAnswerCorrect ? 'Correct!' : 'Incorrect'}</span>
+                  </div>
+                  <div className="answer-comparison">
+                    <div className="user-answer">
+                      <strong>Your answer:</strong>
+                      <div>{userAnswer}</div>
+                    </div>
+                    <div className="correct-answer">
+                      <strong>Correct answer:</strong> 
+                      <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* Show back content for non-cloze cards or cloze cards with custom back content */}
-              {(deckType !== "Cloze" || (deckType === "Cloze" && currentCard.back !== currentCard.front && currentCard.back.trim() !== "")) && !isImageOcclusionCard && (
+              {(currentCardType !== "Cloze" || (currentCardType === "Cloze" && hasCustomBackContent)) && 
+               !isImageOcclusionCard && 
+               currentCardType !== 'Basic-Type' && (
+                <div className="card-back">
+                  <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
+                </div>
+              )}
+              
+              {/* Show back content for Image Occlusion when answer is revealed */}
+              {isImageOcclusionCard && showAnswer && (
                 <div className="card-back">
                   <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
                 </div>

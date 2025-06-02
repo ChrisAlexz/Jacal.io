@@ -1,10 +1,9 @@
-// src/components/Flashcard.jsx - FIXED VERSION WITH PER-CARD TYPE SUPPORT
+// src/components/Flashcard.jsx - REMOVED TYPE SELECTOR VERSION
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from '../supabase';
 
 import FlashcardTitle from "./FlashcardTitle";
-import FlashcardType from "./FlashcardType";
 import FlashcardInput from "./FlashcardInput";
 import FlashcardList from "./FlashcardList";
 import SuccessPopup from "./SuccessPopup";
@@ -16,11 +15,11 @@ export default function Flashcard() {
   const { id } = useParams();
 
   const [title, setTitle] = useState("");
-  const [type, setType] = useState("Basic");
+  const [type, setType] = useState("Basic"); // Keep for default, but don't show UI
   const [flashcards, setFlashcards] = useState([]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [setId, setSetId] = useState(null);
-  const [isPerCardMode, setIsPerCardMode] = useState(false);
+  const [isPerCardMode] = useState(true); // Always enable per-card mode
 
   useEffect(() => {
     if (id) {
@@ -43,26 +42,23 @@ export default function Flashcard() {
       setType(data.type);
       setFlashcards(data.flashcard_cards || []);
       
-      // Check if cards have different types - if so, enable per-card mode
-      const cardTypes = new Set(data.flashcard_cards?.map(card => card.card_type).filter(Boolean));
-      if (cardTypes.size > 1 || (cardTypes.size === 1 && !cardTypes.has(data.type))) {
-        setIsPerCardMode(true);
+      // Always set the deck type to 'Mixed' since we're always in per-card mode
+      if (data.type !== 'Mixed') {
+        supabase
+          .from('flashcard_sets')
+          .update({ type: 'Mixed' })
+          .eq('id', data.id)
+          .then(({ error }) => {
+            if (error) console.error("Error updating set type:", error);
+          });
       }
     }
   };
 
+  // Only update title when it changes, not type
   useEffect(() => {
     const updateSetDetails = async () => {
-      if (setId && !isPerCardMode) {
-        const { error } = await supabase
-          .from('flashcard_sets')
-          .update({ title, type })
-          .eq('id', setId);
-        if (error) {
-          console.error("Error updating set details:", error);
-        }
-      } else if (setId && isPerCardMode) {
-        // Only update title in per-card mode
+      if (setId) {
         const { error } = await supabase
           .from('flashcard_sets')
           .update({ title })
@@ -80,7 +76,7 @@ export default function Flashcard() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [title, type, setId, isPerCardMode]);
+  }, [title, setId]);
 
   const addFlashcard = async (front, back, cardType = null) => {
     const finalCardType = cardType || type;
@@ -99,7 +95,7 @@ export default function Flashcard() {
             set_id: setId, 
             front, 
             back,
-            card_type: finalCardType // Store the specific card type
+            card_type: finalCardType
           })
           .select();
 
@@ -109,7 +105,7 @@ export default function Flashcard() {
       } else {
         const { data: newSetData, error: newSetErr } = await supabase
           .from('flashcard_sets')
-          .insert({ title, type: isPerCardMode ? 'Mixed' : type })
+          .insert({ title, type: 'Mixed' }) // Always set new sets to Mixed
           .select()
           .single();
 
@@ -173,48 +169,6 @@ export default function Flashcard() {
     }
   };
 
-  const handlePerCardToggle = (enabled) => {
-    setIsPerCardMode(enabled);
-    
-    if (enabled) {
-      // When enabling per-card mode, update set type to 'Mixed'
-      if (setId) {
-        supabase
-          .from('flashcard_sets')
-          .update({ type: 'Mixed' })
-          .eq('id', setId)
-          .then(({ error }) => {
-            if (error) console.error("Error updating set type:", error);
-          });
-      }
-    } else {
-      // When disabling per-card mode, update all cards to use the set type
-      if (setId && flashcards.length > 0) {
-        // Update all existing cards to use the current set type
-        const updatePromises = flashcards.map(card => 
-          supabase
-            .from('flashcard_cards')
-            .update({ card_type: type })
-            .eq('id', card.id)
-        );
-        
-        Promise.all(updatePromises).then(() => {
-          // Update the local state
-          setFlashcards(prev => prev.map(card => ({
-            ...card,
-            card_type: type
-          })));
-          
-          // Update set type back to the selected type
-          supabase
-            .from('flashcard_sets')
-            .update({ type })
-            .eq('id', setId);
-        });
-      }
-    }
-  };
-
   return (
     <div className="flashcard-page">
       <div className="flashcard-container">
@@ -224,13 +178,6 @@ export default function Flashcard() {
 
         <div className="flashcard-header-row">
           <FlashcardTitle title={title} setTitle={setTitle} />
-          <FlashcardType 
-            type={type} 
-            setType={setType} 
-            disabled={!title.trim()}
-            isPerCard={isPerCardMode}
-            onPerCardToggle={handlePerCardToggle}
-          />
           {setId && (
             <button className="study-button" onClick={() => navigate(`/study/${setId}`)}>
               Study

@@ -1,4 +1,4 @@
-// src/components/FlashcardInput.jsx - FIXED VERSION WITH PER-CARD TYPE SUPPORT
+// src/components/FlashcardInput.jsx - FIXED VERSION WITH ALWAYS VISIBLE TYPE SELECTOR
 import React, { useState } from 'react';
 import SimpleRichTextEditor from './SimpleRichTextEditor';
 import ImageOcclusionEditor from './ImageOcclusionEditor';
@@ -190,8 +190,8 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
         };
       case 'Image-Occlusion':
         return {
-          front: "Image occlusion cards are created using the editor above",
-          back: "Image occlusion cards are created using the editor above"
+          front: "Image occlusion cards are created using the editor below",
+          back: "Image occlusion cards are created using the editor below"
         };
       default:
         return {
@@ -203,21 +203,9 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
 
   const placeholders = getPlaceholders();
 
-  // Render Image Occlusion Editor for Image-Occlusion type
-  if (activeType === 'Image-Occlusion') {
-    return (
-      <div className="flashcard-input">
-        <ImageOcclusionEditor 
-          onSave={handleImageOcclusionSave} 
-          disabled={disabled}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="flashcard-input">
-      {/* Per-card type selector */}
+      {/* Per-card type selector - ALWAYS VISIBLE when in per-card mode */}
       {isPerCardMode && (
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', color: 'white', fontWeight: 600, marginBottom: '8px' }}>
@@ -244,57 +232,68 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
         </div>
       )}
 
-      <h4>Front Side {activeType === 'Cloze' && <span>(Required)</span>}</h4>
-      
-      <div className="flashcard-box front-editor">
-        <SimpleRichTextEditor
-          value={frontContent}
-          onChange={setFrontContent}
-          placeholder={placeholders.front}
-          readOnly={disabled}
+      {/* Render Image Occlusion Editor for Image-Occlusion type */}
+      {activeType === 'Image-Occlusion' ? (
+        <ImageOcclusionEditor 
+          onSave={handleImageOcclusionSave} 
+          disabled={disabled}
         />
-      </div>
+      ) : (
+        <>
+          {/* Regular card input fields for non-Image-Occlusion types */}
+          <h4>Front Side {activeType === 'Cloze' && <span>(Required)</span>}</h4>
+          
+          <div className="flashcard-box front-editor">
+            <SimpleRichTextEditor
+              value={frontContent}
+              onChange={setFrontContent}
+              placeholder={placeholders.front}
+              readOnly={disabled}
+            />
+          </div>
 
-      <h4>
-        Back Side {activeType === 'Cloze' && <span>(Optional)</span>}
-        {activeType === 'Basic-Type' && <span>(Exact Answer)</span>}
-      </h4>
-      
-      <div className="flashcard-box">
-        <SimpleRichTextEditor
-          value={backContent}
-          onChange={setBackContent}
-          placeholder={placeholders.back}
-          readOnly={disabled}
-        />
-      </div>
+          <h4>
+            Back Side {activeType === 'Cloze' && <span>(Optional)</span>}
+            {activeType === 'Basic-Type' && <span>(Exact Answer)</span>}
+          </h4>
+          
+          <div className="flashcard-box">
+            <SimpleRichTextEditor
+              value={backContent}
+              onChange={setBackContent}
+              placeholder={placeholders.back}
+              readOnly={disabled}
+            />
+          </div>
 
-      {activeType === 'Basic-Type' && (
-        <div style={{ marginBottom: '10px' }}>
-          <small style={{ color: '#888', fontStyle: 'italic' }}>
-            💡 Tip: Enter the exact answer users should type. Matching will be case-insensitive with trimmed spaces.
-          </small>
-        </div>
-      )}
+          {activeType === 'Basic-Type' && (
+            <div style={{ marginBottom: '10px' }}>
+              <small style={{ color: '#888', fontStyle: 'italic' }}>
+                💡 Tip: Enter the exact answer users should type. Matching will be case-insensitive with trimmed spaces.
+              </small>
+            </div>
+          )}
 
-      {activeType === 'Cloze' && (
-        <div style={{ marginBottom: '10px' }}>
-          <button onClick={handleCloze} disabled={disabled} type="button">
-            [c] Cloze
+          {activeType === 'Cloze' && (
+            <div style={{ marginBottom: '10px' }}>
+              <button onClick={handleCloze} disabled={disabled} type="button">
+                [c] Cloze
+              </button>
+              <small style={{ marginLeft: '10px', color: '#666' }}>
+                Select text first, then click [c] to create cloze deletion
+              </small>
+            </div>
+          )}
+
+          <button 
+            className="add-flashcard-btn" 
+            onClick={handleAdd} 
+            disabled={disabled || !isContentValid()}
+          >
+            Add Flashcard ({activeType})
           </button>
-          <small style={{ marginLeft: '10px', color: '#666' }}>
-            Select text first, then click [c] to create cloze deletion
-          </small>
-        </div>
+        </>
       )}
-
-      <button 
-        className="add-flashcard-btn" 
-        onClick={handleAdd} 
-        disabled={disabled || !isContentValid()}
-      >
-        Add Flashcard ({activeType})
-      </button>
     </div>
   );
 }

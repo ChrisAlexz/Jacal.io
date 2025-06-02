@@ -1,4 +1,4 @@
-// src/components/ImageOcclusionEditor.jsx
+// src/components/ImageOcclusionEditor.jsx - FIXED RESET AFTER SAVE
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
@@ -14,7 +14,7 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentRect, setCurrentRect] = useState(null);
   const [nextId, setNextId] = useState(1);
-  const [cardTitle, setCardTitle] = useState('');
+  const [cardTitle, setCardTitle] = useState('Image Occlusion Card'); // Default title
   const [canvasSize, setCanvasSize] = useState(100);
   const [isUploading, setIsUploading] = useState(false);
   
@@ -262,9 +262,10 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     }
   }, [occlusions, currentRect, image]);
 
+  // FIXED: Reset everything after saving cards
   const handleSave = () => {
-    if (!image || occlusions.length === 0 || !cardTitle.trim() || !uploadedImageUrl) {
-      alert('Please add a title, upload an image, and create at least one occlusion. Make sure the image is uploaded before saving.');
+    if (!image || occlusions.length === 0 || !uploadedImageUrl) {
+      alert('Please upload an image and create at least one occlusion. Make sure the image is uploaded before saving.');
       return;
     }
 
@@ -276,7 +277,24 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
       revealedId: occlusion.id
     }));
 
+    // Save the cards first
     onSave(cards);
+
+    // CRITICAL FIX: Reset everything after saving
+    resetEditor();
+  };
+
+  // NEW: Reset function to clear all editor state
+  const resetEditor = () => {
+    setOcclusions([]);
+    setNextId(1);
+    setCurrentRect(null);
+    setIsDrawing(false);
+    
+    // Redraw canvas to show clean image
+    if (image) {
+      drawCanvas();
+    }
   };
 
   const clearAll = () => {
@@ -303,17 +321,6 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
       </div>
 
       <div className="editor-controls">
-        <div className="control-group">
-          <label>Card Title:</label>
-          <input
-            type="text"
-            value={cardTitle}
-            onChange={(e) => setCardTitle(e.target.value)}
-            placeholder="Enter a title for your image cards..."
-            disabled={disabled}
-          />
-        </div>
-
         <div className="control-group">
           <label>Upload Image:</label>
           <input
@@ -425,7 +432,7 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
             <button 
               className="save-btn"
               onClick={handleSave}
-              disabled={disabled || !image || occlusions.length === 0 || !cardTitle.trim() || isUploading || !uploadedImageUrl}
+              disabled={disabled || !image || occlusions.length === 0 || isUploading || !uploadedImageUrl}
             >
               {isUploading ? 'Uploading...' : `Create ${occlusions.length} Cards`}
             </button>

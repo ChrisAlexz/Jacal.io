@@ -1,33 +1,28 @@
-// src/components/FlashcardType.jsx - FIXED VERSION
-import React from 'react';
+// src/components/FlashcardType.jsx - AUTO MIXED MODE VERSION
+import React, { useEffect } from 'react';
 
 export default function FlashcardType({ type, setType, disabled, isPerCard = false, onPerCardToggle }) {
+  
+  // Automatically enable per-card mode when component mounts
+  useEffect(() => {
+    if (onPerCardToggle && !isPerCard) {
+      onPerCardToggle(true);
+    }
+  }, [onPerCardToggle, isPerCard]);
+
   return (
     <div className="flashcard-type-container">
-      <label className="flashcard-type-label">Type:</label>
+      <label className="flashcard-type-label">Default Type:</label>
       
-      {/* Toggle between set-wide and per-card typing */}
-      <div className="type-mode-toggle" style={{ marginBottom: '8px' }}>
-        <label style={{ fontSize: '0.8rem', color: '#aaa', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <input
-            type="checkbox"
-            checked={isPerCard}
-            onChange={(e) => onPerCardToggle && onPerCardToggle(e.target.checked)}
-            style={{ transform: 'scale(0.9)' }}
-          />
-          Allow different types per card
-        </label>
-      </div>
-
       <select
         value={type}
         onChange={(e) => setType(e.target.value)}
-        disabled={disabled || isPerCard}
+        disabled={disabled}
         style={{ 
           color: 'black',
-          opacity: isPerCard ? 0.6 : 1
+          opacity: 0.8
         }}
-        title={isPerCard ? "Per-card mode enabled - select type when adding each card" : ""}
+        title="Default type for new cards - you can change the type for each individual card when adding them"
       >
         <option value="Basic">Basic</option>
         <option value="Basic-Type">Basic (Type Answer)</option>
@@ -35,11 +30,9 @@ export default function FlashcardType({ type, setType, disabled, isPerCard = fal
         <option value="Image-Occlusion">Image Occlusion</option>
       </select>
       
-      {isPerCard && (
-        <small style={{ color: '#888', fontSize: '0.75rem', display: 'block', marginTop: '4px' }}>
-          You can choose the type for each individual flashcard when adding them
-        </small>
-      )}
+      <small style={{ color: '#888', fontSize: '0.75rem', display: 'block', marginTop: '4px' }}>
+        You can choose the type for each individual flashcard when adding them
+      </small>
     </div>
   );
 }
