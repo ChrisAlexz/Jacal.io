@@ -1,4 +1,4 @@
-// src/components/Flashcard.jsx - REMOVED TYPE SELECTOR VERSION
+// src/components/Flashcard.jsx - FIXED VERSION WITH BETTER LOADING AND ERROR HANDLING
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from '../supabase';
@@ -15,53 +15,117 @@ export default function Flashcard() {
   const { id } = useParams();
 
   const [title, setTitle] = useState("");
-  const [type, setType] = useState("Basic"); // Keep for default, but don't show UI
+  const [type, setType] = useState("Basic");
   const [flashcards, setFlashcards] = useState([]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [setId, setSetId] = useState(null);
-  const [isPerCardMode] = useState(true); // Always enable per-card mode
+  const [isPerCardMode] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
+  // *** CRITICAL FIX: Enhanced useEffect with better error handling and loading states ***
   useEffect(() => {
-    if (id) {
-      fetchExistingSet(id);
-    }
-  }, [id]);
+    const loadData = async () => {
+      if (id) {
+        console.log('Loading flashcard set with ID:', id);
+        setLoading(true);
+        setError(null);
+        
+        try {
+          await fetchExistingSet(id);
+        } catch (err) {
+          console.error('Error loading flashcard set:', err);
+          setError('Failed to load flashcard set. Please try again.');
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        // No ID - new set
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [id]); // Only depend on id
 
   const fetchExistingSet = async (theId) => {
-    const { data, error } = await supabase
-      .from("flashcard_sets")
-      .select(`*, flashcard_cards!set_id(*)`)
-      .eq("id", theId)
-      .single();
+    console.log('Fetching existing set with ID:', theId);
+    
+    try {
+      // First, try to get just the set info to verify it exists
+      const { data: setData, error: setError } = await supabase
+        .from("flashcard_sets")
+        .select("*")
+        .eq("id", theId)
+        .single();
 
-    if (error) {
-      console.error("Error fetching deck:", error);
-    } else if (data) {
-      setSetId(data.id);
-      setTitle(data.title);
-      setType(data.type);
-      setFlashcards(data.flashcard_cards || []);
+      if (setError) {
+        console.error("Error fetching set:", setError);
+        if (setError.code === 'PGRST116') {
+          throw new Error('Flashcard set not found');
+        }
+        throw new Error(`Database error: ${setError.message}`);
+      }
+
+      if (!setData) {
+        throw new Error('Flashcard set not found');
+      }
+
+      console.log('Set data loaded:', setData);
+
+      // Set the basic info first
+      setSetId(setData.id);
+      setTitle(setData.title);
+      setType(setData.type || 'Basic');
+
+      // Now fetch the cards separately with a small delay to ensure database consistency
+      console.log('Fetching cards for set:', setData.id);
       
-      // Always set the deck type to 'Mixed' since we're always in per-card mode
-      if (data.type !== 'Mixed') {
-        supabase
+      // Add a small delay to ensure database writes have settled
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const { data: cardsData, error: cardsError } = await supabase
+        .from("flashcard_cards")
+        .select("*")
+        .eq("set_id", setData.id)
+        .order('created_at', { ascending: true });
+
+      if (cardsError) {
+        console.error("Error fetching cards:", cardsError);
+        // Don't throw here - just log and continue with empty cards
+        setFlashcards([]);
+      } else {
+        console.log('Cards loaded:', cardsData?.length || 0, 'cards');
+        setFlashcards(cardsData || []);
+      }
+
+      // Always set deck type to 'Mixed' since we're always in per-card mode
+      if (setData.type !== 'Mixed') {
+        console.log('Updating deck type to Mixed...');
+        const { error: updateError } = await supabase
           .from('flashcard_sets')
           .update({ type: 'Mixed' })
-          .eq('id', data.id)
-          .then(({ error }) => {
-            if (error) console.error("Error updating set type:", error);
-          });
+          .eq('id', setData.id);
+          
+        if (updateError) {
+          console.error("Error updating set type:", updateError);
+        }
       }
+
+    } catch (error) {
+      console.error('Error in fetchExistingSet:', error);
+      throw error; // Re-throw to be handled by the calling function
     }
   };
 
-  // Only update title when it changes, not type
+  // *** ENHANCED: Better debounced title update ***
   useEffect(() => {
     const updateSetDetails = async () => {
-      if (setId) {
+      if (setId && title.trim()) {
+        console.log('Updating set title to:', title);
         const { error } = await supabase
           .from('flashcard_sets')
-          .update({ title })
+          .update({ title: title.trim() })
           .eq('id', setId);
         if (error) {
           console.error("Error updating set title:", error);
@@ -70,10 +134,10 @@ export default function Flashcard() {
     };
 
     const timer = setTimeout(() => {
-      if (setId) {
+      if (setId && title.trim()) {
         updateSetDetails();
       }
-    }, 500);
+    }, 1000); // Increased debounce time
 
     return () => clearTimeout(timer);
   }, [title, setId]);
@@ -89,6 +153,7 @@ export default function Flashcard() {
 
     try {
       if (setId) {
+        console.log('Adding card to existing set:', setId);
         const { data, error } = await supabase
           .from('flashcard_cards')
           .insert({ 
@@ -99,18 +164,27 @@ export default function Flashcard() {
           })
           .select();
 
-        if (error) return;
+        if (error) {
+          console.error('Error adding card:', error);
+          return;
+        }
 
-        setFlashcards([...flashcards, data[0]]);
+        console.log('Card added successfully:', data[0]);
+        setFlashcards(prev => [...prev, data[0]]);
       } else {
+        console.log('Creating new set and adding first card...');
         const { data: newSetData, error: newSetErr } = await supabase
           .from('flashcard_sets')
-          .insert({ title, type: 'Mixed' }) // Always set new sets to Mixed
+          .insert({ title: title.trim() || 'New Flashcard Set', type: 'Mixed' })
           .select()
           .single();
 
-        if (newSetErr) return;
+        if (newSetErr) {
+          console.error('Error creating set:', newSetErr);
+          return;
+        }
 
+        console.log('New set created:', newSetData);
         setSetId(newSetData.id);
 
         const { data: insertedCard, error: cardErr } = await supabase
@@ -124,9 +198,16 @@ export default function Flashcard() {
           .select()
           .single();
 
-        if (cardErr) return;
+        if (cardErr) {
+          console.error('Error adding first card:', cardErr);
+          return;
+        }
 
+        console.log('First card added successfully:', insertedCard);
         setFlashcards([insertedCard]);
+        
+        // Update URL to include the new set ID
+        navigate(`/flashcards/${newSetData.id}`, { replace: true });
       }
     } catch (err) {
       console.error("Unexpected error saving flashcard:", err);
@@ -168,6 +249,45 @@ export default function Flashcard() {
       }
     }
   };
+
+  // *** ENHANCED: Show loading and error states ***
+  if (loading) {
+    return (
+      <div className="flashcard-page">
+        <div className="flashcard-container">
+          <div className="loading-section">
+            <div className="loading-spinner"></div>
+            <p>Loading flashcard set...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flashcard-page">
+        <div className="flashcard-container">
+          <div className="error-section">
+            <h3>Error Loading Flashcard Set</h3>
+            <p>{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="retry-button"
+            >
+              Try Again
+            </button>
+            <button 
+              onClick={() => navigate('/set')}
+              className="back-button"
+            >
+              Back to Sets
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flashcard-page">

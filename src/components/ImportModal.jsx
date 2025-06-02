@@ -1,4 +1,4 @@
-// src/components/ImportModal.jsx - DEBUG VERSION WITH ENHANCED LOGGING
+// src/components/ImportModal.jsx - FIXED VERSION WITH PROPER NAVIGATION TIMING
 import React, { useState, useContext } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
@@ -18,7 +18,7 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
   const [className, setClassName] = useState('');
   const [deckName, setDeckName] = useState('');
   const [file, setFile] = useState(null);
-  const [importType, setImportType] = useState('quizlet'); // Changed default to quizlet for your test
+  const [importType, setImportType] = useState('quizlet');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [parseProgress, setParseProgress] = useState(0);
@@ -278,10 +278,41 @@ Debug info:
 
       console.log(`Import completed! Total cards inserted: ${totalInserted} out of ${cards.length}`);
 
-      // Success
-      onSuccess && onSuccess(deckData.id);
+      // *** CRITICAL FIX: Wait a moment before navigation and refresh ***
+      console.log('Waiting for database to settle before navigation...');
+      
+      // Wait for a short delay to ensure all database operations are complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Verify that cards were actually inserted by doing a count check
+      const { count: verifyCount, error: verifyError } = await supabase
+        .from('flashcard_cards')
+        .select('*', { count: 'exact', head: true })
+        .eq('set_id', deckData.id);
+        
+      console.log('Verification count:', verifyCount, 'Expected:', cards.length);
+      
+      if (verifyError) {
+        console.error('Error verifying card insertion:', verifyError);
+      }
+
+      // Inform parent about success BEFORE navigation
+      if (onSuccess) {
+        console.log('Calling onSuccess callback...');
+        onSuccess(deckData.id);
+      }
+
+      // Close modal BEFORE navigation
+      console.log('Closing modal...');
       onClose();
-      navigate(`/flashcards/${deckData.id}`);
+
+      // *** IMPORTANT: Use replace instead of navigate to ensure clean navigation ***
+      console.log('Navigating to flashcard edit page...');
+      
+      // Use setTimeout to ensure the modal close completes first
+      setTimeout(() => {
+        navigate(`/flashcards/${deckData.id}`, { replace: true });
+      }, 100);
 
     } catch (err) {
       console.error('Import error:', err);
@@ -306,7 +337,7 @@ Debug info:
     <div className="modal-overlay">
       <div className="import-modal">
         <div className="modal-header">
-          <h2>📁 Import Flashcards (DEBUG MODE)</h2>
+          <h2>📁 Import Flashcards</h2>
           {isAddingToDeck && selectedClass && (
             <p className="modal-subtitle">Importing to "{selectedClass.name}"</p>
           )}
@@ -394,9 +425,6 @@ Debug info:
           {importPreview && (
             <div className="import-preview">
               <h4>Preview ({importPreview.totalCards} cards found)</h4>
-              <div style={{ marginBottom: '10px', fontSize: '0.8rem', color: '#aaa' }}>
-                Debug: Deck name = "{importPreview.deckName}", Cards = {importPreview.totalCards}
-              </div>
               <div className="preview-cards">
                 {importPreview.preview && importPreview.preview.map((card, index) => (
                   <div key={index} className="preview-card">
