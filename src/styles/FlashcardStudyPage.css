@@ -1402,3 +1402,135 @@
     transform: none;
   }
 }
+/* Add this to your FlashcardStudyPage.css to fix the front card shrinking issue */
+
+/* Ensure flashcard study box maintains consistent layout */
+.flashcard-study-box {
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 900px;
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgba(200, 200, 200, 0.3);
+  overflow: hidden;
+}
+
+/* FIXED: Front card should maintain consistent size */
+.flashcard-front {
+  padding: 60px 40px;
+  font-size: 2.2rem;
+  font-weight: 600;
+  color: #2c3e50;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* CRITICAL FIX: Set fixed minimum height so it doesn't shrink */
+  min-height: 300px;
+  /* CRITICAL FIX: Don't use flex: 1 which would make it shrink */
+  flex-shrink: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Back card should be additional content below front */
+.flashcard-back {
+  border-top: 3px solid #666;
+  background: linear-gradient(135deg, rgba(240, 240, 240, 0.8) 0%, rgba(250, 250, 250, 0.8) 100%);
+  padding: 40px;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #2c3e50;
+  line-height: 1.4;
+  /* FIXED: This should not affect front card size */
+  flex-shrink: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Show Answer button positioning */
+.show-answer-btn {
+  margin: 40px;
+  padding: 20px 40px;
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 1.3rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(44, 62, 80, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  /* FIXED: Don't let this affect the front card */
+  flex-shrink: 0;
+}
+
+/* Difficulty buttons section */
+.difficulty-buttons {
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  background: linear-gradient(135deg, rgba(245, 245, 245, 0.8) 0%, rgba(250, 250, 250, 0.8) 100%);
+  border-radius: 0 0 24px 24px;
+  /* FIXED: Don't let this affect the front card */
+  flex-shrink: 0;
+}
+
+/* Special handling for image occlusion cards */
+.flashcard-front:has(.image-occlusion-card),
+.flashcard-back:has(.image-occlusion-card) {
+  font-size: 1rem;
+  padding: 40px 20px;
+  /* Maintain minimum height for image occlusion too */
+  min-height: 300px;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .flashcard-front {
+    padding: 40px 30px;
+    font-size: 1.8rem;
+    min-height: 250px; /* Slightly smaller on mobile but still fixed */
+  }
+  
+  .flashcard-back {
+    padding: 30px;
+    font-size: 1.5rem;
+  }
+  
+  .show-answer-btn {
+    margin: 30px 20px;
+    padding: 16px 30px;
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .flashcard-front {
+    font-size: 1.5rem;
+    padding: 30px 20px;
+    min-height: 200px; /* Even smaller on mobile but still fixed */
+  }
+  
+  .flashcard-back {
+    padding: 25px 15px;
+    font-size: 1.3rem;
+  }
+  
+  .show-answer-btn {
+    margin: 25px 15px;
+    padding: 14px 25px;
+    font-size: 1rem;
+  }
+}

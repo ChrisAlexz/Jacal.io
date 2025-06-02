@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - FIXED VERSION WITH GUARANTEED last_reviewed UPDATE
+// src/components/FlashcardStudyPage.jsx - FIXED VERSION WITH IMAGE OCCLUSION last_reviewed UPDATE
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -239,8 +239,10 @@ export default function FlashcardStudyPage() {
     currentCard.back.trim() !== "";
 
   // Check if this is an image occlusion card by looking at the HTML content
-  const isImageOcclusionCard = currentCard.front.includes('image-occlusion-card') || 
-                              currentCard.front.includes('occlusion-');
+  const isImageOcclusionCard = currentCard.front && (
+    currentCard.front.includes('image-occlusion-card') || 
+    currentCard.front.includes('occlusion-')
+  );
 
   // Get interval previews for current card
   const intervalPreviews = getIntervalPreviews();
@@ -258,7 +260,7 @@ export default function FlashcardStudyPage() {
     setShowCorrectAnswer(true);
   };
 
-  // *** FIXED: GUARANTEED last_reviewed UPDATE ***
+  // *** FIXED: GUARANTEED last_reviewed UPDATE FOR ALL CARD TYPES INCLUDING IMAGE OCCLUSION ***
   const handleDifficultyChoice = async (difficulty) => {
     if (!currentCard) return;
     
@@ -266,6 +268,8 @@ export default function FlashcardStudyPage() {
     
     try {
       console.log(`Processing difficulty choice: ${difficulty} for card ${currentCardData.id}`);
+      console.log(`Card type check - isImageOcclusion: ${isImageOcclusionCard}`);
+      console.log(`Card front content preview: ${currentCardData.front ? currentCardData.front.substring(0, 100) : 'null'}`);
       
       // Calculate next review using Anki algorithm
       const updatedCard = calculateNextReview(currentCardData, difficulty);
@@ -277,7 +281,7 @@ export default function FlashcardStudyPage() {
       console.log(`Card ${currentCardData.id} studied at ${now} with rating: ${difficulty}`);
       console.log(`Next due: ${updatedCard.due}, State: ${updatedCard.state}, Interval: ${updatedCard.interval_days} days`);
       
-      // *** FIXED: Ensure ALL required fields are included in the update ***
+      // *** ENHANCED FIX: Robust update payload that handles all card types ***
       const updatePayload = {
         state: updatedCard.state || 'new',
         ease_factor: updatedCard.ease_factor || 2.5,
@@ -291,33 +295,129 @@ export default function FlashcardStudyPage() {
 
       console.log(`Updating card ${currentCardData.id} with payload:`, updatePayload);
 
-      // Update card in database with explicit field mapping
-      const { error } = await supabase
-        .from('flashcard_cards')
-        .update(updatePayload)
-        .eq('id', currentCardData.id);
+      // *** ROBUST UPDATE: Use multiple fallback strategies for difficult card types ***
+      let updateSuccess = false;
+      let updateError = null;
 
-      if (error) {
-        console.error('Error updating card:', error);
-        console.error('Update payload that failed:', updatePayload);
-        return;
+      // Strategy 1: Standard update
+      try {
+        const { error } = await supabase
+          .from('flashcard_cards')
+          .update(updatePayload)
+          .eq('id', currentCardData.id);
+
+        if (!error) {
+          updateSuccess = true;
+          console.log(`✅ Strategy 1 SUCCESS: Updated card ${currentCardData.id}`);
+        } else {
+          updateError = error;
+          console.log(`⚠️ Strategy 1 FAILED:`, error);
+        }
+      } catch (err) {
+        updateError = err;
+        console.log(`⚠️ Strategy 1 EXCEPTION:`, err);
       }
 
-      console.log(`✅ Successfully updated card ${currentCardData.id} in database with last_reviewed: ${now}`);
+      // Strategy 2: If standard update failed, try minimal update (just last_reviewed and reviews)
+      if (!updateSuccess) {
+        try {
+          console.log(`🔄 Trying Strategy 2: Minimal update for card ${currentCardData.id}`);
+          const minimalPayload = {
+            last_reviewed: now,
+            reviews: (currentCardData.reviews || 0) + 1
+          };
+
+          const { error } = await supabase
+            .from('flashcard_cards')
+            .update(minimalPayload)
+            .eq('id', currentCardData.id);
+
+          if (!error) {
+            updateSuccess = true;
+            console.log(`✅ Strategy 2 SUCCESS: Minimal update for card ${currentCardData.id}`);
+          } else {
+            updateError = error;
+            console.log(`⚠️ Strategy 2 FAILED:`, error);
+          }
+        } catch (err) {
+          updateError = err;
+          console.log(`⚠️ Strategy 2 EXCEPTION:`, err);
+        }
+      }
+
+      // Strategy 3: If both failed, try super minimal update (just last_reviewed)
+      if (!updateSuccess) {
+        try {
+          console.log(`🔄 Trying Strategy 3: Super minimal update for card ${currentCardData.id}`);
+          const superMinimalPayload = {
+            last_reviewed: now
+          };
+
+          const { error } = await supabase
+            .from('flashcard_cards')
+            .update(superMinimalPayload)
+            .eq('id', currentCardData.id);
+
+          if (!error) {
+            updateSuccess = true;
+            console.log(`✅ Strategy 3 SUCCESS: Super minimal update for card ${currentCardData.id}`);
+          } else {
+            updateError = error;
+            console.log(`⚠️ Strategy 3 FAILED:`, error);
+          }
+        } catch (err) {
+          updateError = err;
+          console.log(`⚠️ Strategy 3 EXCEPTION:`, err);
+        }
+      }
+
+      // If all strategies failed, log comprehensive error information
+      if (!updateSuccess) {
+        console.error(`❌ ALL UPDATE STRATEGIES FAILED for card ${currentCardData.id}`);
+        console.error(`Final error:`, updateError);
+        console.error(`Card data:`, currentCardData);
+        console.error(`Update payload that failed:`, updatePayload);
+        
+        // Even if update failed, continue with the UI logic but inform user
+        alert(`Warning: Failed to save study progress for this card. Please try again or contact support.`);
+      }
 
       // *** VERIFICATION: Double-check the update worked ***
-      const { data: verificationData, error: verificationError } = await supabase
-        .from('flashcard_cards')
-        .select('last_reviewed, state, reviews')
-        .eq('id', currentCardData.id)
-        .single();
+      if (updateSuccess) {
+        try {
+          const { data: verificationData, error: verificationError } = await supabase
+            .from('flashcard_cards')
+            .select('last_reviewed, state, reviews, front, back')
+            .eq('id', currentCardData.id)
+            .single();
 
-      if (verificationError) {
-        console.error('❌ Error verifying update:', verificationError);
-      } else {
-        console.log(`✅ Verified card ${currentCardData.id} last_reviewed:`, verificationData.last_reviewed);
-        console.log(`✅ Verified card ${currentCardData.id} state:`, verificationData.state);
-        console.log(`✅ Verified card ${currentCardData.id} reviews:`, verificationData.reviews);
+          if (verificationError) {
+            console.error('❌ Error verifying update:', verificationError);
+          } else {
+            console.log(`✅ VERIFIED: Card ${currentCardData.id} last_reviewed:`, verificationData.last_reviewed);
+            console.log(`✅ VERIFIED: Card ${currentCardData.id} state:`, verificationData.state);
+            console.log(`✅ VERIFIED: Card ${currentCardData.id} reviews:`, verificationData.reviews);
+            
+            // Double-check that last_reviewed was actually set
+            if (!verificationData.last_reviewed) {
+              console.error(`❌ VERIFICATION FAILED: last_reviewed is still NULL for card ${currentCardData.id}`);
+              
+              // Try one more force update
+              try {
+                const forceUpdate = await supabase
+                  .from('flashcard_cards')
+                  .update({ last_reviewed: now })
+                  .eq('id', currentCardData.id);
+                  
+                console.log(`🔄 Force update result:`, forceUpdate);
+              } catch (forceError) {
+                console.error(`❌ Force update failed:`, forceError);
+              }
+            }
+          }
+        } catch (verificationErr) {
+          console.error('❌ Verification threw error:', verificationErr);
+        }
       }
 
       // Update all cards state with the verified data from database
@@ -380,27 +480,39 @@ export default function FlashcardStudyPage() {
 
     } catch (error) {
       console.error('💥 Unexpected error in handleDifficultyChoice:', error);
+      console.error('💥 Error details:', {
+        cardId: currentCardData.id,
+        difficulty,
+        isImageOcclusion: isImageOcclusionCard,
+        cardType: deckType,
+        error: error.message
+      });
       
-      // *** FALLBACK: If there's any error, still try to update last_reviewed ***
-      console.log('🔄 Attempting fallback last_reviewed update...');
+      // *** EMERGENCY FALLBACK: If there's any error, still try to update last_reviewed ***
+      console.log('🆘 Attempting emergency fallback update...');
       try {
-        const fallbackNow = new Date().toISOString();
-        const { error: fallbackError } = await supabase
+        const emergencyNow = new Date().toISOString();
+        const { error: emergencyError, data: emergencyData } = await supabase
           .from('flashcard_cards')
           .update({ 
-            last_reviewed: fallbackNow,
+            last_reviewed: emergencyNow,
             reviews: (currentCardData.reviews || 0) + 1
           })
-          .eq('id', currentCardData.id);
+          .eq('id', currentCardData.id)
+          .select();
         
-        if (!fallbackError) {
-          console.log(`✅ Fallback update successful for card ${currentCardData.id}`);
+        if (!emergencyError) {
+          console.log(`✅ Emergency fallback successful for card ${currentCardData.id}`);
+          console.log(`Emergency update data:`, emergencyData);
         } else {
-          console.error('❌ Fallback update also failed:', fallbackError);
+          console.error('❌ Emergency fallback also failed:', emergencyError);
         }
-      } catch (fallbackError) {
-        console.error('❌ Fallback update threw error:', fallbackError);
+      } catch (emergencyError) {
+        console.error('❌ Emergency fallback threw error:', emergencyError);
       }
+      
+      // Show user-friendly error but continue with UI flow
+      alert('There was an issue saving your study progress. Your session will continue, but this card may not be tracked properly.');
     }
   };
 

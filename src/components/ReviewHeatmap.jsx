@@ -1,4 +1,4 @@
-// src/components/ReviewHeatmap.jsx - FIXED VERSION WITH PROPER DEPENDENCY MANAGEMENT
+// src/components/ReviewHeatmap.jsx - CLEAN VERSION WITHOUT DEBUG ELEMENTS
 
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { supabase } from '../supabase';
@@ -17,18 +17,6 @@ const ReviewHeatmap = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [availableYears, setAvailableYears] = useState([]);
   const [error, setError] = useState(null);
-
-  // Debug logging - Remove in production
-  useEffect(() => {
-    console.log('🔍 ReviewHeatmap State:', {
-      userId: user?.id,
-      loading,
-      selectedYear,
-      heatmapDataLength: heatmapData.length,
-      error,
-      totalReviews: stats.totalReviews
-    });
-  }, [user?.id, loading, selectedYear, heatmapData.length, error, stats.totalReviews]);
 
   // Helper function to get intensity level
   const getIntensityLevel = useCallback((count) => {
@@ -81,7 +69,6 @@ const ReviewHeatmap = () => {
 
   // Generate empty heatmap for a year
   const generateEmptyHeatmap = useCallback((year) => {
-    console.log(`🔧 Generating empty heatmap for year: ${year}`);
     const heatmapArray = [];
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31);
@@ -100,16 +87,12 @@ const ReviewHeatmap = () => {
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
-    console.log(`📊 Generated empty heatmap with ${heatmapArray.length} days`);
     return heatmapArray;
   }, []);
 
-  // FIXED: Fetch review data with proper dependency management
+  // Fetch review data with proper dependency management
   const fetchReviewDataForYear = useCallback(async (year, userId) => {
-    console.log(`🔄 fetchReviewDataForYear called for year: ${year}, user: ${userId}`);
-    
     if (!userId) {
-      console.log('❌ No user found, setting loading to false');
       setLoading(false);
       setError('Please log in to view your study activity');
       return;
@@ -123,8 +106,6 @@ const ReviewHeatmap = () => {
       const startDate = new Date(year, 0, 1);
       const endDate = new Date(year, 11, 31, 23, 59, 59);
 
-      console.log(`📅 Fetching data from ${startDate.toISOString()} to ${endDate.toISOString()}`);
-
       // Step 1: Fetch ALL flashcard sets for the user first
       const { data: userSets, error: setsError } = await supabase
         .from('flashcard_sets')
@@ -132,17 +113,14 @@ const ReviewHeatmap = () => {
         .eq('user_id', userId);
 
       if (setsError) {
-        console.error('❌ Error fetching user sets:', setsError);
+        console.error('Error fetching user sets:', setsError);
         setError('Error fetching your flashcard sets');
         setHeatmapData(generateEmptyHeatmap(year));
         setStats({ longestStreak: 0, currentStreak: 0, dailyAverage: 0, totalReviews: 0 });
         return;
       }
 
-      console.log(`📚 Found ${userSets?.length || 0} flashcard sets for user`);
-
       if (!userSets || userSets.length === 0) {
-        console.log('📭 No flashcard sets found for user - showing empty heatmap');
         const emptyHeatmapData = generateEmptyHeatmap(year);
         setHeatmapData(emptyHeatmapData);
         setStats({ longestStreak: 0, currentStreak: 0, dailyAverage: 0, totalReviews: 0 });
@@ -150,7 +128,6 @@ const ReviewHeatmap = () => {
       }
 
       const setIds = userSets.map(set => set.id);
-      console.log(`🎯 Looking for cards in sets: ${setIds.join(', ')}`);
 
       // Step 2: Fetch review history from flashcard_cards where last_reviewed is set
       const { data: cards, error } = await supabase
@@ -162,15 +139,13 @@ const ReviewHeatmap = () => {
         .lte('last_reviewed', endDate.toISOString());
 
       if (error) {
-        console.error('❌ Error fetching review data:', error);
+        console.error('Error fetching review data:', error);
         setError('Error fetching your study data');
         const emptyHeatmapData = generateEmptyHeatmap(year);
         setHeatmapData(emptyHeatmapData);
         setStats({ longestStreak: 0, currentStreak: 0, dailyAverage: 0, totalReviews: 0 });
         return;
       }
-
-      console.log(`📊 Found ${cards?.length || 0} reviewed cards for ${year}`);
 
       // Step 3: Process the data into daily review counts
       const reviewsByDate = {};
@@ -185,8 +160,6 @@ const ReviewHeatmap = () => {
             totalReviews++;
           }
         });
-        console.log(`📈 Processed reviews by date:`, Object.keys(reviewsByDate).length, 'days with activity');
-        console.log(`📈 Reviews by date breakdown:`, reviewsByDate);
       }
 
       // Step 4: Generate heatmap data for the entire year
@@ -206,8 +179,6 @@ const ReviewHeatmap = () => {
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
-      console.log(`📅 Generated heatmap with ${heatmapArray.length} days, ${heatmapArray.filter(d => d.count > 0).length} active days`);
-
       setHeatmapData(heatmapArray);
       
       // Step 5: Calculate statistics
@@ -222,11 +193,10 @@ const ReviewHeatmap = () => {
         totalReviews
       };
 
-      console.log(`📊 Calculated stats:`, newStats);
       setStats(newStats);
       
     } catch (error) {
-      console.error('💥 Unexpected error in fetchReviewDataForYear:', error);
+      console.error('Unexpected error in fetchReviewDataForYear:', error);
       setError(`Unexpected error: ${error.message}`);
       const emptyHeatmapData = generateEmptyHeatmap(year);
       setHeatmapData(emptyHeatmapData);
@@ -234,14 +204,11 @@ const ReviewHeatmap = () => {
     } finally {
       setLoading(false);
     }
-  }, [generateEmptyHeatmap, getIntensityLevel, calculateStreaks]); // FIXED: Only include stable dependencies
+  }, [generateEmptyHeatmap, getIntensityLevel, calculateStreaks]);
 
-  // FIXED: Initialize available years and load data - SIMPLIFIED DEPENDENCIES
+  // Initialize available years and load data
   useEffect(() => {
-    console.log('🚀 Main useEffect triggered, user:', user?.id);
-    
     if (!user?.id) {
-      console.log('👤 No user, resetting state');
       setAvailableYears([]);
       setHeatmapData([]);
       setStats({ longestStreak: 0, currentStreak: 0, dailyAverage: 0, totalReviews: 0 });
@@ -260,44 +227,38 @@ const ReviewHeatmap = () => {
           creationYear = new Date(user.created_at).getFullYear();
         }
         
-        console.log(`📅 User account created in: ${creationYear}, current year: ${currentYear}`);
-        
         // Generate array of years from account creation to current year
         const years = [];
         for (let year = creationYear; year <= currentYear; year++) {
           years.push(year);
         }
         
-        console.log(`📊 Available years:`, years);
         setAvailableYears(years);
         setSelectedYear(currentYear);
         
         // Load data for current year
         await fetchReviewDataForYear(currentYear, user.id);
       } catch (error) {
-        console.error('💥 Error in initializeData:', error);
+        console.error('Error in initializeData:', error);
         setError(`Initialization error: ${error.message}`);
         setLoading(false);
       }
     };
 
     initializeData();
-  }, [user?.id, fetchReviewDataForYear]); // FIXED: Only depend on stable values
+  }, [user?.id, fetchReviewDataForYear]);
 
-  // FIXED: Handle year change with proper dependencies
+  // Handle year change with proper dependencies
   const handleYearChange = useCallback(async (year) => {
     if (year !== selectedYear && !loading && user?.id) {
-      console.log(`📅 Year changed from ${selectedYear} to ${year}`);
       setSelectedYear(year);
       await fetchReviewDataForYear(year, user.id);
     }
   }, [selectedYear, loading, user?.id, fetchReviewDataForYear]);
 
-  // FIXED: Set up real-time subscription - SEPARATE USEEFFECT WITH STABLE DEPS
+  // Set up real-time subscription
   useEffect(() => {
     if (!user?.id) return;
-
-    console.log('📡 Setting up real-time subscription...');
 
     const channel = supabase
       .channel('heatmap-updates')
@@ -310,7 +271,6 @@ const ReviewHeatmap = () => {
           filter: `last_reviewed=not.is.null`
         },
         (payload) => {
-          console.log('📡 Real-time update detected:', payload);
           // Only refresh if the updated card belongs to this user's sets
           // We'll refresh after a delay to allow the database to settle
           setTimeout(() => {
@@ -323,18 +283,9 @@ const ReviewHeatmap = () => {
       .subscribe();
 
     return () => {
-      console.log('🧹 Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [user?.id]); // FIXED: Only depend on user.id to prevent subscription recreation
-
-  // FIXED: Add a manual refresh function for debugging
-  const refreshHeatmap = useCallback(() => {
-    if (user?.id) {
-      console.log('🔄 Manual refresh triggered');
-      fetchReviewDataForYear(selectedYear, user.id);
-    }
-  }, [user?.id, selectedYear, fetchReviewDataForYear]);
+  }, [user?.id]);
 
   // Helper functions for rendering
   const formatDate = (dateStr) => {
@@ -423,12 +374,6 @@ const ReviewHeatmap = () => {
         <div className="heatmap-loading">
           <div className="loading-spinner"></div>
           <p>Loading your study data...</p>
-          {process.env.NODE_ENV === 'development' && (
-            <div style={{ marginTop: '10px', fontSize: '0.8rem', color: '#666' }}>
-              <p>Debug: User ID: {user?.id}</p>
-              <p>Debug: Selected Year: {selectedYear}</p>
-            </div>
-          )}
         </div>
       </div>
     );
@@ -443,22 +388,6 @@ const ReviewHeatmap = () => {
         </div>
         <div className="heatmap-loading">
           <p style={{ color: '#ff6b6b' }}>❌ {error}</p>
-          {user && (
-            <button 
-              onClick={refreshHeatmap}
-              style={{
-                marginTop: '10px',
-                padding: '8px 16px',
-                background: '#4facfe',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              🔄 Retry
-            </button>
-          )}
         </div>
       </div>
     );
@@ -507,24 +436,6 @@ const ReviewHeatmap = () => {
               →
             </button>
           </div>
-        )}
-        
-        {/* DEBUG: Manual refresh button in development */}
-        {process.env.NODE_ENV === 'development' && (
-          <button 
-            onClick={refreshHeatmap}
-            style={{
-              padding: '6px 12px',
-              background: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '0.8rem'
-            }}
-          >
-            🔄 Debug Refresh
-          </button>
         )}
       </div>
       
@@ -619,25 +530,6 @@ const ReviewHeatmap = () => {
           >
             📊 View Current Year Stats
           </button>
-        </div>
-      )}
-
-      {/* Debug info - only in development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{ marginTop: '20px', fontSize: '0.8rem', color: '#666', padding: '10px', background: '#1a1a1a', borderRadius: '4px' }}>
-          <details>
-            <summary>🔍 Debug Info (Development Only)</summary>
-            <p>User ID: {user?.id}</p>
-            <p>Selected Year: {selectedYear}</p>
-            <p>Available Years: {availableYears.join(', ')}</p>
-            <p>Total data points: {heatmapData.length}</p>
-            <p>Days with activity: {heatmapData.filter(d => d.count > 0).length}</p>
-            <p>Loading: {loading.toString()}</p>
-            <p>Error: {error || 'None'}</p>
-            <p>Last render: {new Date().toLocaleTimeString()}</p>
-            <p>Today's date: {new Date().toISOString().split('T')[0]}</p>
-            <p>Today's reviews: {heatmapData.find(d => d.date === new Date().toISOString().split('T')[0])?.count || 0}</p>
-          </details>
         </div>
       )}
     </div>
