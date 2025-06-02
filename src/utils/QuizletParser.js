@@ -1,4 +1,4 @@
-// src/utils/QuizletParser.js
+// src/utils/QuizletParser.js - FIXED VERSION FOR TAB-DELIMITED FILES
 
 /**
  * Parse Quizlet export files (.txt, .csv)
@@ -15,6 +15,12 @@ export async function parseQuizletFile(file, options = {}) {
     const content = await readFileAsText(file);
     
     onProgress && onProgress(30);
+
+    // Debug: Log the first few characters to see what we're getting
+    console.log('File content preview:', content.substring(0, 200));
+    console.log('First line:', content.split('\n')[0]);
+    console.log('Has tabs:', content.includes('\t'));
+    console.log('Has commas:', content.includes(','));
 
     // Detect the format and parse accordingly
     const parsedData = detectAndParseFormat(content);
@@ -56,62 +62,117 @@ function readFileAsText(file) {
       reject(new Error('Failed to read file'));
     };
     
-    // Try to detect encoding
+    // Try to detect encoding - use UTF-8 first, fallback to Latin-1 if needed
     reader.readAsText(file, 'UTF-8');
   });
 }
 
 function detectAndParseFormat(content) {
-  const lines = content.split('\n').filter(line => line.trim());
+  // Clean up the content first
+  content = content.trim();
+  
+  if (!content) {
+    throw new Error('The file appears to be empty');
+  }
+
+  // Split into lines and filter out empty lines
+  const allLines = content.split('\n');
+  const lines = allLines.map(line => line.trim()).filter(line => line.length > 0);
+  
+  console.log('Total lines after filtering:', lines.length);
+  console.log('Sample lines:', lines.slice(0, 3));
   
   if (lines.length === 0) {
-    throw new Error('The file appears to be empty');
+    throw new Error('No valid content found in the file');
   }
 
   // Test the first few lines to determine format
   const testLines = lines.slice(0, Math.min(5, lines.length));
   
-  // Count separators in test lines
-  const tabCounts = testLines.map(line => (line.match(/\t/g) || []).length);
-  const commaCounts = testLines.map(line => (line.match(/,/g) || []).length);
-  const semicolonCounts = testLines.map(line => (line.match(/;/g) || []).length);
-  
-  // Calculate average counts
-  const avgTabs = tabCounts.reduce((a, b) => a + b, 0) / tabCounts.length;
-  const avgCommas = commaCounts.reduce((a, b) => a + b, 0) / commaCounts.length;
-  const avgSemicolons = semicolonCounts.reduce((a, b) => a + b, 0) / semicolonCounts.length;
+  // More robust delimiter detection
+  let bestDelimiter = '\t'; // Default to tab since that's what was requested
+  let maxValidLines = 0;
 
-  let delimiter = '\t'; // Default to tab
+  const delimiters = ['\t', ',', ';', '|'];
   
-  // Determine the most likely delimiter
-  if (avgCommas > avgTabs && avgCommas > avgSemicolons) {
-    delimiter = ',';
-  } else if (avgSemicolons > avgTabs && avgSemicolons > avgCommas) {
-    delimiter = ';';
-  }
-
-  // Parse lines with detected delimiter
-  const parsedLines = [];
-  
-  for (const line of lines) {
-    if (!line.trim()) continue;
+  for (const delimiter of delimiters) {
+    let validLines = 0;
+    for (const line of testLines) {
+      const fields = splitLine(line, delimiter);
+      if (fields.length >= 2 && fields[0].trim() && fields[1].trim()) {
+        validLines++;
+      }
+    }
     
-    const fields = parseCSVLine(line, delimiter);
+    console.log(`Delimiter "${delimiter === '\t' ? 'TAB' : delimiter}" valid lines: ${validLines}`);
     
-    // Skip lines that don't have at least 2 fields
-    if (fields.length >= 2) {
-      parsedLines.push(fields);
+    if (validLines > maxValidLines) {
+      maxValidLines = validLines;
+      bestDelimiter = delimiter;
     }
   }
 
+  console.log(`Best delimiter: "${bestDelimiter === '\t' ? 'TAB' : bestDelimiter}"`);
+
+  // Parse all lines with the best delimiter
+  const parsedLines = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) continue;
+    
+    const fields = splitLine(line, bestDelimiter);
+    
+    console.log(`Line ${i + 1}:`, fields);
+    
+    // Accept lines that have at least 2 non-empty fields
+    if (fields.length >= 2) {
+      const front = fields[0].trim();
+      const back = fields[1].trim();
+      
+      if (front && back) {
+        parsedLines.push(fields);
+      } else {
+        console.log(`Skipping line ${i + 1} - empty front or back:`, { front, back });
+      }
+    } else {
+      console.log(`Skipping line ${i + 1} - insufficient fields:`, fields);
+    }
+  }
+
+  console.log('Parsed lines count:', parsedLines.length);
+
   if (parsedLines.length === 0) {
-    throw new Error('No valid card data found. Expected format: "front,back" or "front\tback"');
+    throw new Error(`No valid card data found. Please check that your file is formatted correctly:
+    
+Expected format for tab-delimited:
+Front Side[TAB]Back Side
+Another Term[TAB]Another Definition
+
+Expected format for comma-delimited:
+"Front Side","Back Side"
+"Another Term","Another Definition"
+
+Your file had ${lines.length} lines but none could be parsed as valid flashcard pairs.`);
   }
 
   return {
     lines: parsedLines,
-    delimiter: delimiter
+    delimiter: bestDelimiter
   };
+}
+
+function splitLine(line, delimiter) {
+  if (delimiter === '\t') {
+    // For tab-delimited, simple split should work
+    return line.split('\t').map(field => field.trim());
+  } else if (delimiter === ',') {
+    // For comma-delimited, handle quoted fields
+    return parseCSVLine(line, delimiter);
+  } else {
+    // For other delimiters, simple split
+    return line.split(delimiter).map(field => field.trim());
+  }
 }
 
 function parseCSVLine(line, delimiter = ',') {
@@ -166,6 +227,8 @@ function processQuizletCards(parsedData, maxCards = null) {
   const cards = [];
   const lines = parsedData.lines;
 
+  console.log('Processing cards from', lines.length, 'parsed lines');
+
   for (let i = 0; i < lines.length; i++) {
     if (maxCards && cards.length >= maxCards) {
       break;
@@ -173,17 +236,29 @@ function processQuizletCards(parsedData, maxCards = null) {
 
     const fields = lines[i];
     
-    if (fields.length < 2) continue;
+    if (fields.length < 2) {
+      console.log(`Skipping line ${i + 1} - insufficient fields:`, fields);
+      continue;
+    }
 
     let front = fields[0].trim();
     let back = fields[1].trim();
 
     // Skip empty cards
-    if (!front && !back) continue;
+    if (!front && !back) {
+      console.log(`Skipping line ${i + 1} - both front and back are empty`);
+      continue;
+    }
 
     // Clean and process the content
     front = cleanQuizletText(front);
     back = cleanQuizletText(back);
+
+    // Skip if cleaning resulted in empty content
+    if (!front.trim() || !back.trim()) {
+      console.log(`Skipping line ${i + 1} - empty after cleaning:`, { front, back });
+      continue;
+    }
 
     // Determine card type
     let cardType = 'Basic';
@@ -199,7 +274,9 @@ function processQuizletCards(parsedData, maxCards = null) {
     // Handle multiple definitions (separated by semicolons or newlines)
     if (back.includes(';') && back.split(';').length > 1) {
       const definitions = back.split(';').map(def => def.trim()).filter(def => def);
-      back = definitions.join('<br>');
+      if (definitions.length > 1) {
+        back = definitions.join('<br>');
+      }
     }
 
     // Handle additional fields (tags, notes, etc.)
@@ -229,15 +306,19 @@ function processQuizletCards(parsedData, maxCards = null) {
       }
     }
 
-    cards.push({
+    const card = {
       front: front,
       back: back,
       cardType: cardType,
       tags: tags,
       source: 'Quizlet'
-    });
+    };
+
+    cards.push(card);
+    console.log(`Added card ${cards.length}:`, { front: front.substring(0, 50), back: back.substring(0, 50) });
   }
 
+  console.log('Final cards count:', cards.length);
   return cards;
 }
 
@@ -452,7 +533,9 @@ export async function parseQuizletFileAuto(file, options = {}) {
     }
   } catch (error) {
     console.error('All Quizlet parsing strategies failed:', error);
-    throw new Error(`Unable to parse Quizlet file. Please ensure it's in a supported format: tab-delimited, comma-delimited, or Quizlet study set format.`);
+    throw new Error(`Unable to parse Quizlet file. Please ensure it's in a supported format: tab-delimited, comma-delimited, or Quizlet study set format.
+
+Debug info: File size: ${file.size} bytes, File type: ${file.type}, File name: ${file.name}`);
   }
 }
 
