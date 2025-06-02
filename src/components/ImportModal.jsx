@@ -1,12 +1,12 @@
-// src/components/ImportModal.jsx - FIXED VERSION WITH PROPER NAVIGATION TIMING
+// src/components/ImportModal.jsx - UPDATED WITH BETTER ANKI SUPPORT
 import React, { useState, useContext } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
 import { useNavigate } from 'react-router-dom';
 import '../styles/ImportModal.css';
 
-// Import parsers
-import { parseAnkiFile } from '../utils/AnkiParser';
+// Import parsers - updated to use the improved Anki parser
+import { parseAnkiFileWithFallback } from '../utils/AnkiParser';
 import { parseQuizletFile } from '../utils/QuizletParser';
 
 const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
@@ -83,8 +83,15 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
       console.log('Starting preview generation with import type:', importType);
       
       if (importType === 'anki' && (fileName.endsWith('.apkg') || fileName.endsWith('.colpkg'))) {
-        console.log('Attempting Anki parse...');
-        preview = await parseAnkiFile(selectedFile, { previewOnly: true, maxCards: 5 });
+        console.log('Attempting Anki parse with fallback...');
+        preview = await parseAnkiFileWithFallback(selectedFile, { 
+          previewOnly: true, 
+          maxCards: 5,
+          onProgress: (progress) => {
+            console.log('Anki parse progress:', progress);
+            setParseProgress(progress);
+          }
+        });
       } else if (importType === 'quizlet') {
         console.log('Attempting Quizlet parse...');
         preview = await parseQuizletFile(selectedFile, { 
@@ -155,8 +162,8 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
       console.log('Beginning full file parse...');
       
       if (importType === 'anki' && (fileName.endsWith('.apkg') || fileName.endsWith('.colpkg'))) {
-        console.log('Full Anki parse starting...');
-        parsedData = await parseAnkiFile(file, {
+        console.log('Full Anki parse starting with fallback...');
+        parsedData = await parseAnkiFileWithFallback(file, {
           onProgress: (progress) => {
             console.log('Anki parse progress:', progress);
             setParseProgress(progress);
@@ -254,7 +261,6 @@ Debug info:
         }));
 
         console.log(`Inserting batch ${Math.floor(i / batchSize) + 1}:`, cardsToInsert.length, 'cards');
-        console.log('Sample card from batch:', cardsToInsert[0]);
 
         const { data: insertedCards, error: cardError } = await supabase
           .from('flashcard_cards')
@@ -263,7 +269,6 @@ Debug info:
 
         if (cardError) {
           console.error('Error inserting card batch:', cardError);
-          console.error('Failed batch data:', cardsToInsert);
           // Continue with remaining batches even if one fails
         } else {
           totalInserted += insertedCards?.length || 0;
@@ -278,25 +283,19 @@ Debug info:
 
       console.log(`Import completed! Total cards inserted: ${totalInserted} out of ${cards.length}`);
 
-      // *** CRITICAL FIX: Wait a moment before navigation and refresh ***
-      console.log('Waiting for database to settle before navigation...');
+      // Wait for database to settle
+      console.log('Waiting for database to settle...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Wait for a short delay to ensure all database operations are complete
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Verify that cards were actually inserted by doing a count check
+      // Verify insertion
       const { count: verifyCount, error: verifyError } = await supabase
         .from('flashcard_cards')
         .select('*', { count: 'exact', head: true })
         .eq('set_id', deckData.id);
         
       console.log('Verification count:', verifyCount, 'Expected:', cards.length);
-      
-      if (verifyError) {
-        console.error('Error verifying card insertion:', verifyError);
-      }
 
-      // Inform parent about success BEFORE navigation
+      // Inform parent about success FIRST
       if (onSuccess) {
         console.log('Calling onSuccess callback...');
         onSuccess(deckData.id);
@@ -306,13 +305,14 @@ Debug info:
       console.log('Closing modal...');
       onClose();
 
-      // *** IMPORTANT: Use replace instead of navigate to ensure clean navigation ***
-      console.log('Navigating to flashcard edit page...');
+      // Navigate to the edit page
+      console.log('Preparing to navigate to flashcard edit page...');
       
-      // Use setTimeout to ensure the modal close completes first
-      setTimeout(() => {
-        navigate(`/flashcards/${deckData.id}`, { replace: true });
-      }, 100);
+      // Wait for modal close animation to complete
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Force a page refresh approach to ensure clean state
+      window.location.href = `/flashcards/${deckData.id}`;
 
     } catch (err) {
       console.error('Import error:', err);
@@ -397,7 +397,7 @@ Debug info:
                   <span className="radio-label">
                     <span className="format-icon">🅰️</span>
                     Anki Format
-                    <small>(.apkg, .colpkg files)</small>
+                    <small>(.apkg, .colpkg files) - Now supports latest Anki versions!</small>
                   </span>
                 </label>
                 <label className="radio-option">
@@ -449,6 +449,26 @@ Debug info:
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Anki Help Text */}
+          {importType === 'anki' && (
+            <div className="help-section" style={{ 
+              background: 'rgba(79, 172, 254, 0.1)', 
+              border: '1px solid rgba(79, 172, 254, 0.3)', 
+              borderRadius: '8px', 
+              padding: '12px', 
+              marginBottom: '16px' 
+            }}>
+              <h5 style={{ color: '#4facfe', margin: '0 0 8px 0', fontSize: '0.9rem' }}>
+                💡 Anki Import Tips
+              </h5>
+              <p style={{ color: '#ccc', fontSize: '0.8rem', margin: '0', lineHeight: '1.4' }}>
+                If you get an error with newer Anki files, try exporting as:
+                <br />• <strong>File → Export → "Notes in Plain Text (*.txt)"</strong>
+                <br />• Then import that .txt file using the Quizlet option above
+              </p>
             </div>
           )}
 
