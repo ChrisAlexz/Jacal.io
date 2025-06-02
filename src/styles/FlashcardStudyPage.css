@@ -177,7 +177,7 @@
     border-color: rgba(255, 107, 53, 0.6);
   }
   
-  /* Main Study Card */
+  /* CRITICAL FIX: Main Study Card - Prevent front card shrinking */
   .flashcard-study-box {
     background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(20px);
@@ -185,15 +185,16 @@
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     width: 100%;
     max-width: 900px;
-    min-height: 600px;
+    /* REMOVED: min-height: 600px; - This was causing layout issues */
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     text-align: center;
     position: relative;
     z-index: 1;
     border: 1px solid rgba(200, 200, 200, 0.3);
     overflow: hidden;
+    /* ADDED: Allow the container to grow naturally */
+    min-height: auto;
   }
   
   .flashcard-study-box::before {
@@ -221,8 +222,8 @@
     border: 1px solid rgba(150, 150, 150, 0.2);
   }
   
-  /* Card Content Areas */
-  .flashcard-front, .flashcard-back {
+  /* CRITICAL FIX: Front card maintains fixed size regardless of other content */
+  .flashcard-front {
     padding: 60px 40px;
     font-size: 2.2rem;
     font-weight: 600;
@@ -231,23 +232,55 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 300px;
+    /* CRITICAL: Fixed height prevents shrinking */
+    height: 300px;
+    /* CRITICAL: Prevent flex shrinking/growing */
+    flex-shrink: 0;
+    flex-grow: 0;
     word-wrap: break-word;
     overflow-wrap: break-word;
-    flex: 1;
+    /* ADDED: Handle overflow gracefully */
+    overflow-y: auto;
   }
   
-  /* Special handling for image occlusion cards */
-  .flashcard-front:has(.image-occlusion-card),
-  .flashcard-back:has(.image-occlusion-card) {
+  /* FIXED: Special handling for image occlusion cards - allow flexible height */
+  .flashcard-front:has(.image-occlusion-card) {
     font-size: 1rem;
-    padding: 40px 20px;
+    padding: 20px;
+    /* CRITICAL FIX: Use min-height instead of fixed height for images */
+    height: auto;
+    min-height: 300px;
+    /* Allow images to size naturally while preventing shrinking */
+    flex-shrink: 0;
+    flex-grow: 0;
   }
   
+  /* FIXED: Back card doesn't affect front card size, but maintains image positioning */
   .flashcard-back {
     border-top: 3px solid #666;
     background: linear-gradient(135deg, rgba(240, 240, 240, 0.8) 0%, rgba(250, 250, 250, 0.8) 100%);
-    margin-top: 0;
+    padding: 40px;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #2c3e50;
+    line-height: 1.4;
+    /* Prevent affecting front card */
+    flex-shrink: 0;
+    flex-grow: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    /* Allow back card to size itself */
+    min-height: auto;
+  }
+  
+  /* CRITICAL: Special handling for image occlusion back cards */
+  .flashcard-back:has(.image-occlusion-card) {
+    padding: 20px;
+    font-size: 1rem;
+    /* Ensure consistent sizing with front card for image alignment */
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   /* Image Occlusion Specific Styles - Only in Study Context */
@@ -262,6 +295,8 @@
     height: auto;
     margin: 0 auto;
     padding: 0;
+    /* CRITICAL: Ensure the container doesn't interfere with positioning */
+    width: fit-content;
   }
   
   .study-container .flashcard-front .occlusion-image,
@@ -274,6 +309,8 @@
     display: block;
     object-fit: contain;
     margin: 0 auto;
+    /* CRITICAL: Maintain original dimensions for overlay positioning */
+    image-rendering: auto;
   }
   
   .study-container .flashcard-front .occlusion-overlay,
@@ -281,9 +318,14 @@
     position: absolute;
     top: 0;
     left: 0;
+    /* CRITICAL: Match the exact dimensions of the image */
     width: 100%;
     height: 100%;
     pointer-events: none;
+    /* CRITICAL: Ensure overlay stays aligned with image */
+    transform: none;
+    margin: 0;
+    padding: 0;
   }
   
   /* Occlusion elements - Only visible in study context */
@@ -305,6 +347,11 @@
     font-size: 14px;
     line-height: 1;
     text-align: center;
+    /* CRITICAL: Prevent any positioning shifts */
+    transform: none;
+    margin: 0;
+    /* CRITICAL: Maintain exact positioning from original coordinates */
+    image-rendering: auto;
   }
   
   /* Active question styling (front card) */
@@ -375,7 +422,7 @@
     display: none;
   }
   
-  /* Type Answer Section */
+  /* FIXED: Type Answer Section doesn't affect front card */
   .type-answer-section {
     padding: 40px;
     display: flex;
@@ -384,6 +431,9 @@
     align-items: center;
     background: linear-gradient(135deg, rgba(245, 245, 245, 0.8) 0%, rgba(250, 250, 250, 0.8) 100%);
     border-radius: 0 0 24px 24px;
+    /* Prevent affecting front card */
+    flex-shrink: 0;
+    flex-grow: 0;
   }
   
   .answer-input {
@@ -433,12 +483,15 @@
     transform: none;
   }
   
-  /* Answer Results Section */
+  /* FIXED: Answer Results Section doesn't affect front card */
   .answer-results {
     padding: 40px;
     display: flex;
     flex-direction: column;
     gap: 25px;
+    /* Prevent affecting front card */
+    flex-shrink: 0;
+    flex-grow: 0;
   }
   
   .answer-feedback {
@@ -499,7 +552,7 @@
     font-size: 1.1rem;
   }
   
-  /* Show Answer Button */
+  /* FIXED: Show Answer Button doesn't affect front card */
   .show-answer-btn {
     margin: 40px;
     padding: 20px 40px;
@@ -514,6 +567,9 @@
     box-shadow: 0 4px 15px rgba(44, 62, 80, 0.3);
     text-transform: uppercase;
     letter-spacing: 1px;
+    /* Prevent affecting front card */
+    flex-shrink: 0;
+    flex-grow: 0;
   }
   
   .show-answer-btn:hover {
@@ -522,7 +578,7 @@
     box-shadow: 0 8px 25px rgba(44, 62, 80, 0.4);
   }
   
-  /* Difficulty Buttons */
+  /* FIXED: Difficulty Buttons don't affect front card */
   .difficulty-buttons {
     padding: 40px;
     display: flex;
@@ -531,6 +587,9 @@
     gap: 20px;
     background: linear-gradient(135deg, rgba(245, 245, 245, 0.8) 0%, rgba(250, 250, 250, 0.8) 100%);
     border-radius: 0 0 24px 24px;
+    /* Prevent affecting front card */
+    flex-shrink: 0;
+    flex-grow: 0;
   }
   
   /* FIXED: Always Show Interval Preview */
@@ -818,6 +877,7 @@
       font-size: 1rem;
     }
   }
+  
   .study-header {
     display: flex;
     justify-content: space-between;
@@ -973,227 +1033,6 @@
   /* Study Completion (separate from study box) */
   .study-completion {
     text-align: center;
-    padding: 60px 20px;
-    max-width: 500px;
-    margin: 0 auto;
-    z-index: 1;
-    position: relative;
-  }
-  
-  .completion-icon {
-    font-size: 4rem;
-    margin-bottom: 20px;
-  }
-  
-  .study-completion h2 {
-    color: white;
-    margin-bottom: 10px;
-  }
-  
-  .study-completion p {
-    color: #aaa;
-    margin-bottom: 30px;
-  }
-  
-  .back-button {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    padding: 14px 28px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-  
-  .back-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
-  }
-  
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .study-container {
-      padding: 100px 15px 20px 15px;
-    }
-    
-    .flashcard-study-box {
-      max-width: 95%;
-      min-height: 500px;
-    }
-    
-    .flashcard-front, .flashcard-back {
-      padding: 40px 30px;
-      font-size: 1.8rem;
-      min-height: 250px;
-    }
-    
-    .answer-input {
-      font-size: 1.2rem;
-      padding: 16px 20px;
-    }
-    
-    .answer-comparison {
-      padding: 20px;
-    }
-    
-    .difficulty-buttons {
-      padding: 30px 20px;
-      gap: 15px;
-    }
-    
-    .difficulty-buttons button {
-      padding: 14px 20px;
-      font-size: 1rem;
-      min-width: 100px;
-    }
-    
-    .speed-focus-btn {
-      padding: 12px 20px;
-      font-size: 0.9rem;
-    }
-  
-    .study-container .flashcard-front .occlusion-image,
-    .study-container .flashcard-back .occlusion-image {
-      max-height: 350px;
-    }
-    
-    .study-container .flashcard-front .occlusion-question-active,
-    .study-container .flashcard-back .occlusion-question-active,
-    .study-container .flashcard-front .occlusion-blocked,
-    .study-container .flashcard-back .occlusion-blocked,
-    .study-container .flashcard-front .occlusion-answer-revealed,
-    .study-container .flashcard-back .occlusion-answer-revealed {
-      font-size: 12px;
-      min-height: 18px;
-      min-width: 18px;
-    }
-    
-    .study-header {
-      flex-direction: column;
-      gap: 15px;
-      padding: 20px;
-    }
-    
-    .study-stats-header {
-      gap: 15px;
-    }
-    
-    .interval-preview {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-
-    /* Reduce animation intensity on mobile for performance */
-    .study-container::after {
-      background-size: 
-        300px 300px, 250px 250px, 350px 350px,
-        200px 200px, 220px 220px, 180px 180px,
-        120px 120px, 140px 140px, 130px 130px, 150px 150px;
-      animation-duration: 45s, 35s, 50s;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .study-container {
-      padding: 90px 10px 15px 10px;
-    }
-    
-    .flashcard-study-box {
-      border-radius: 16px;
-    }
-    
-    .flashcard-front, .flashcard-back {
-      font-size: 1.5rem;
-      padding: 30px 20px;
-      min-height: 200px;
-    }
-    
-    .button-row {
-      flex-direction: column;
-      gap: 12px;
-    }
-    
-    .difficulty-buttons button {
-      width: 100%;
-      padding: 16px;
-      font-size: 1.1rem;
-    }
-    
-    .type-answer-section {
-      padding: 30px 20px;
-    }
-    
-    .answer-results {
-      padding: 30px 20px;
-    }
-  
-    .study-container .flashcard-front .occlusion-image,
-    .study-container .flashcard-back .occlusion-image {
-      max-height: 280px;
-    }
-    
-    .study-container .flashcard-front .occlusion-question-active,
-    .study-container .flashcard-back .occlusion-question-active,
-    .study-container .flashcard-front .occlusion-blocked,
-    .study-container .flashcard-back .occlusion-blocked,
-    .study-container .flashcard-front .occlusion-answer-revealed,
-    .study-container .flashcard-back .occlusion-answer-revealed {
-      font-size: 10px;
-      min-height: 16px;
-      min-width: 16px;
-    }
-    
-    .study-stats-header {
-      flex-direction: row;
-      gap: 10px;
-    }
-    
-    .stat-item {
-      padding: 12px 16px;
-      min-width: 70px;
-    }
-    
-    .stat-item .count {
-      font-size: 1.4rem;
-    }
-
-    /* Simplified animations on very small screens for performance */
-    .study-container::before {
-      animation-duration: 25s;
-    }
-    
-    .study-container::after {
-      background-size: 
-        200px 200px, 180px 180px, 250px 250px,
-        150px 150px, 160px 160px, 140px 140px,
-        100px 100px, 110px 110px, 105px 105px, 120px 120px;
-      animation-duration: 60s, 45s, 65s;
-    }
-  }
-  
-  .cloze-question-active {
-    background: rgba(79, 172, 254, 0.2);
-    color: #4facfe;
-    padding: 4px 12px;
-    border-radius: 8px;
-    font-weight: bold;
-    border: 2px solid #4facfe;
-  }
-  
-  .cloze-hidden-inactive {
-    background: rgba(100, 100, 100, 0.2);
-    color: #666;
-    padding: 4px 12px;
-    border-radius: 8px;
-    font-weight: bold;
-    border: 2px solid #666;
-  }
-  /* Updated Study Completion Styles - Add this to your FlashcardStudyPage.css */
-
-.study-completion {
-    text-align: center;
     padding: 80px 40px !important;
     max-width: 600px !important;
     margin: 0 auto !important;
@@ -1338,8 +1177,119 @@
     border-color: rgba(79, 172, 254, 0.5) !important;
   }
   
-  /* Mobile responsiveness for completion */
+  /* Cloze styles */
+  .cloze-question-active {
+    background: rgba(79, 172, 254, 0.2);
+    color: #4facfe;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    border: 2px solid #4facfe;
+  }
+  
+  .cloze-hidden-inactive {
+    background: rgba(100, 100, 100, 0.2);
+    color: #666;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    border: 2px solid #666;
+  }
+  
+  /* Responsive Design */
   @media (max-width: 768px) {
+    .study-container {
+      padding: 100px 15px 20px 15px;
+    }
+    
+    .flashcard-study-box {
+      max-width: 95%;
+    }
+    
+    /* CRITICAL: Maintain fixed heights on mobile, but flexible for images */
+    .flashcard-front {
+      padding: 40px 30px;
+      font-size: 1.8rem;
+      height: 250px; /* Fixed height for mobile */
+    }
+    
+    .flashcard-front:has(.image-occlusion-card) {
+      padding: 15px;
+      height: auto; /* Allow flexible height for images on mobile */
+      min-height: 250px;
+    }
+    
+    .flashcard-back {
+      padding: 30px;
+      font-size: 1.5rem;
+    }
+    
+    .answer-input {
+      font-size: 1.2rem;
+      padding: 16px 20px;
+    }
+    
+    .answer-comparison {
+      padding: 20px;
+    }
+    
+    .difficulty-buttons {
+      padding: 30px 20px;
+      gap: 15px;
+    }
+    
+    .difficulty-buttons button {
+      padding: 14px 20px;
+      font-size: 1rem;
+      min-width: 100px;
+    }
+    
+    .speed-focus-btn {
+      padding: 12px 20px;
+      font-size: 0.9rem;
+    }
+  
+    .study-container .flashcard-front .occlusion-image,
+    .study-container .flashcard-back .occlusion-image {
+      max-height: 350px;
+    }
+    
+    .study-container .flashcard-front .occlusion-question-active,
+    .study-container .flashcard-back .occlusion-question-active,
+    .study-container .flashcard-front .occlusion-blocked,
+    .study-container .flashcard-back .occlusion-blocked,
+    .study-container .flashcard-front .occlusion-answer-revealed,
+    .study-container .flashcard-back .occlusion-answer-revealed {
+      font-size: 12px;
+      min-height: 18px;
+      min-width: 18px;
+    }
+    
+    .study-header {
+      flex-direction: column;
+      gap: 15px;
+      padding: 20px;
+    }
+    
+    .study-stats-header {
+      gap: 15px;
+    }
+    
+    .interval-preview {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    /* Reduce animation intensity on mobile for performance */
+    .study-container::after {
+      background-size: 
+        300px 300px, 250px 250px, 350px 350px,
+        200px 200px, 220px 220px, 180px 180px,
+        120px 120px, 140px 140px, 130px 130px, 150px 150px;
+      animation-duration: 45s, 35s, 50s;
+    }
+    
+    /* Mobile completion adjustments */
     .study-completion {
       padding: 60px 30px !important;
       margin: 20px !important;
@@ -1372,6 +1322,95 @@
   }
   
   @media (max-width: 480px) {
+    .study-container {
+      padding: 90px 10px 15px 10px;
+    }
+    
+    .flashcard-study-box {
+      border-radius: 16px;
+    }
+    
+    /* CRITICAL: Maintain fixed heights on small mobile, but flexible for images */
+    .flashcard-front {
+      font-size: 1.5rem;
+      padding: 30px 20px;
+      height: 200px; /* Fixed height for small mobile */
+    }
+    
+    .flashcard-front:has(.image-occlusion-card) {
+      padding: 10px;
+      height: auto; /* Allow flexible height for images on small mobile */
+      min-height: 200px;
+    }
+    
+    .flashcard-back {
+      padding: 25px 15px;
+      font-size: 1.3rem;
+    }
+    
+    .button-row {
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .difficulty-buttons button {
+      width: 100%;
+      padding: 16px;
+      font-size: 1.1rem;
+    }
+    
+    .type-answer-section {
+      padding: 30px 20px;
+    }
+    
+    .answer-results {
+      padding: 30px 20px;
+    }
+  
+    .study-container .flashcard-front .occlusion-image,
+    .study-container .flashcard-back .occlusion-image {
+      max-height: 280px;
+    }
+    
+    .study-container .flashcard-front .occlusion-question-active,
+    .study-container .flashcard-back .occlusion-question-active,
+    .study-container .flashcard-front .occlusion-blocked,
+    .study-container .flashcard-back .occlusion-blocked,
+    .study-container .flashcard-front .occlusion-answer-revealed,
+    .study-container .flashcard-back .occlusion-answer-revealed {
+      font-size: 10px;
+      min-height: 16px;
+      min-width: 16px;
+    }
+    
+    .study-stats-header {
+      flex-direction: row;
+      gap: 10px;
+    }
+    
+    .stat-item {
+      padding: 12px 16px;
+      min-width: 70px;
+    }
+    
+    .stat-item .count {
+      font-size: 1.4rem;
+    }
+
+    /* Simplified animations on very small screens for performance */
+    .study-container::before {
+      animation-duration: 25s;
+    }
+    
+    .study-container::after {
+      background-size: 
+        200px 200px, 180px 180px, 250px 250px,
+        150px 150px, 160px 160px, 140px 140px,
+        100px 100px, 110px 110px, 105px 105px, 120px 120px;
+      animation-duration: 60s, 45s, 65s;
+    }
+    
+    /* Small mobile completion adjustments */
     .study-completion {
       padding: 50px 20px !important;
       margin: 15px !important;
@@ -1386,151 +1425,19 @@
     }
   }
 
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  .study-container::before,
-  .study-container::after,
-  .loading-spinner,
-  .completion-icon,
-  .study-header::before {
-    animation: none;
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    .study-container::before,
+    .study-container::after,
+    .loading-spinner,
+    .completion-icon,
+    .study-header::before {
+      animation: none;
+    }
+    
+    .speed-focus-btn:hover,
+    .show-answer-btn:hover,
+    .difficulty-buttons button:hover {
+      transform: none;
+    }
   }
-  
-  .speed-focus-btn:hover,
-  .show-answer-btn:hover,
-  .difficulty-buttons button:hover {
-    transform: none;
-  }
-}
-/* Add this to your FlashcardStudyPage.css to fix the front card shrinking issue */
-
-/* Ensure flashcard study box maintains consistent layout */
-.flashcard-study-box {
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(20px);
-  border-radius: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  width: 100%;
-  max-width: 900px;
-  min-height: 600px;
-  display: flex;
-  flex-direction: column;
-  text-align: center;
-  position: relative;
-  z-index: 1;
-  border: 1px solid rgba(200, 200, 200, 0.3);
-  overflow: hidden;
-}
-
-/* FIXED: Front card should maintain consistent size */
-.flashcard-front {
-  padding: 60px 40px;
-  font-size: 2.2rem;
-  font-weight: 600;
-  color: #2c3e50;
-  line-height: 1.4;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* CRITICAL FIX: Set fixed minimum height so it doesn't shrink */
-  min-height: 300px;
-  /* CRITICAL FIX: Don't use flex: 1 which would make it shrink */
-  flex-shrink: 0;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-/* Back card should be additional content below front */
-.flashcard-back {
-  border-top: 3px solid #666;
-  background: linear-gradient(135deg, rgba(240, 240, 240, 0.8) 0%, rgba(250, 250, 250, 0.8) 100%);
-  padding: 40px;
-  font-size: 1.8rem;
-  font-weight: 600;
-  color: #2c3e50;
-  line-height: 1.4;
-  /* FIXED: This should not affect front card size */
-  flex-shrink: 0;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-/* Show Answer button positioning */
-.show-answer-btn {
-  margin: 40px;
-  padding: 20px 40px;
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-  color: white;
-  border: none;
-  border-radius: 16px;
-  cursor: pointer;
-  font-size: 1.3rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(44, 62, 80, 0.3);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  /* FIXED: Don't let this affect the front card */
-  flex-shrink: 0;
-}
-
-/* Difficulty buttons section */
-.difficulty-buttons {
-  padding: 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  background: linear-gradient(135deg, rgba(245, 245, 245, 0.8) 0%, rgba(250, 250, 250, 0.8) 100%);
-  border-radius: 0 0 24px 24px;
-  /* FIXED: Don't let this affect the front card */
-  flex-shrink: 0;
-}
-
-/* Special handling for image occlusion cards */
-.flashcard-front:has(.image-occlusion-card),
-.flashcard-back:has(.image-occlusion-card) {
-  font-size: 1rem;
-  padding: 40px 20px;
-  /* Maintain minimum height for image occlusion too */
-  min-height: 300px;
-}
-
-/* Mobile responsive adjustments */
-@media (max-width: 768px) {
-  .flashcard-front {
-    padding: 40px 30px;
-    font-size: 1.8rem;
-    min-height: 250px; /* Slightly smaller on mobile but still fixed */
-  }
-  
-  .flashcard-back {
-    padding: 30px;
-    font-size: 1.5rem;
-  }
-  
-  .show-answer-btn {
-    margin: 30px 20px;
-    padding: 16px 30px;
-    font-size: 1.1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .flashcard-front {
-    font-size: 1.5rem;
-    padding: 30px 20px;
-    min-height: 200px; /* Even smaller on mobile but still fixed */
-  }
-  
-  .flashcard-back {
-    padding: 25px 15px;
-    font-size: 1.3rem;
-  }
-  
-  .show-answer-btn {
-    margin: 25px 15px;
-    padding: 14px 25px;
-    font-size: 1rem;
-  }
-}
