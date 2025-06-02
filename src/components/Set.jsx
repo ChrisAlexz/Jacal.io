@@ -1,14 +1,24 @@
-// src/components/Set.jsx - UPDATED WITH FIXED SPEED BUTTON LAYOUT
+// src/components/Set.jsx - UPDATED WITH IMPORT FUNCTIONALITY
 import React, { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
 import ClassDeckModal from './ClassDeckModal';
+import ImportModal from './ImportModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import '../styles/Set.css';
 import Layout from './Layout';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faChevronRight, faTrash, faEdit, faPlus, faSearch, faBolt } from '@fortawesome/free-solid-svg-icons';
+import { 
+  faChevronDown, 
+  faChevronRight, 
+  faTrash, 
+  faEdit, 
+  faPlus, 
+  faSearch, 
+  faBolt,
+  faFileImport 
+} from '@fortawesome/free-solid-svg-icons';
 
 export default function Set() {
   const { user } = useContext(UserAuthContext);
@@ -16,6 +26,7 @@ export default function Set() {
   const [loading, setLoading] = useState(true);
   const [expandedClasses, setExpandedClasses] = useState({});
   const [showModal, setShowModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState(null);
   const [editingClassNames, setEditingClassNames] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -200,6 +211,14 @@ export default function Set() {
     }
   };
 
+  // Handle import success
+  const handleImportSuccess = (deckId) => {
+    // Refresh the classes data
+    fetchClasses();
+    setShowImportModal(false);
+    setSelectedClassId(null);
+  };
+
   // Filter classes based on search term
   const filteredClasses = classes.filter(cls => 
     cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -250,13 +269,23 @@ export default function Set() {
                 <h1>My Flashcard Sets</h1>
                 <p>Manage and organize your learning materials</p>
               </div>
-              <button 
-                onClick={() => setShowModal(true)}
-                className="create-set-btn"
-              >
-                <span className="btn-icon">+</span>
-                Create New Set
-              </button>
+              <div className="header-actions">
+                <button 
+                  onClick={() => setShowImportModal(true)}
+                  className="import-btn"
+                  title="Import from Anki or Quizlet"
+                >
+                  <FontAwesomeIcon icon={faFileImport} className="btn-icon" />
+                  Import
+                </button>
+                <button 
+                  onClick={() => setShowModal(true)}
+                  className="create-set-btn"
+                >
+                  <span className="btn-icon">+</span>
+                  Create New Set
+                </button>
+              </div>
             </div>
             
             {/* Search and Filter Bar */}
@@ -300,16 +329,25 @@ export default function Set() {
                 <p>
                   {searchTerm 
                     ? `No sets match "${searchTerm}". Try a different search term.`
-                    : 'Create your first flashcard set to get started!'
+                    : 'Create your first flashcard set or import from Anki/Quizlet to get started!'
                   }
                 </p>
                 {!searchTerm && (
-                  <button 
-                    onClick={() => setShowModal(true)}
-                    className="empty-action-btn"
-                  >
-                    Create Your First Set
-                  </button>
+                  <div className="empty-actions">
+                    <button 
+                      onClick={() => setShowModal(true)}
+                      className="empty-action-btn"
+                    >
+                      Create Your First Set
+                    </button>
+                    <button 
+                      onClick={() => setShowImportModal(true)}
+                      className="empty-action-btn secondary"
+                    >
+                      <FontAwesomeIcon icon={faFileImport} />
+                      Import from Anki/Quizlet
+                    </button>
+                  </div>
                 )}
               </div>
             ) : (
@@ -336,6 +374,17 @@ export default function Set() {
                       </div>
                       <div className="class-actions">
                         <button
+                          className="import-deck-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedClassId(cls.id);
+                            setShowImportModal(true);
+                          }}
+                          title="Import to this set"
+                        >
+                          <FontAwesomeIcon icon={faFileImport} />
+                        </button>
+                        <button
                           className="add-deck-btn"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -361,16 +410,29 @@ export default function Set() {
                         {cls.flashcard_sets.length === 0 ? (
                           <div className="empty-decks">
                             <p>No decks in this class yet</p>
-                            <button
-                              className="add-first-deck"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedClassId(cls.id);
-                                setShowModal(true);
-                              }}
-                            >
-                              Add Deck
-                            </button>
+                            <div className="empty-deck-actions">
+                              <button
+                                className="add-first-deck"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedClassId(cls.id);
+                                  setShowModal(true);
+                                }}
+                              >
+                                Add Deck
+                              </button>
+                              <button
+                                className="import-first-deck"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedClassId(cls.id);
+                                  setShowImportModal(true);
+                                }}
+                              >
+                                <FontAwesomeIcon icon={faFileImport} />
+                                Import
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div className="deck-grid">
@@ -468,6 +530,17 @@ export default function Set() {
               setShowModal(false);
               setSelectedClassId(null);
             }}
+            preselectedClassId={selectedClassId}
+          />
+        )}
+
+        {showImportModal && (
+          <ImportModal
+            onClose={() => {
+              setShowImportModal(false);
+              setSelectedClassId(null);
+            }}
+            onSuccess={handleImportSuccess}
             preselectedClassId={selectedClassId}
           />
         )}

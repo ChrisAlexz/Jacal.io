@@ -1038,3 +1038,243 @@
     transform: none;
   }
 }
+/* Additional CSS for Set.css - Import functionality styles */
+
+/* Header Actions Container */
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Import Button */
+.import-btn {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.import-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.import-btn:hover::before {
+  left: 100%;
+}
+
+.import-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+  background: linear-gradient(135deg, #f7931e 0%, #ff6b35 100%);
+}
+
+.import-btn .btn-icon {
+  font-size: 1rem;
+  transition: transform 0.3s ease;
+}
+
+.import-btn:hover .btn-icon {
+  transform: scale(1.1);
+}
+
+/* Import Deck Button in Class Actions */
+.import-deck-btn {
+  background: rgba(255, 107, 53, 0.1);
+  color: #ff6b35;
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.import-deck-btn:hover {
+  background: rgba(255, 107, 53, 0.2);
+  border-color: rgba(255, 107, 53, 0.5);
+  transform: scale(1.1);
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.2);
+}
+
+/* Empty Deck Actions */
+.empty-deck-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.import-first-deck {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.import-first-deck:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+}
+
+/* Empty State Actions */
+.empty-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.empty-action-btn.secondary {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty-action-btn.secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+}
+
+/* Responsive adjustments for import buttons */
+@media (max-width: 768px) {
+  .header-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  
+  .import-btn,
+  .create-set-btn {
+    flex: 1;
+    justify-content: center;
+    min-width: 140px;
+  }
+  
+  .empty-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .empty-action-btn,
+  .empty-action-btn.secondary {
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .import-btn,
+  .create-set-btn {
+    width: 100%;
+    padding: 12px 20px;
+  }
+  
+  .empty-deck-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .add-first-deck,
+  .import-first-deck {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Focus states for accessibility */
+.import-btn:focus,
+.import-deck-btn:focus,
+.import-first-deck:focus {
+  outline: 2px solid #ff6b35;
+  outline-offset: 2px;
+}
+
+/* Loading state for import button */
+.import-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.import-btn:disabled:hover {
+  transform: none;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.2);
+}
+
+/* Enhanced hover effects */
+.import-deck-btn:hover {
+  background: rgba(255, 107, 53, 0.15);
+  color: #f7931e;
+}
+
+/* Icon animations */
+.import-btn .btn-icon,
+.import-deck-btn svg,
+.import-first-deck svg {
+  transition: all 0.3s ease;
+}
+
+.import-btn:hover .btn-icon,
+.import-deck-btn:hover svg,
+.import-first-deck:hover svg {
+  transform: scale(1.1) rotate(5deg);
+}
+
+/* Success state animation (for when import completes) */
+@keyframes importSuccess {
+  0% {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  }
+  50% {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    transform: scale(1.05);
+  }
+  100% {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    transform: scale(1);
+  }
+}
+
+.import-btn.success {
+  animation: importSuccess 0.6s ease-in-out;
+}
