@@ -1,4 +1,4 @@
-// src/components/Flashcard.jsx
+// src/components/Flashcard.jsx - FIXED VERSION WITH PER-CARD TYPE SUPPORT
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from '../supabase';
@@ -20,6 +20,7 @@ export default function Flashcard() {
   const [flashcards, setFlashcards] = useState([]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [setId, setSetId] = useState(null);
+  const [isPerCardMode, setIsPerCardMode] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -41,18 +42,33 @@ export default function Flashcard() {
       setTitle(data.title);
       setType(data.type);
       setFlashcards(data.flashcard_cards || []);
+      
+      // Check if cards have different types - if so, enable per-card mode
+      const cardTypes = new Set(data.flashcard_cards?.map(card => card.card_type).filter(Boolean));
+      if (cardTypes.size > 1 || (cardTypes.size === 1 && !cardTypes.has(data.type))) {
+        setIsPerCardMode(true);
+      }
     }
   };
 
   useEffect(() => {
     const updateSetDetails = async () => {
-      if (setId) {
+      if (setId && !isPerCardMode) {
         const { error } = await supabase
           .from('flashcard_sets')
           .update({ title, type })
           .eq('id', setId);
         if (error) {
           console.error("Error updating set details:", error);
+        }
+      } else if (setId && isPerCardMode) {
+        // Only update title in per-card mode
+        const { error } = await supabase
+          .from('flashcard_sets')
+          .update({ title })
+          .eq('id', setId);
+        if (error) {
+          console.error("Error updating set title:", error);
         }
       }
     };
@@ -64,11 +80,14 @@ export default function Flashcard() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [title, type, setId]);
+  }, [title, type, setId, isPerCardMode]);
 
-  const addFlashcard = async (front, back) => {
-    if (type === 'Basic' && (!front.trim() || !back.trim())) return;
-    if (type === 'Cloze' && !front.trim()) return;
+  const addFlashcard = async (front, back, cardType = null) => {
+    const finalCardType = cardType || type;
+    
+    if (finalCardType === 'Basic' && (!front.trim() || !back.trim())) return;
+    if (finalCardType === 'Basic-Type' && (!front.trim() || !back.trim())) return;
+    if (finalCardType === 'Cloze' && !front.trim()) return;
 
     setShowSuccess(true);
 
@@ -76,7 +95,12 @@ export default function Flashcard() {
       if (setId) {
         const { data, error } = await supabase
           .from('flashcard_cards')
-          .insert({ set_id: setId, front, back })
+          .insert({ 
+            set_id: setId, 
+            front, 
+            back,
+            card_type: finalCardType // Store the specific card type
+          })
           .select();
 
         if (error) return;
@@ -85,7 +109,7 @@ export default function Flashcard() {
       } else {
         const { data: newSetData, error: newSetErr } = await supabase
           .from('flashcard_sets')
-          .insert({ title, type })
+          .insert({ title, type: isPerCardMode ? 'Mixed' : type })
           .select()
           .single();
 
@@ -95,7 +119,12 @@ export default function Flashcard() {
 
         const { data: insertedCard, error: cardErr } = await supabase
           .from('flashcard_cards')
-          .insert({ set_id: newSetData.id, front, back })
+          .insert({ 
+            set_id: newSetData.id, 
+            front, 
+            back,
+            card_type: finalCardType
+          })
           .select()
           .single();
 
@@ -144,6 +173,48 @@ export default function Flashcard() {
     }
   };
 
+  const handlePerCardToggle = (enabled) => {
+    setIsPerCardMode(enabled);
+    
+    if (enabled) {
+      // When enabling per-card mode, update set type to 'Mixed'
+      if (setId) {
+        supabase
+          .from('flashcard_sets')
+          .update({ type: 'Mixed' })
+          .eq('id', setId)
+          .then(({ error }) => {
+            if (error) console.error("Error updating set type:", error);
+          });
+      }
+    } else {
+      // When disabling per-card mode, update all cards to use the set type
+      if (setId && flashcards.length > 0) {
+        // Update all existing cards to use the current set type
+        const updatePromises = flashcards.map(card => 
+          supabase
+            .from('flashcard_cards')
+            .update({ card_type: type })
+            .eq('id', card.id)
+        );
+        
+        Promise.all(updatePromises).then(() => {
+          // Update the local state
+          setFlashcards(prev => prev.map(card => ({
+            ...card,
+            card_type: type
+          })));
+          
+          // Update set type back to the selected type
+          supabase
+            .from('flashcard_sets')
+            .update({ type })
+            .eq('id', setId);
+        });
+      }
+    }
+  };
+
   return (
     <div className="flashcard-page">
       <div className="flashcard-container">
@@ -153,7 +224,13 @@ export default function Flashcard() {
 
         <div className="flashcard-header-row">
           <FlashcardTitle title={title} setTitle={setTitle} />
-          <FlashcardType type={type} setType={setType} disabled={!title.trim()} />
+          <FlashcardType 
+            type={type} 
+            setType={setType} 
+            disabled={!title.trim()}
+            isPerCard={isPerCardMode}
+            onPerCardToggle={handlePerCardToggle}
+          />
           {setId && (
             <button className="study-button" onClick={() => navigate(`/study/${setId}`)}>
               Study
@@ -165,6 +242,7 @@ export default function Flashcard() {
           addFlashcard={addFlashcard}
           disabled={!title.trim()}
           type={type}
+          isPerCardMode={isPerCardMode}
         />
 
         {showSuccess && (
@@ -176,6 +254,7 @@ export default function Flashcard() {
         flashcards={flashcards}
         updateFlashcard={updateFlashcard}
         onDelete={handleDelete}
+        isPerCardMode={isPerCardMode}
       />
     </div>
   );

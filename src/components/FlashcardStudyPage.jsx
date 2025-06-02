@@ -6,6 +6,12 @@ import { supabase } from "../supabase";
 import { calculateNextReview, getDueCards, getStudyStats, shouldRemoveFromSession } from "../utils/SpacedRepetition";
 import "../styles/FlashcardStudyPage.css";
 
+// Key function to determine card type - prioritizes individual card type over deck type
+const getCardType = (card, deckType) => {
+  // If card has a specific type, use it; otherwise use deck type
+  return card.card_type || deckType;
+};
+
 export default function FlashcardStudyPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -233,15 +239,19 @@ export default function FlashcardStudyPage() {
     );
   }
   
+  // Get the actual type for this specific card
+  const currentCardType = getCardType(currentCard, deckType);
+  
   const hasCustomBackContent =
-    deckType === "Cloze" &&
+    currentCardType === "Cloze" &&
     currentCard.back !== currentCard.front &&
     currentCard.back.trim() !== "";
 
   // Check if this is an image occlusion card by looking at the HTML content
   const isImageOcclusionCard = currentCard.front && (
     currentCard.front.includes('image-occlusion-card') || 
-    currentCard.front.includes('occlusion-')
+    currentCard.front.includes('occlusion-') ||
+    currentCardType === 'Image-Occlusion'
   );
 
   // Get interval previews for current card
@@ -250,7 +260,7 @@ export default function FlashcardStudyPage() {
   const handleShowAnswer = () => setShowBack(true);
 
   const handleSubmitAnswer = () => {
-    if (deckType !== 'Basic-Type' || !currentCard) return;
+    if (currentCardType !== 'Basic-Type' || !currentCard) return;
     
     const correctAnswer = currentCard.back.replace(/<[^>]*>/g, '').trim().toLowerCase();
     const userAnswerClean = userAnswer.trim().toLowerCase();
@@ -484,7 +494,7 @@ export default function FlashcardStudyPage() {
         cardId: currentCardData.id,
         difficulty,
         isImageOcclusion: isImageOcclusionCard,
-        cardType: deckType,
+        cardType: currentCardType,
         error: error.message
       });
       
@@ -518,7 +528,7 @@ export default function FlashcardStudyPage() {
 
   // Process cloze text for different card types (excluding Image Occlusion)
   const processClozeText = (text, isRevealed, activeClozeDeletion = 1) => {
-    if (deckType !== "Cloze") return text;
+    if (currentCardType !== "Cloze") return text;
     
     // Replace all cloze deletions with appropriate styling
     let processedText = text;
@@ -611,7 +621,7 @@ export default function FlashcardStudyPage() {
                 __html: currentCard.front
               }}
             />
-          ) : deckType === "Cloze" ? (
+          ) : currentCardType === "Cloze" ? (
             <div
               dangerouslySetInnerHTML={{
                 __html: processClozeText(currentCard.front, showBack, 1),
@@ -623,7 +633,7 @@ export default function FlashcardStudyPage() {
         </div>
 
         {/* Basic Type Answer Input */}
-        {deckType === 'Basic-Type' && !showCorrectAnswer && (
+        {currentCardType === 'Basic-Type' && !showCorrectAnswer && (
           <div className="type-answer-section">
             <input
               type="text"
@@ -649,7 +659,7 @@ export default function FlashcardStudyPage() {
         )}
 
         {/* Show results for Basic-Type */}
-        {deckType === 'Basic-Type' && showCorrectAnswer && (
+        {currentCardType === 'Basic-Type' && showCorrectAnswer && (
           <div className="answer-results">
             <div className={`answer-feedback ${isAnswerCorrect ? 'correct' : 'incorrect'}`}>
               <span>{isAnswerCorrect ? '✅' : '❌'}</span>
@@ -703,13 +713,13 @@ export default function FlashcardStudyPage() {
         )}
 
         {/* Regular Basic, Cloze, and Image Occlusion flow */}
-        {deckType !== 'Basic-Type' && !showBack && (
+        {currentCardType !== 'Basic-Type' && !showBack && (
           <button className="show-answer-btn" onClick={handleShowAnswer}>
             Show Answer
           </button>
         )}
 
-        {deckType !== 'Basic-Type' && showBack && (
+        {currentCardType !== 'Basic-Type' && showBack && (
           <>
             {/* For Image Occlusion, show the back content when answer is revealed */}
             {isImageOcclusionCard && (
@@ -719,7 +729,7 @@ export default function FlashcardStudyPage() {
             )}
             
             {/* For regular Cloze, only show back content if it's different from front */}
-            {!isImageOcclusionCard && (deckType !== "Cloze" || hasCustomBackContent) && (
+            {!isImageOcclusionCard && (currentCardType !== "Cloze" || hasCustomBackContent) && (
               <div className="flashcard-back">
                 <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
               </div>

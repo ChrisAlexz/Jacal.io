@@ -1,14 +1,19 @@
+// src/components/FlashcardInput.jsx - FIXED VERSION WITH PER-CARD TYPE SUPPORT
 import React, { useState } from 'react';
 import SimpleRichTextEditor from './SimpleRichTextEditor';
 import ImageOcclusionEditor from './ImageOcclusionEditor';
 import "../styles/FlashcardInput.css";
 
-export default function FlashcardInput({ addFlashcard, disabled, type }) {
+export default function FlashcardInput({ addFlashcard, disabled, type, isPerCardMode = false }) {
   const [frontContent, setFrontContent] = useState('');
   const [backContent, setBackContent] = useState('');
+  const [currentCardType, setCurrentCardType] = useState(type);
+
+  // Use per-card type if in per-card mode, otherwise use set type
+  const activeType = isPerCardMode ? currentCardType : type;
 
   const handleCloze = () => {
-    if (type !== 'Cloze') return;
+    if (activeType !== 'Cloze') return;
     
     const selection = window.getSelection();
     
@@ -30,7 +35,6 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
         selection.removeAllRanges();
         
         // Update the content state
-        // We need to get the updated HTML from the editor
         setTimeout(() => {
           const frontEditor = document.querySelector('.front-editor .editor-content');
           if (frontEditor) {
@@ -47,21 +51,25 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
   const clearContent = () => {
     setFrontContent('');
     setBackContent('');
+    // Reset to default type if in per-card mode
+    if (isPerCardMode) {
+      setCurrentCardType(type);
+    }
   };
 
   const handleAdd = () => {
-    if (type === 'Cloze') {
+    if (activeType === 'Cloze') {
       if (!frontContent.trim()) return;
-      addFlashcard(frontContent, backContent.trim() || frontContent);
-    } else if (type === 'Basic-Type') {
+      addFlashcard(frontContent, backContent.trim() || frontContent, activeType);
+    } else if (activeType === 'Basic-Type') {
       if (!frontContent.trim() || !backContent.trim()) return;
-      addFlashcard(frontContent, backContent);
-    } else if (type === 'Image-Occlusion') {
+      addFlashcard(frontContent, backContent, activeType);
+    } else if (activeType === 'Image-Occlusion') {
       // Image occlusion cards are handled by the ImageOcclusionEditor
       return;
     } else {
       if (!frontContent.trim() || !backContent.trim()) return;
-      addFlashcard(frontContent, backContent);
+      addFlashcard(frontContent, backContent, activeType);
     }
 
     clearContent();
@@ -91,7 +99,6 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
               const fontSize = Math.max(12, Math.min(18, (occlusion.width / canvasWidth) * 150));
               
               if (isActive) {
-                // Active question - still masked but with distinctive blue styling
                 return `<div class="occlusion-question-active" style="
                   left: ${leftPercent}%; 
                   top: ${topPercent}%; 
@@ -100,7 +107,6 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
                   font-size: ${fontSize}px;
                 ">${occlusion.id}</div>`;
               } else {
-                // Non-active areas - completely masked in black (same as Anki)
                 return `<div class="occlusion-blocked" style="
                   left: ${leftPercent}%; 
                   top: ${topPercent}%; 
@@ -128,7 +134,6 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
               const fontSize = Math.max(12, Math.min(18, (occlusion.width / canvasWidth) * 150));
               
               if (isActive) {
-                // ONLY the active answer is revealed - EMPTY DIV WITH NO NUMBER
                 return `<div class="occlusion-answer-revealed" style="
                   left: ${leftPercent}%; 
                   top: ${topPercent}%; 
@@ -137,7 +142,6 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
                   font-size: 0px;
                 "></div>`;
               } else {
-                // ALL other areas remain completely blocked (same as front)
                 return `<div class="occlusion-blocked" style="
                   left: ${leftPercent}%; 
                   top: ${topPercent}%; 
@@ -151,20 +155,20 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
         </div>
       `;
       
-      addFlashcard(frontHTML, backHTML);
+      addFlashcard(frontHTML, backHTML, 'Image-Occlusion');
     });
   };
 
   // Check if content is valid based on type
   const isContentValid = () => {
-    if (type === 'Image-Occlusion') {
+    if (activeType === 'Image-Occlusion') {
       return false; // Handled by ImageOcclusionEditor
     }
     
     const hasFrontContent = frontContent.replace(/<[^>]*>/g, '').trim() !== '';
     const hasBackContent = backContent.replace(/<[^>]*>/g, '').trim() !== '';
     
-    if (type === 'Cloze') {
+    if (activeType === 'Cloze') {
       return hasFrontContent;
     } else {
       return hasFrontContent && hasBackContent;
@@ -173,7 +177,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
 
   // Get placeholder text based on type
   const getPlaceholders = () => {
-    switch (type) {
+    switch (activeType) {
       case 'Cloze':
         return {
           front: "Enter text with content to be hidden...",
@@ -200,7 +204,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
   const placeholders = getPlaceholders();
 
   // Render Image Occlusion Editor for Image-Occlusion type
-  if (type === 'Image-Occlusion') {
+  if (activeType === 'Image-Occlusion') {
     return (
       <div className="flashcard-input">
         <ImageOcclusionEditor 
@@ -213,7 +217,34 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
 
   return (
     <div className="flashcard-input">
-      <h4>Front Side {type === 'Cloze' && <span>(Required)</span>}</h4>
+      {/* Per-card type selector */}
+      {isPerCardMode && (
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ display: 'block', color: 'white', fontWeight: 600, marginBottom: '8px' }}>
+            Card Type:
+          </label>
+          <select
+            value={currentCardType}
+            onChange={(e) => setCurrentCardType(e.target.value)}
+            disabled={disabled}
+            style={{
+              padding: '8px 12px',
+              background: '#2a2a2a',
+              border: '2px solid #333',
+              borderRadius: '8px',
+              color: 'white',
+              fontSize: '1rem'
+            }}
+          >
+            <option value="Basic">Basic</option>
+            <option value="Basic-Type">Basic (Type Answer)</option>
+            <option value="Cloze">Cloze</option>
+            <option value="Image-Occlusion">Image Occlusion</option>
+          </select>
+        </div>
+      )}
+
+      <h4>Front Side {activeType === 'Cloze' && <span>(Required)</span>}</h4>
       
       <div className="flashcard-box front-editor">
         <SimpleRichTextEditor
@@ -225,8 +256,8 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
       </div>
 
       <h4>
-        Back Side {type === 'Cloze' && <span>(Optional)</span>}
-        {type === 'Basic-Type' && <span>(Exact Answer)</span>}
+        Back Side {activeType === 'Cloze' && <span>(Optional)</span>}
+        {activeType === 'Basic-Type' && <span>(Exact Answer)</span>}
       </h4>
       
       <div className="flashcard-box">
@@ -238,7 +269,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
         />
       </div>
 
-      {type === 'Basic-Type' && (
+      {activeType === 'Basic-Type' && (
         <div style={{ marginBottom: '10px' }}>
           <small style={{ color: '#888', fontStyle: 'italic' }}>
             💡 Tip: Enter the exact answer users should type. Matching will be case-insensitive with trimmed spaces.
@@ -246,7 +277,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
         </div>
       )}
 
-      {type === 'Cloze' && (
+      {activeType === 'Cloze' && (
         <div style={{ marginBottom: '10px' }}>
           <button onClick={handleCloze} disabled={disabled} type="button">
             [c] Cloze
@@ -262,7 +293,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type }) {
         onClick={handleAdd} 
         disabled={disabled || !isContentValid()}
       >
-        Add Flashcard
+        Add Flashcard ({activeType})
       </button>
     </div>
   );
