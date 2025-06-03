@@ -111,15 +111,7 @@ const FlashcardItem = ({ index, front, back, updateFlashcard, onDelete, cardType
             />
           </div>
           
-          {/* Show audio player if audio exists (read-only display) */}
-          {audioUrl && (
-            <div className="audio-display-section">
-              <div className="audio-label">
-                {isBack ? '🎵 Back Audio:' : '🎵 Front Audio:'}
-              </div>
-              <AudioPlayer audioUrl={audioUrl} compact={true} />
-            </div>
-          )}
+          {/* REMOVED: Duplicate audio player - the SimpleRichTextEditor now handles audio display */}
         </div>
       );
     }

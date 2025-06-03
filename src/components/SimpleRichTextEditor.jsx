@@ -1,4 +1,4 @@
-// src/components/SimpleRichTextEditor.jsx - ENHANCED WITH AUDIO TOOLBAR
+// src/components/SimpleRichTextEditor.jsx - FIXED RECORDING TIMER
 import React, { useRef, useState, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -113,6 +113,16 @@ const SimpleRichTextEditor = ({
     }
   }, [onChange]);
 
+  // FIXED: Format time function for recording timer
+  const formatRecordingTime = (seconds) => {
+    if (typeof seconds !== 'number' || isNaN(seconds) || seconds < 0) {
+      return '0:00';
+    }
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   // Audio recording functions
   const startRecording = async () => {
     try {
@@ -158,11 +168,20 @@ const SimpleRichTextEditor = ({
       
       mediaRecorder.start(100);
       setIsRecording(true);
-      setRecordingTime(0);
+      setRecordingTime(0); // FIXED: Reset to 0 at start
+      
+      // FIXED: Clear any existing timer before starting new one
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
       
       // Start timer
       recordingTimerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
+        setRecordingTime(prev => {
+          const newTime = prev + 1;
+          console.log('Recording time updated:', newTime); // Debug log
+          return newTime;
+        });
       }, 1000);
       
     } catch (err) {
@@ -176,6 +195,7 @@ const SimpleRichTextEditor = ({
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       
+      // FIXED: Clear timer properly
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
@@ -285,9 +305,11 @@ const SimpleRichTextEditor = ({
     setCurrentTime(newTime);
   };
 
-  // Format time for audio player
+  // FIXED: Format time for audio player - separate from recording timer
   const formatAudioTime = (seconds) => {
-    if (isNaN(seconds)) return '0:00';
+    if (typeof seconds !== 'number' || isNaN(seconds) || seconds < 0) {
+      return '0:00';
+    }
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -297,16 +319,11 @@ const SimpleRichTextEditor = ({
   const removeAudio = () => {
     setAudioUrl(null);
     setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
     if (onAudioChange) {
       onAudioChange(null);
     }
-  };
-
-  // Format time
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   // Set initial content
@@ -323,7 +340,7 @@ const SimpleRichTextEditor = ({
     }
   }, [initialAudioUrl]);
 
-  // Cleanup
+  // FIXED: Cleanup function to properly clear timer
   React.useEffect(() => {
     return () => {
       if (audioStreamRef.current) {
@@ -331,6 +348,7 @@ const SimpleRichTextEditor = ({
       }
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
       }
     };
   }, []);
@@ -432,7 +450,7 @@ const SimpleRichTextEditor = ({
               >
                 <FontAwesomeIcon icon={faStop} />
               </button>
-              <span className="recording-time">{formatTime(recordingTime)}</span>
+              <span className="recording-time">{formatRecordingTime(recordingTime)}</span>
             </>
           )}
 
