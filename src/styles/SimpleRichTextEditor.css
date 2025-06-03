@@ -1,4 +1,4 @@
-/* src/styles/SimpleRichTextEditor.css */
+/* src/styles/SimpleRichTextEditor.css - ENHANCED WITH AUDIO TOOLBAR */
 
 .simple-rich-text-editor {
   border: 2px solid #333;
@@ -20,6 +20,7 @@
   padding: 8px 12px;
   background: #333;
   border-bottom: 1px solid #444;
+  flex-wrap: wrap;
 }
 
 .toolbar-btn {
@@ -36,6 +37,7 @@
   justify-content: center;
   min-width: 32px;
   height: 32px;
+  position: relative;
 }
 
 .toolbar-btn:hover {
@@ -50,6 +52,106 @@
 
 .toolbar-btn:active {
   transform: scale(0.95);
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Toolbar divider */
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: #555;
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* Audio-specific toolbar buttons */
+.toolbar-btn.audio-btn {
+  color: #9b59b6;
+}
+
+.toolbar-btn.audio-btn:hover {
+  background: rgba(155, 89, 182, 0.2);
+  color: #8e44ad;
+}
+
+.toolbar-btn.recording-btn {
+  background: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+  animation: recordingPulse 1.5s ease-in-out infinite;
+}
+
+.toolbar-btn.recording-btn:hover {
+  background: rgba(220, 53, 69, 0.3);
+}
+
+@keyframes recordingPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+.toolbar-btn.delete-audio {
+  color: #dc3545;
+}
+
+.toolbar-btn.delete-audio:hover {
+  background: rgba(220, 53, 69, 0.2);
+  color: #c82333;
+}
+
+/* Recording time display */
+.recording-time {
+  color: #dc3545;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 8px;
+  background: rgba(220, 53, 69, 0.1);
+  border-radius: 4px;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  display: flex;
+  align-items: center;
+  height: 24px;
+  white-space: nowrap;
+}
+
+/* Uploading indicator */
+.uploading-indicator {
+  color: #4facfe;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 8px;
+  background: rgba(79, 172, 254, 0.1);
+  border-radius: 4px;
+  border: 1px solid rgba(79, 172, 254, 0.3);
+  display: flex;
+  align-items: center;
+  height: 24px;
+  white-space: nowrap;
+}
+
+.uploading-indicator::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border: 2px solid rgba(79, 172, 254, 0.3);
+  border-top: 2px solid #4facfe;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .editor-content {
@@ -107,6 +209,133 @@
   font-size: smaller;
 }
 
+/* Audio Player embedded in editor */
+.editor-audio-player {
+  border-top: 1px solid #444;
+  background: rgba(155, 89, 182, 0.1);
+  padding: 12px;
+  margin-top: 0;
+}
+
+.audio-player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.audio-icon {
+  color: #9b59b6;
+  font-size: 1rem;
+  margin-right: 6px;
+}
+
+.audio-label {
+  color: #9b59b6;
+  font-size: 0.85rem;
+  font-weight: 600;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.remove-audio-btn {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.75rem;
+}
+
+.remove-audio-btn:hover {
+  background: rgba(220, 53, 69, 0.2);
+  border-color: rgba(220, 53, 69, 0.5);
+  transform: scale(1.1);
+}
+
+.audio-player-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.play-pause-btn {
+  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 8px rgba(155, 89, 182, 0.3);
+}
+
+.play-pause-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.4);
+}
+
+.audio-progress-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.audio-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: #333;
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.audio-progress-bar:hover {
+  background: #3a3a3a;
+  transform: scaleY(1.2);
+}
+
+.audio-progress-fill {
+  height: 100%;
+  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+  border-radius: 3px;
+  transition: width 0.1s ease;
+}
+
+.audio-time {
+  color: #9b59b6;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 70px;
+  justify-content: center;
+}
+
+/* Audio error display */
+.audio-error {
+  padding: 8px 12px;
+  background: rgba(220, 53, 69, 0.1);
+  border-top: 1px solid rgba(220, 53, 69, 0.3);
+  color: #ff6b6b;
+  font-size: 12px;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .editor-toolbar {
@@ -125,11 +354,84 @@
     min-height: 100px;
     padding: 12px;
   }
+  
+  .recording-time,
+  .uploading-indicator {
+    font-size: 11px;
+    padding: 0 6px;
+    height: 22px;
+  }
+  
+  .toolbar-divider {
+    height: 16px;
+    margin: 0 2px;
+  }
 }
 
 @media (max-width: 480px) {
   .editor-content {
     min-height: 80px;
     padding: 10px;
+  }
+  
+  .editor-toolbar {
+    padding: 4px 6px;
+  }
+  
+  .toolbar-btn {
+    min-width: 26px;
+    height: 26px;
+    padding: 3px 5px;
+  }
+  
+  .recording-time,
+  .uploading-indicator {
+    font-size: 10px;
+    padding: 0 4px;
+    height: 20px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .toolbar-btn {
+    border: 1px solid #666;
+  }
+  
+  .toolbar-btn:hover {
+    border-color: #4facfe;
+  }
+  
+  .toolbar-btn.active {
+    border-color: #4facfe;
+    background: #4facfe;
+    color: #000;
+  }
+  
+  .recording-time {
+    border: 1px solid #dc3545;
+  }
+  
+  .uploading-indicator {
+    border: 1px solid #4facfe;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .toolbar-btn {
+    transition: none;
+  }
+  
+  .toolbar-btn:active {
+    transform: none;
+  }
+  
+  .toolbar-btn.recording-btn {
+    animation: none;
+  }
+  
+  .uploading-indicator::before {
+    animation: none;
   }
 }

@@ -1,11 +1,12 @@
-// src/components/FlashcardInput.jsx - UPDATED WITH AUDIO SUPPORT
-import React, { useState } from 'react';
+// src/components/FlashcardInput.jsx - UPDATED WITH AUDIO TOOLBAR INTEGRATION
+import React, { useState, useContext } from 'react';
 import SimpleRichTextEditor from './SimpleRichTextEditor';
 import ImageOcclusionEditor from './ImageOcclusionEditor';
-import AudioRecorder from './AudioRecorder';
+import UserAuthContext from './context/UserAuthContext';
 import "../styles/FlashcardInput.css";
 
 export default function FlashcardInput({ addFlashcard, disabled, type, isPerCardMode = false }) {
+  const { user } = useContext(UserAuthContext);
   const [frontContent, setFrontContent] = useState('');
   const [backContent, setBackContent] = useState('');
   const [currentCardType, setCurrentCardType] = useState(type);
@@ -20,24 +21,17 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
     
     const selection = window.getSelection();
     
-    // Check if there's selected text
     if (selection.rangeCount > 0 && !selection.isCollapsed) {
       const range = selection.getRangeAt(0);
       const selectedText = range.toString();
       
       if (selectedText.trim()) {
-        // Create the cloze deletion
         const clozeText = `{{c1::${selectedText}}}`;
-        
-        // Replace the selected text with cloze format
         range.deleteContents();
         const textNode = document.createTextNode(clozeText);
         range.insertNode(textNode);
-        
-        // Clear selection
         selection.removeAllRanges();
         
-        // Update the content state
         setTimeout(() => {
           const frontEditor = document.querySelector('.front-editor .editor-content');
           if (frontEditor) {
@@ -46,7 +40,6 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
         }, 10);
       }
     } else {
-      // No text selected - show alert or add placeholder
       alert('Please select some text first to create a cloze deletion.');
     }
   };
@@ -58,23 +51,19 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
     setFrontAudioUrl(null);
     setBackAudioUrl(null);
     
-    // Reset to default type if in per-card mode
     if (isPerCardMode) {
       setCurrentCardType(type);
     }
     
-    // Force clear the rich text editors by directly manipulating DOM
     setTimeout(() => {
       const frontEditor = document.querySelector('.front-editor .editor-content');
-      const backEditor = document.querySelector('.flashcard-box .editor-content');
+      const backEditor = document.querySelector('.back-editor .editor-content');
       
       if (frontEditor) {
         frontEditor.innerHTML = '';
-        console.log('🧹 Front editor cleared');
       }
       if (backEditor) {
         backEditor.innerHTML = '';
-        console.log('🧹 Back editor cleared');
       }
     }, 100);
     
@@ -86,52 +75,30 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
       activeType,
       frontContent: frontContent.substring(0, 50),
       backContent: backContent.substring(0, 50),
-      frontLength: frontContent.length,
-      backLength: backContent.length,
       frontAudio: frontAudioUrl ? 'Yes' : 'No',
       backAudio: backAudioUrl ? 'Yes' : 'No'
     });
 
-    // CRITICAL FIX: Better content validation
     const cleanFront = frontContent.replace(/<[^>]*>/g, '').trim();
     const cleanBack = backContent.replace(/<[^>]*>/g, '').trim();
-
-    console.log('📝 Cleaned content:', {
-      cleanFront: cleanFront.substring(0, 50),
-      cleanBack: cleanBack.substring(0, 50),
-      cleanFrontLength: cleanFront.length,
-      cleanBackLength: cleanBack.length
-    });
 
     // Validation based on card type
     if (activeType === 'Cloze') {
       if (!cleanFront && !frontAudioUrl) {
-        console.warn('❌ Cloze card missing front content');
         alert('Please add front content or audio for Cloze cards.');
         return;
       }
-      // For cloze, back is optional but if empty, use front content
       const finalBack = cleanBack || frontContent;
-      console.log('✅ Adding Cloze card');
       addFlashcard(frontContent, finalBack, activeType, frontAudioUrl, backAudioUrl);
     } else if (activeType === 'Basic-Type') {
       if (!cleanFront && !frontAudioUrl) {
-        console.warn('❌ Basic-Type card missing front content:', { 
-          cleanFront: !!cleanFront, 
-          frontAudio: !!frontAudioUrl 
-        });
         alert('Please add front content or audio for Basic-Type cards.');
         return;
       }
       if (!cleanBack && !backAudioUrl) {
-        console.warn('❌ Basic-Type card missing back content:', { 
-          cleanBack: !!cleanBack, 
-          backAudio: !!backAudioUrl 
-        });
         alert('Please add back content or audio for Basic-Type cards.');
         return;
       }
-      console.log('✅ Adding Basic-Type card');
       addFlashcard(frontContent, backContent, activeType, frontAudioUrl, backAudioUrl);
     } else if (activeType === 'Image-Occlusion') {
       console.warn('⚠️ Image occlusion cards should be handled by ImageOcclusionEditor');
@@ -139,38 +106,25 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
     } else {
       // Basic or other types
       if (!cleanFront && !frontAudioUrl) {
-        console.warn('❌ Basic card missing front content:', { 
-          cleanFront: !!cleanFront, 
-          frontAudio: !!frontAudioUrl 
-        });
         alert('Please add front content or audio.');
         return;
       }
       if (!cleanBack && !backAudioUrl) {
-        console.warn('❌ Basic card missing back content:', { 
-          cleanBack: !!cleanBack, 
-          backAudio: !!backAudioUrl 
-        });
         alert('Please add back content or audio.');
         return;
       }
-      console.log('✅ Adding Basic card');
       addFlashcard(frontContent, backContent, activeType, frontAudioUrl, backAudioUrl);
     }
 
-    // Clear content after successful add
-    console.log('🧹 Clearing input content...');
     clearContent();
   };
 
   const handleImageOcclusionSave = (cards) => {
     console.log('🖼️ Image occlusion save called with', cards.length, 'cards');
     
-    // Add each image occlusion card
     cards.forEach((card, index) => {
       console.log(`🃏 Adding image occlusion card ${index + 1}:`, card.title);
       
-      // Get canvas dimensions for percentage calculations
       const canvas = document.querySelector('.image-occlusion-editor canvas');
       if (!canvas) {
         console.error('❌ Canvas not found for image occlusion');
@@ -180,7 +134,6 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
       
-      // FRONT CARD: All areas masked, active question has different styling
       const frontHTML = `
         <div class="image-occlusion-card">
           <img src="${card.imageUrl}" alt="${card.title}" class="occlusion-image" />
@@ -215,7 +168,6 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
         </div>
       `;
       
-      // BACK CARD: Only reveal the active answer, keep ALL others blocked
       const backHTML = `
         <div class="image-occlusion-card">
           <img src="${card.imageUrl}" alt="${card.title}" class="occlusion-image" />
@@ -302,7 +254,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
 
   return (
     <div className="flashcard-input">
-      {/* Per-card type selector - ALWAYS VISIBLE when in per-card mode */}
+      {/* Per-card type selector */}
       {isPerCardMode && (
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', color: 'white', fontWeight: 600, marginBottom: '8px' }}>
@@ -337,7 +289,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
         />
       ) : (
         <>
-          {/* Regular card input fields for non-Image-Occlusion types */}
+          {/* Front Side Editor with Audio Toolbar */}
           <h4>Front Side {activeType === 'Cloze' && <span>(Required)</span>}</h4>
           
           <div className="flashcard-box front-editor">
@@ -346,36 +298,29 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
               onChange={setFrontContent}
               placeholder={placeholders.front}
               readOnly={disabled}
+              onAudioChange={setFrontAudioUrl}
+              initialAudioUrl={frontAudioUrl}
+              user={user}
             />
           </div>
 
-          {/* Front Audio Recorder */}
-          <AudioRecorder
-            onAudioSave={setFrontAudioUrl}
-            initialAudioUrl={frontAudioUrl}
-            disabled={disabled}
-          />
-
+          {/* Back Side Editor with Audio Toolbar */}
           <h4>
             Back Side {activeType === 'Cloze' && <span>(Optional)</span>}
             {activeType === 'Basic-Type' && <span>(Exact Answer)</span>}
           </h4>
           
-          <div className="flashcard-box">
+          <div className="flashcard-box back-editor">
             <SimpleRichTextEditor
               value={backContent}
               onChange={setBackContent}
               placeholder={placeholders.back}
               readOnly={disabled}
+              onAudioChange={setBackAudioUrl}
+              initialAudioUrl={backAudioUrl}
+              user={user}
             />
           </div>
-
-          {/* Back Audio Recorder */}
-          <AudioRecorder
-            onAudioSave={setBackAudioUrl}
-            initialAudioUrl={backAudioUrl}
-            disabled={disabled}
-          />
 
           {activeType === 'Basic-Type' && (
             <div style={{ marginBottom: '10px' }}>

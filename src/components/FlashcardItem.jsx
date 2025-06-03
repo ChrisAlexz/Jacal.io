@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import SimpleRichTextEditor from './SimpleRichTextEditor';
 import AudioPlayer from './AudioPlayer';
-import AudioRecorder from './AudioRecorder';
+import UserAuthContext from './context/UserAuthContext';
 import '../styles/FlashcardList.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 
 const FlashcardItem = ({ index, front, back, updateFlashcard, onDelete, cardType, frontAudioUrl, backAudioUrl }) => {
+  const { user } = useContext(UserAuthContext);
   const [frontContent, setFrontContent] = useState('');
   const [backContent, setBackContent] = useState('');
   const [frontAudio, setFrontAudio] = useState(frontAudioUrl || null);
   const [backAudio, setBackAudio] = useState(backAudioUrl || null);
-  const [showAudioControls, setShowAudioControls] = useState(false);
 
   // Initialize content when component mounts or props change
   useEffect(() => {
@@ -52,7 +52,7 @@ const FlashcardItem = ({ index, front, back, updateFlashcard, onDelete, cardType
     handleBackChange.timeoutId = timeoutId;
   };
 
-  // Handle audio changes
+  // Handle audio changes from the rich text editor toolbar
   const handleFrontAudioChange = (audioUrl) => {
     setFrontAudio(audioUrl);
     updateFlashcard(index, { front_audio_url: audioUrl });
@@ -105,46 +105,21 @@ const FlashcardItem = ({ index, front, back, updateFlashcard, onDelete, cardType
             <SimpleRichTextEditor
               value={content}
               onChange={isBack ? handleBackChange : handleFrontChange}
+              onAudioChange={isBack ? handleBackAudioChange : handleFrontAudioChange}
+              initialAudioUrl={audioUrl}
+              user={user}
             />
           </div>
           
-          {/* Audio Player/Recorder */}
-          <div className="audio-section">
-            {audioUrl ? (
-              <div className="audio-player-section">
-                <AudioPlayer audioUrl={audioUrl} compact={true} />
-                <button 
-                  className="remove-audio-btn"
-                  onClick={() => isBack ? handleBackAudioChange(null) : handleFrontAudioChange(null)}
-                  title="Remove audio"
-                >
-                  <FontAwesomeIcon icon={faTrash} />
-                </button>
+          {/* Show audio player if audio exists (read-only display) */}
+          {audioUrl && (
+            <div className="audio-display-section">
+              <div className="audio-label">
+                {isBack ? '🎵 Back Audio:' : '🎵 Front Audio:'}
               </div>
-            ) : showAudioControls ? (
-              <div className="audio-recorder-section">
-                <AudioRecorder
-                  onAudioSave={isBack ? handleBackAudioChange : handleFrontAudioChange}
-                  initialAudioUrl={null}
-                  disabled={false}
-                />
-                <button 
-                  className="cancel-audio-btn"
-                  onClick={() => setShowAudioControls(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button 
-                className="add-audio-btn"
-                onClick={() => setShowAudioControls(true)}
-                title="Add audio"
-              >
-                🎵 Add Audio
-              </button>
-            )}
-          </div>
+              <AudioPlayer audioUrl={audioUrl} compact={true} />
+            </div>
+          )}
         </div>
       );
     }

@@ -377,4 +377,49 @@ export default function Flashcard() {
       </div>
     );
   }
+// Updated return statement for your Flashcard component
+return (
+  <div className="flashcard-page">
+    <div className="flashcard-container">
+      {/* Header Row with Title and Study Button */}
+      <div className="flashcard-header-row">
+        <FlashcardTitle title={title} setTitle={setTitle} />
+        
+        {/* Study Button - Only show if we have a set ID */}
+        {setId && (
+          <button
+            className="study-button"
+            onClick={() => navigate(`/study/${setId}`)}
+            disabled={loading}
+          >
+            Study
+          </button>
+        )}
+      </div>
+
+      {/* Flashcard Input Section */}
+      <FlashcardInput 
+        addFlashcard={addFlashcard} 
+        disabled={loading}
+        type={type} 
+        isPerCardMode={isPerCardMode}
+      />
+      
+      {/* Flashcard List */}
+      <FlashcardList 
+        flashcards={flashcards} 
+        updateFlashcard={updateFlashcard} 
+        onDelete={handleDelete}
+      />
+      
+      {/* Success Popup */}
+      {showSuccess && (
+        <SuccessPopup 
+          message="Flashcard added successfully!" 
+          onClose={() => setShowSuccess(false)} 
+        />
+      )}
+    </div>
+  </div>
+);
 }
