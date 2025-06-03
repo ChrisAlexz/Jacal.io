@@ -1,8 +1,8 @@
-// src/utils/SpacedRepetition.js - FIXED Anki-style Spaced Repetition Algorithm
+// src/utils/SpacedRepetition.js - ENHANCED VERSION WITH PROPER CARD ORDERING
 
 /**
- * Anki-style Spaced Repetition Algorithm
- * Based on the SM-2 algorithm with Anki's modifications
+ * Enhanced Anki-style Spaced Repetition Algorithm
+ * Now includes proper card ordering and prioritization
  */
 
 // Card states in Anki
@@ -40,7 +40,12 @@ export const DEFAULT_SETTINGS = {
   maximumInterval: 36500, // ~100 years
   
   // Interval modifier (global multiplier)
-  intervalModifier: 1.0
+  intervalModifier: 1.0,
+  
+  // Session settings
+  maxNewCardsPerSession: 20,
+  maxReviewCardsPerSession: 100,
+  shuffleCards: true
 };
 
 /**
@@ -282,25 +287,184 @@ function handleRelearningCard(card, rating, settings, now) {
 }
 
 /**
- * Get cards that are due for review in the current session
- * All cards stay in session until marked as "Easy"
+ * Enhanced function to get cards for the current study session
+ * Cards are properly ordered by priority and shuffled within each category
  * @param {Array} cards - Array of card objects
- * @returns {Array} Cards that should be shown in the current session
+ * @param {Object} settings - Settings object
+ * @returns {Array} Properly ordered cards for the study session
  */
-export function getDueCards(cards) {
+export function getDueCards(cards, settings = DEFAULT_SETTINGS) {
   const now = new Date();
   
-  return cards.filter(card => {
-    // All cards are included in session until they're marked as "Easy"
-    // We can't determine "Easy" status from card data alone, so include all cards
-    // The session management will handle removing cards when "Easy" is pressed
+  // Categorize cards by their current status
+  const categorizedCards = {
+    overdueReview: [],      // Review cards that are overdue (highest priority)
+    dueReview: [],          // Review cards that are due today
+    learningDue: [],        // Learning/relearning cards that are due
+    newCards: [],           // Brand new cards
+    futureReview: []        // Review cards not yet due (shouldn't appear in session)
+  };
+  
+  cards.forEach(card => {
+    const cardState = card.state || CARD_STATES.NEW;
+    const dueDate = card.due ? new Date(card.due) : null;
     
-    // Always include new cards
-    if (!card.due || !card.state) return true;
-    
-    // Include all other cards - they'll be managed by the session logic
-    return true;
+    switch (cardState) {
+      case CARD_STATES.NEW:
+      case null:
+      case undefined:
+        categorizedCards.newCards.push(card);
+        break;
+        
+      case CARD_STATES.LEARNING:
+      case CARD_STATES.RELEARNING:
+        // Learning cards are due if their due time has passed
+        if (!dueDate || dueDate <= now) {
+          categorizedCards.learningDue.push(card);
+        }
+        break;
+        
+      case CARD_STATES.REVIEW:
+        if (!dueDate) {
+          // No due date means it should be reviewed
+          categorizedCards.dueReview.push(card);
+        } else if (dueDate <= now) {
+          // Check if it's overdue (more than 1 day past due)
+          const daysPastDue = (now - dueDate) / (1000 * 60 * 60 * 24);
+          if (daysPastDue > 1) {
+            categorizedCards.overdueReview.push(card);
+          } else {
+            categorizedCards.dueReview.push(card);
+          }
+        } else {
+          // Future review - don't include in session
+          categorizedCards.futureReview.push(card);
+        }
+        break;
+        
+      default:
+        // Unknown state - treat as new
+        categorizedCards.newCards.push(card);
+        break;
+    }
   });
+  
+  // Apply session limits
+  const limitedNew = categorizedCards.newCards.slice(0, settings.maxNewCardsPerSession || 20);
+  const limitedReview = [
+    ...categorizedCards.overdueReview,
+    ...categorizedCards.dueReview
+  ].slice(0, settings.maxReviewCardsPerSession || 100);
+  
+  // Order cards by priority:
+  // 1. Overdue review cards (sorted by how overdue they are - most overdue first)
+  // 2. Learning/relearning cards that are due (sorted by due time)
+  // 3. Regular review cards due today (shuffled)
+  // 4. New cards (shuffled)
+  
+  const sessionCards = [];
+  
+  // 1. Overdue review cards (most overdue first)
+  const sortedOverdue = categorizedCards.overdueReview.sort((a, b) => {
+    const aOverdue = new Date(a.due) || new Date(0);
+    const bOverdue = new Date(b.due) || new Date(0);
+    return aOverdue - bOverdue; // Oldest due date first
+  });
+  
+  // 2. Learning cards that are due (soonest due time first)
+  const sortedLearning = categorizedCards.learningDue.sort((a, b) => {
+    const aDue = new Date(a.due) || now;
+    const bDue = new Date(b.due) || now;
+    return aDue - bDue; // Soonest due time first
+  });
+  
+  // 3. Regular review cards (shuffled for variety)
+  const shuffledReview = settings.shuffleCards 
+    ? shuffleArray([...categorizedCards.dueReview])
+    : categorizedCards.dueReview;
+  
+  // 4. New cards (shuffled for variety)
+  const shuffledNew = settings.shuffleCards 
+    ? shuffleArray([...limitedNew])
+    : limitedNew;
+  
+  // Combine in priority order, but interleave for better study experience
+  const totalCards = [
+    ...sortedOverdue,
+    ...sortedLearning,
+    ...shuffledReview.slice(0, settings.maxReviewCardsPerSession || 100),
+    ...shuffledNew
+  ];
+  
+  // For better user experience, interleave new cards with review cards
+  // instead of showing all new cards at the end
+  const finalSessionCards = interleaveCards(
+    [...sortedOverdue, ...sortedLearning, ...shuffledReview.slice(0, settings.maxReviewCardsPerSession || 100)],
+    shuffledNew,
+    0.3 // 30% new cards mixed in
+  );
+  
+  console.log('📊 Session card breakdown:', {
+    overdue: sortedOverdue.length,
+    learning: sortedLearning.length,
+    review: shuffledReview.length,
+    new: shuffledNew.length,
+    total: finalSessionCards.length
+  });
+  
+  return finalSessionCards;
+}
+
+/**
+ * Interleave new cards with review cards for better study experience
+ * @param {Array} reviewCards - Review/learning cards
+ * @param {Array} newCards - New cards
+ * @param {number} newCardRatio - Ratio of new cards to mix in (0.0 to 1.0)
+ * @returns {Array} Interleaved cards
+ */
+function interleaveCards(reviewCards, newCards, newCardRatio = 0.3) {
+  if (newCards.length === 0) return reviewCards;
+  if (reviewCards.length === 0) return newCards;
+  
+  const result = [];
+  const totalCards = reviewCards.length + newCards.length;
+  const newCardInterval = Math.max(1, Math.floor(1 / newCardRatio));
+  
+  let reviewIndex = 0;
+  let newIndex = 0;
+  
+  for (let i = 0; i < totalCards; i++) {
+    // Decide whether to add a new card or review card
+    const shouldAddNew = (i > 0 && i % newCardInterval === 0) && newIndex < newCards.length;
+    
+    if (shouldAddNew) {
+      result.push(newCards[newIndex]);
+      newIndex++;
+    } else if (reviewIndex < reviewCards.length) {
+      result.push(reviewCards[reviewIndex]);
+      reviewIndex++;
+    } else if (newIndex < newCards.length) {
+      // If we've run out of review cards, add remaining new cards
+      result.push(newCards[newIndex]);
+      newIndex++;
+    }
+  }
+  
+  return result;
+}
+
+/**
+ * Shuffle an array using Fisher-Yates algorithm
+ * @param {Array} array - Array to shuffle
+ * @returns {Array} Shuffled array
+ */
+function shuffleArray(array) {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
 }
 
 /**
@@ -316,7 +480,7 @@ export function shouldRemoveFromSession(card, lastRating = null) {
 }
 
 /**
- * Get study statistics
+ * Get enhanced study statistics
  * @param {Array} cards - Array of card objects
  * @returns {Object} Study statistics
  */
@@ -329,8 +493,16 @@ export function getStudyStats(cards) {
     learning: 0,
     review: 0,
     due: 0,
-    overdue: 0
+    overdue: 0,
+    mature: 0,      // Cards with interval >= 21 days
+    young: 0,       // Cards with interval < 21 days
+    suspended: 0,   // If you add suspended cards later
+    averageEase: 0,
+    totalLapses: 0
   };
+  
+  let totalEase = 0;
+  let easeCount = 0;
   
   cards.forEach(card => {
     // Count by state
@@ -346,6 +518,12 @@ export function getStudyStats(cards) {
         break;
       case CARD_STATES.REVIEW:
         stats.review++;
+        // Count mature vs young cards
+        if (card.interval_days >= 21) {
+          stats.mature++;
+        } else {
+          stats.young++;
+        }
         break;
       default:
         stats.new++;
@@ -361,9 +539,79 @@ export function getStudyStats(cards) {
         stats.overdue++;
       }
     }
+    
+    // Calculate average ease
+    if (card.ease_factor) {
+      totalEase += card.ease_factor;
+      easeCount++;
+    }
+    
+    // Count lapses
+    if (card.lapses) {
+      stats.totalLapses += card.lapses;
+    }
   });
   
+  // Calculate average ease
+  stats.averageEase = easeCount > 0 ? (totalEase / easeCount) : 2.5;
+  
   return stats;
+}
+
+/**
+ * Get next review times for interval preview
+ * @param {Object} card - Current card
+ * @param {Object} settings - Spaced repetition settings
+ * @returns {Object} Preview intervals for each rating
+ */
+export function getIntervalPreviews(card, settings = DEFAULT_SETTINGS) {
+  const previews = {};
+  
+  ['again', 'hard', 'good', 'easy'].forEach(rating => {
+    try {
+      const tempCard = calculateNextReview({ ...card }, rating, settings);
+      
+      let intervalText = "New";
+      
+      if (tempCard.due) {
+        const now = new Date();
+        const dueDate = new Date(tempCard.due);
+        
+        if (!isNaN(dueDate.getTime())) {
+          const diffMs = dueDate.getTime() - now.getTime();
+          const diffMinutes = Math.round(diffMs / (1000 * 60));
+          
+          if (diffMinutes <= 1) {
+            intervalText = "1m";
+          } else if (diffMinutes < 60) {
+            intervalText = `${diffMinutes}m`;
+          } else if (diffMinutes < 1440) {
+            const hours = Math.round(diffMinutes / 60);
+            intervalText = `${hours}h`;
+          } else {
+            const days = Math.round(diffMinutes / 1440);
+            if (days >= 365) {
+              const years = Math.round(days / 365);
+              intervalText = `${years}y`;
+            } else if (days >= 30) {
+              const months = Math.round(days / 30);
+              intervalText = `${months}mo`;
+            } else {
+              intervalText = `${days}d`;
+            }
+          }
+        }
+      }
+      
+      previews[rating] = intervalText;
+    } catch (error) {
+      console.error(`Error calculating interval for ${rating}:`, error);
+      const fallbacks = { again: "1m", hard: "10m", good: "1d", easy: "4d" };
+      previews[rating] = fallbacks[rating];
+    }
+  });
+  
+  return previews;
 }
 
 // Helper functions
@@ -379,7 +627,10 @@ const SpacedRepetitionUtils = {
   calculateNextReview,
   getDueCards,
   getStudyStats,
+  getIntervalPreviews,
   shouldRemoveFromSession,
+  shuffleArray,
+  interleaveCards,
   CARD_STATES,
   DEFAULT_SETTINGS
 };

@@ -1,9 +1,16 @@
-// src/components/FlashcardStudyPage.jsx - FIXED VERSION WITH IMAGE OCCLUSION last_reviewed UPDATE
+// src/components/FlashcardStudyPage.jsx - ENHANCED VERSION WITH SMART CARD ORDERING
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
-import { calculateNextReview, getDueCards, getStudyStats, shouldRemoveFromSession } from "../utils/SpacedRepetition";
+import { 
+  calculateNextReview, 
+  getDueCards, 
+  getStudyStats, 
+  getIntervalPreviews,
+  shouldRemoveFromSession,
+  DEFAULT_SETTINGS 
+} from "../utils/SpacedRepetition";
 import "../styles/FlashcardStudyPage.css";
 
 // Key function to determine card type - prioritizes individual card type over deck type
@@ -77,9 +84,9 @@ export default function FlashcardStudyPage() {
       console.log(`Loaded ${cards.length} cards`);
       setAllCards(cards);
       
-      // Initialize session cards - get all cards that should be in current session
-      const sessionDueCards = getDueCards(cards);
-      console.log(`${sessionDueCards.length} cards due for study`);
+      // Initialize session cards - get ALL cards for complete session
+      const sessionDueCards = getDueCards(cards, DEFAULT_SETTINGS);
+      console.log(`${sessionDueCards.length} cards selected for COMPLETE study session (all cards must be Easy)`);
       setSessionCards(sessionDueCards);
       setCurrentIndex(0);
       
@@ -92,89 +99,14 @@ export default function FlashcardStudyPage() {
     }
   };
 
-  // Calculate what the intervals would be for each button
-  const getIntervalPreviews = () => {
+  // Calculate what the intervals would be for each button using enhanced preview
+  const getIntervalPreviewsForCard = () => {
     if (sessionCards.length === 0 || currentIndex >= sessionCards.length || !sessionCards[currentIndex]) {
       return { again: "1m", hard: "10m", good: "1d", easy: "4d" };
     }
 
     const currentCard = sessionCards[currentIndex];
-    const previews = {};
-    
-    ['again', 'hard', 'good', 'easy'].forEach(rating => {
-      try {
-        const tempCard = calculateNextReview({ ...currentCard }, rating);
-        
-        let intervalText = "New";
-        
-        if (tempCard.due) {
-          const now = new Date();
-          const dueDate = new Date(tempCard.due);
-          
-          if (!isNaN(dueDate.getTime())) {
-            const diffMs = dueDate.getTime() - now.getTime();
-            const diffMinutes = Math.round(diffMs / (1000 * 60));
-            
-            if (diffMinutes <= 1) {
-              intervalText = "1m";
-            } else if (diffMinutes < 60) {
-              intervalText = `${diffMinutes}m`;
-            } else if (diffMinutes < 1440) {
-              const hours = Math.round(diffMinutes / 60);
-              intervalText = `${hours}h`;
-            } else {
-              const days = Math.round(diffMinutes / 1440);
-              if (days >= 365) {
-                const years = Math.round(days / 365);
-                intervalText = `${years}y`;
-              } else if (days >= 30) {
-                const months = Math.round(days / 30);
-                intervalText = `${months}mo`;
-              } else {
-                intervalText = `${days}d`;
-              }
-            }
-          }
-        }
-        
-        // Fallback intervals if calculation failed
-        if (intervalText === "New" || intervalText === "Now") {
-          const cardState = currentCard.state || 'new';
-          
-          if (cardState === 'new' || !cardState) {
-            const newCardIntervals = {
-              again: "1m", hard: "1m", good: "1m", easy: "4d"
-            };
-            intervalText = newCardIntervals[rating];
-          } else if (cardState === 'learning') {
-            const learningIntervals = {
-              again: "1m", hard: "10m", good: "1d", easy: "4d"
-            };
-            intervalText = learningIntervals[rating];
-          } else if (cardState === 'review') {
-            const currentInterval = currentCard.interval_days || 1;
-            const reviewIntervals = {
-              again: "10m",
-              hard: `${Math.max(1, Math.round(currentInterval * 1.2))}d`,
-              good: `${Math.max(1, Math.round(currentInterval * 2.5))}d`,
-              easy: `${Math.max(1, Math.round(currentInterval * 2.5 * 1.3))}d`
-            };
-            intervalText = reviewIntervals[rating];
-          } else {
-            const fallbackIntervals = { again: "1m", hard: "10m", good: "1d", easy: "4d" };
-            intervalText = fallbackIntervals[rating];
-          }
-        }
-        
-        previews[rating] = intervalText;
-      } catch (error) {
-        console.error(`Error calculating interval for ${rating}:`, error);
-        const fallbacks = { again: "1m", hard: "10m", good: "1d", easy: "4d" };
-        previews[rating] = fallbacks[rating];
-      }
-    });
-    
-    return previews;
+    return getIntervalPreviews(currentCard, DEFAULT_SETTINGS);
   };
 
   // Show loading only if we truly have no cards
@@ -195,8 +127,8 @@ export default function FlashcardStudyPage() {
       <div className="study-container">
         <div className="study-completion">
           <div className="completion-icon">🎉</div>
-          <h2>Study Session Complete!</h2>
-          <p>You've mastered all the cards in this session. Every card was marked as "Easy" - excellent work!</p>
+          <h2>Perfect! All Cards Mastered!</h2>
+          <p>Congratulations! You've marked every single card as "Easy" - you've truly mastered this deck! All {allCards.length} cards have been successfully completed.</p>
           <div className="completion-actions">
             <button 
               className="back-button"
@@ -207,8 +139,8 @@ export default function FlashcardStudyPage() {
             <button 
               className="restart-button"
               onClick={() => {
-                // Restart session with all cards
-                const newSessionCards = getDueCards(allCards);
+                // Restart session with ALL cards again
+                const newSessionCards = getDueCards(allCards, DEFAULT_SETTINGS);
                 setSessionCards(newSessionCards);
                 setCurrentIndex(0);
                 setShowBack(false);
@@ -217,7 +149,7 @@ export default function FlashcardStudyPage() {
                 setUserAnswer('');
               }}
             >
-              Study Again
+              Master Again
             </button>
           </div>
         </div>
@@ -255,7 +187,7 @@ export default function FlashcardStudyPage() {
   );
 
   // Get interval previews for current card
-  const intervalPreviews = getIntervalPreviews();
+  const intervalPreviews = getIntervalPreviewsForCard();
 
   const handleShowAnswer = () => setShowBack(true);
 
@@ -270,7 +202,7 @@ export default function FlashcardStudyPage() {
     setShowCorrectAnswer(true);
   };
 
-  // *** FIXED: GUARANTEED last_reviewed UPDATE FOR ALL CARD TYPES INCLUDING IMAGE OCCLUSION ***
+  // Enhanced difficulty choice handling with smart session management
   const handleDifficultyChoice = async (difficulty) => {
     if (!currentCard) return;
     
@@ -279,19 +211,18 @@ export default function FlashcardStudyPage() {
     try {
       console.log(`Processing difficulty choice: ${difficulty} for card ${currentCardData.id}`);
       console.log(`Card type check - isImageOcclusion: ${isImageOcclusionCard}`);
-      console.log(`Card front content preview: ${currentCardData.front ? currentCardData.front.substring(0, 100) : 'null'}`);
       
-      // Calculate next review using Anki algorithm
-      const updatedCard = calculateNextReview(currentCardData, difficulty);
+      // Calculate next review using enhanced algorithm
+      const updatedCard = calculateNextReview(currentCardData, difficulty, DEFAULT_SETTINGS);
       
-      // *** CRITICAL FIX: ALWAYS ensure last_reviewed is set for heatmap tracking ***
+      // CRITICAL FIX: ALWAYS ensure last_reviewed is set for heatmap tracking
       const now = new Date().toISOString();
       updatedCard.last_reviewed = now;
       
       console.log(`Card ${currentCardData.id} studied at ${now} with rating: ${difficulty}`);
       console.log(`Next due: ${updatedCard.due}, State: ${updatedCard.state}, Interval: ${updatedCard.interval_days} days`);
       
-      // *** ENHANCED FIX: Robust update payload that handles all card types ***
+      // Enhanced update payload that handles all card types
       const updatePayload = {
         state: updatedCard.state || 'new',
         ease_factor: updatedCard.ease_factor || 2.5,
@@ -300,12 +231,12 @@ export default function FlashcardStudyPage() {
         reviews: updatedCard.reviews || 1,
         lapses: updatedCard.lapses || 0,
         due: updatedCard.due,
-        last_reviewed: now  // *** This is CRITICAL for heatmap tracking ***
+        last_reviewed: now
       };
 
       console.log(`Updating card ${currentCardData.id} with payload:`, updatePayload);
 
-      // *** ROBUST UPDATE: Use multiple fallback strategies for difficult card types ***
+      // Robust update with multiple fallback strategies
       let updateSuccess = false;
       let updateError = null;
 
@@ -328,7 +259,7 @@ export default function FlashcardStudyPage() {
         console.log(`⚠️ Strategy 1 EXCEPTION:`, err);
       }
 
-      // Strategy 2: If standard update failed, try minimal update (just last_reviewed and reviews)
+      // Strategy 2: If standard update failed, try minimal update
       if (!updateSuccess) {
         try {
           console.log(`🔄 Trying Strategy 2: Minimal update for card ${currentCardData.id}`);
@@ -355,7 +286,7 @@ export default function FlashcardStudyPage() {
         }
       }
 
-      // Strategy 3: If both failed, try super minimal update (just last_reviewed)
+      // Strategy 3: Super minimal update
       if (!updateSuccess) {
         try {
           console.log(`🔄 Trying Strategy 3: Super minimal update for card ${currentCardData.id}`);
@@ -381,65 +312,22 @@ export default function FlashcardStudyPage() {
         }
       }
 
-      // If all strategies failed, log comprehensive error information
       if (!updateSuccess) {
         console.error(`❌ ALL UPDATE STRATEGIES FAILED for card ${currentCardData.id}`);
         console.error(`Final error:`, updateError);
-        console.error(`Card data:`, currentCardData);
-        console.error(`Update payload that failed:`, updatePayload);
-        
-        // Even if update failed, continue with the UI logic but inform user
         alert(`Warning: Failed to save study progress for this card. Please try again or contact support.`);
       }
 
-      // *** VERIFICATION: Double-check the update worked ***
-      if (updateSuccess) {
-        try {
-          const { data: verificationData, error: verificationError } = await supabase
-            .from('flashcard_cards')
-            .select('last_reviewed, state, reviews, front, back')
-            .eq('id', currentCardData.id)
-            .single();
-
-          if (verificationError) {
-            console.error('❌ Error verifying update:', verificationError);
-          } else {
-            console.log(`✅ VERIFIED: Card ${currentCardData.id} last_reviewed:`, verificationData.last_reviewed);
-            console.log(`✅ VERIFIED: Card ${currentCardData.id} state:`, verificationData.state);
-            console.log(`✅ VERIFIED: Card ${currentCardData.id} reviews:`, verificationData.reviews);
-            
-            // Double-check that last_reviewed was actually set
-            if (!verificationData.last_reviewed) {
-              console.error(`❌ VERIFICATION FAILED: last_reviewed is still NULL for card ${currentCardData.id}`);
-              
-              // Try one more force update
-              try {
-                const forceUpdate = await supabase
-                  .from('flashcard_cards')
-                  .update({ last_reviewed: now })
-                  .eq('id', currentCardData.id);
-                  
-                console.log(`🔄 Force update result:`, forceUpdate);
-              } catch (forceError) {
-                console.error(`❌ Force update failed:`, forceError);
-              }
-            }
-          }
-        } catch (verificationErr) {
-          console.error('❌ Verification threw error:', verificationErr);
-        }
-      }
-
-      // Update all cards state with the verified data from database
+      // Update all cards state with the verified data
       const newAllCards = allCards.map(card => 
         card.id === currentCardData.id ? {
           ...updatedCard,
-          last_reviewed: now  // Ensure this is always set
+          last_reviewed: now
         } : card
       );
       setAllCards(newAllCards);
 
-      // Check if this card should be removed from session
+      // Check if this card should be removed from session using enhanced logic
       if (shouldRemoveFromSession(updatedCard, difficulty)) {
         console.log(`Removing card from session (marked as ${difficulty})`);
         
@@ -449,7 +337,7 @@ export default function FlashcardStudyPage() {
         
         // Check if session is complete
         if (newSessionCards.length === 0) {
-          console.log('Study session completed!');
+          console.log('🎉 PERFECT MASTERY ACHIEVED! All cards marked as Easy!');
           // Show completion popup briefly, then show completion screen
           setShowCompletionPopup(true);
           setTimeout(() => {
@@ -458,7 +346,7 @@ export default function FlashcardStudyPage() {
           return;
         }
         
-        // Adjust current index if needed
+        // Adjust current index if needed (but don't shuffle mid-session)
         const nextIndex = currentIndex >= newSessionCards.length ? 0 : currentIndex;
         setCurrentIndex(nextIndex);
       } else {
@@ -468,7 +356,7 @@ export default function FlashcardStudyPage() {
         const newSessionCards = sessionCards.map((card, index) => 
           index === currentIndex ? {
             ...updatedCard,
-            last_reviewed: now  // Ensure this is always set
+            last_reviewed: now
           } : card
         );
         setSessionCards(newSessionCards);
@@ -490,30 +378,21 @@ export default function FlashcardStudyPage() {
 
     } catch (error) {
       console.error('💥 Unexpected error in handleDifficultyChoice:', error);
-      console.error('💥 Error details:', {
-        cardId: currentCardData.id,
-        difficulty,
-        isImageOcclusion: isImageOcclusionCard,
-        cardType: currentCardType,
-        error: error.message
-      });
       
-      // *** EMERGENCY FALLBACK: If there's any error, still try to update last_reviewed ***
+      // Emergency fallback: still try to update last_reviewed
       console.log('🆘 Attempting emergency fallback update...');
       try {
         const emergencyNow = new Date().toISOString();
-        const { error: emergencyError, data: emergencyData } = await supabase
+        const { error: emergencyError } = await supabase
           .from('flashcard_cards')
           .update({ 
             last_reviewed: emergencyNow,
             reviews: (currentCardData.reviews || 0) + 1
           })
-          .eq('id', currentCardData.id)
-          .select();
+          .eq('id', currentCardData.id);
         
         if (!emergencyError) {
           console.log(`✅ Emergency fallback successful for card ${currentCardData.id}`);
-          console.log(`Emergency update data:`, emergencyData);
         } else {
           console.error('❌ Emergency fallback also failed:', emergencyError);
         }
@@ -521,7 +400,6 @@ export default function FlashcardStudyPage() {
         console.error('❌ Emergency fallback threw error:', emergencyError);
       }
       
-      // Show user-friendly error but continue with UI flow
       alert('There was an issue saving your study progress. Your session will continue, but this card may not be tracked properly.');
     }
   };
@@ -569,19 +447,27 @@ export default function FlashcardStudyPage() {
           <div className="completion-popup-content">
             <div className="completion-popup-icon">🎉</div>
             <div className="completion-popup-text">
-              <h3>Session Complete!</h3>
-              <p>All cards have been studied!</p>
+              <h3>Card Mastered!</h3>
+              <p>Marked as Easy!</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Study Progress and Stats */}
+      {/* Enhanced Study Progress and Stats */}
       <div className="study-header">
         <div className="study-info">
           <h1>{setTitle}</h1>
           <div className="progress-info">
-            <span>{currentIndex + 1} / {sessionCards.length} session cards</span>
+            <span>{currentIndex + 1} / {sessionCards.length} cards remaining</span>
+            <span className="mastery-progress">
+              • {allCards.length - sessionCards.length} mastered • {sessionCards.length} to go
+            </span>
+            {studyStats && (
+              <span className="stats-preview">
+                • {studyStats.new} new • {studyStats.learning} learning • {studyStats.review} review
+              </span>
+            )}
           </div>
         </div>
         
