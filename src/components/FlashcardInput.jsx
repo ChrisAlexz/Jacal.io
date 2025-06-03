@@ -1,4 +1,4 @@
-// src/components/FlashcardInput.jsx - UPDATED WITH AUDIO TOOLBAR INTEGRATION
+// Fixed FlashcardInput.jsx - Ensures proper card type validation
 import React, { useState, useContext } from 'react';
 import SimpleRichTextEditor from './SimpleRichTextEditor';
 import ImageOcclusionEditor from './ImageOcclusionEditor';
@@ -9,12 +9,18 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
   const { user } = useContext(UserAuthContext);
   const [frontContent, setFrontContent] = useState('');
   const [backContent, setBackContent] = useState('');
-  const [currentCardType, setCurrentCardType] = useState(type);
+  const [currentCardType, setCurrentCardType] = useState(type || 'Basic');
   const [frontAudioUrl, setFrontAudioUrl] = useState(null);
   const [backAudioUrl, setBackAudioUrl] = useState(null);
 
   // Use per-card type if in per-card mode, otherwise use set type
-  const activeType = isPerCardMode ? currentCardType : type;
+  const activeType = isPerCardMode ? currentCardType : (type || 'Basic');
+
+  // Ensure we always have a valid card type
+  const getValidCardType = (cardType) => {
+    const validTypes = ['Basic', 'Basic-Type', 'Cloze', 'Image-Occlusion'];
+    return validTypes.includes(cardType) ? cardType : 'Basic';
+  };
 
   const handleCloze = () => {
     if (activeType !== 'Cloze') return;
@@ -52,7 +58,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
     setBackAudioUrl(null);
     
     if (isPerCardMode) {
-      setCurrentCardType(type);
+      setCurrentCardType(type || 'Basic');
     }
     
     setTimeout(() => {
@@ -71,8 +77,10 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
   };
 
   const handleAdd = () => {
+    const finalCardType = getValidCardType(activeType);
+    
     console.log('🔄 handleAdd called with:', {
-      activeType,
+      finalCardType,
       frontContent: frontContent.substring(0, 50),
       backContent: backContent.substring(0, 50),
       frontAudio: frontAudioUrl ? 'Yes' : 'No',
@@ -82,38 +90,30 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
     const cleanFront = frontContent.replace(/<[^>]*>/g, '').trim();
     const cleanBack = backContent.replace(/<[^>]*>/g, '').trim();
 
-    // Validation based on card type
-    if (activeType === 'Cloze') {
+    // Validation based on card type - allow audio-only cards
+    if (finalCardType === 'Cloze') {
       if (!cleanFront && !frontAudioUrl) {
         alert('Please add front content or audio for Cloze cards.');
         return;
       }
       const finalBack = cleanBack || frontContent;
-      addFlashcard(frontContent, finalBack, activeType, frontAudioUrl, backAudioUrl);
-    } else if (activeType === 'Basic-Type') {
-      if (!cleanFront && !frontAudioUrl) {
-        alert('Please add front content or audio for Basic-Type cards.');
+      addFlashcard(frontContent, finalBack, finalCardType, frontAudioUrl, backAudioUrl);
+    } else if (finalCardType === 'Basic-Type') {
+      if ((!cleanFront && !frontAudioUrl) || (!cleanBack && !backAudioUrl)) {
+        alert('Please add content or audio for both front and back sides of Basic-Type cards.');
         return;
       }
-      if (!cleanBack && !backAudioUrl) {
-        alert('Please add back content or audio for Basic-Type cards.');
-        return;
-      }
-      addFlashcard(frontContent, backContent, activeType, frontAudioUrl, backAudioUrl);
-    } else if (activeType === 'Image-Occlusion') {
+      addFlashcard(frontContent, backContent, finalCardType, frontAudioUrl, backAudioUrl);
+    } else if (finalCardType === 'Image-Occlusion') {
       console.warn('⚠️ Image occlusion cards should be handled by ImageOcclusionEditor');
       return;
     } else {
-      // Basic or other types
-      if (!cleanFront && !frontAudioUrl) {
-        alert('Please add front content or audio.');
+      // Basic or other types - allow audio-only cards
+      if ((!cleanFront && !frontAudioUrl) || (!cleanBack && !backAudioUrl)) {
+        alert('Please add content or audio for both front and back sides.');
         return;
       }
-      if (!cleanBack && !backAudioUrl) {
-        alert('Please add back content or audio.');
-        return;
-      }
-      addFlashcard(frontContent, backContent, activeType, frontAudioUrl, backAudioUrl);
+      addFlashcard(frontContent, backContent, finalCardType, frontAudioUrl, backAudioUrl);
     }
 
     clearContent();
@@ -229,13 +229,13 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
     switch (activeType) {
       case 'Cloze':
         return {
-          front: "Enter text with content to be hidden...",
-          back: "Enter additional info (optional)..."
+          front: "Enter text with content to be hidden, or add audio...",
+          back: "Enter additional info (optional), or add audio..."
         };
       case 'Basic-Type':
         return {
-          front: "Enter your question...",
-          back: "Enter the exact answer to type..."
+          front: "Enter your question, or add audio...",
+          back: "Enter the exact answer to type, or add audio..."
         };
       case 'Image-Occlusion':
         return {
@@ -244,8 +244,8 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
         };
       default:
         return {
-          front: "Enter front side...",
-          back: "Enter back side..."
+          front: "Enter front side, or add audio...",
+          back: "Enter back side, or add audio..."
         };
     }
   };
@@ -346,7 +346,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
             onClick={handleAdd} 
             disabled={disabled || !isContentValid()}
           >
-            Add Flashcard ({activeType})
+            Add Flashcard ({getValidCardType(activeType)})
           </button>
         </>
       )}
