@@ -1,13 +1,16 @@
-// src/components/FlashcardInput.jsx - FIXED VERSION WITH PROPER STRUCTURE
+// src/components/FlashcardInput.jsx - UPDATED WITH AUDIO SUPPORT
 import React, { useState } from 'react';
 import SimpleRichTextEditor from './SimpleRichTextEditor';
 import ImageOcclusionEditor from './ImageOcclusionEditor';
+import AudioRecorder from './AudioRecorder';
 import "../styles/FlashcardInput.css";
 
 export default function FlashcardInput({ addFlashcard, disabled, type, isPerCardMode = false }) {
   const [frontContent, setFrontContent] = useState('');
   const [backContent, setBackContent] = useState('');
   const [currentCardType, setCurrentCardType] = useState(type);
+  const [frontAudioUrl, setFrontAudioUrl] = useState(null);
+  const [backAudioUrl, setBackAudioUrl] = useState(null);
 
   // Use per-card type if in per-card mode, otherwise use set type
   const activeType = isPerCardMode ? currentCardType : type;
@@ -52,6 +55,8 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
     console.log('🧹 Clearing content...');
     setFrontContent('');
     setBackContent('');
+    setFrontAudioUrl(null);
+    setBackAudioUrl(null);
     
     // Reset to default type if in per-card mode
     if (isPerCardMode) {
@@ -82,7 +87,9 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
       frontContent: frontContent.substring(0, 50),
       backContent: backContent.substring(0, 50),
       frontLength: frontContent.length,
-      backLength: backContent.length
+      backLength: backContent.length,
+      frontAudio: frontAudioUrl ? 'Yes' : 'No',
+      backAudio: backAudioUrl ? 'Yes' : 'No'
     });
 
     // CRITICAL FIX: Better content validation
@@ -98,41 +105,57 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
 
     // Validation based on card type
     if (activeType === 'Cloze') {
-      if (!cleanFront) {
+      if (!cleanFront && !frontAudioUrl) {
         console.warn('❌ Cloze card missing front content');
-        alert('Please add front content for Cloze cards.');
+        alert('Please add front content or audio for Cloze cards.');
         return;
       }
       // For cloze, back is optional but if empty, use front content
       const finalBack = cleanBack || frontContent;
       console.log('✅ Adding Cloze card');
-      addFlashcard(frontContent, finalBack, activeType);
+      addFlashcard(frontContent, finalBack, activeType, frontAudioUrl, backAudioUrl);
     } else if (activeType === 'Basic-Type') {
-      if (!cleanFront || !cleanBack) {
-        console.warn('❌ Basic-Type card missing required content:', { 
+      if (!cleanFront && !frontAudioUrl) {
+        console.warn('❌ Basic-Type card missing front content:', { 
           cleanFront: !!cleanFront, 
-          cleanBack: !!cleanBack 
+          frontAudio: !!frontAudioUrl 
         });
-        alert('Please fill in both front and back content for Basic-Type cards.');
+        alert('Please add front content or audio for Basic-Type cards.');
+        return;
+      }
+      if (!cleanBack && !backAudioUrl) {
+        console.warn('❌ Basic-Type card missing back content:', { 
+          cleanBack: !!cleanBack, 
+          backAudio: !!backAudioUrl 
+        });
+        alert('Please add back content or audio for Basic-Type cards.');
         return;
       }
       console.log('✅ Adding Basic-Type card');
-      addFlashcard(frontContent, backContent, activeType);
+      addFlashcard(frontContent, backContent, activeType, frontAudioUrl, backAudioUrl);
     } else if (activeType === 'Image-Occlusion') {
       console.warn('⚠️ Image occlusion cards should be handled by ImageOcclusionEditor');
       return;
     } else {
       // Basic or other types
-      if (!cleanFront || !cleanBack) {
-        console.warn('❌ Basic card missing required content:', { 
+      if (!cleanFront && !frontAudioUrl) {
+        console.warn('❌ Basic card missing front content:', { 
           cleanFront: !!cleanFront, 
-          cleanBack: !!cleanBack 
+          frontAudio: !!frontAudioUrl 
         });
-        alert('Please fill in both front and back content.');
+        alert('Please add front content or audio.');
+        return;
+      }
+      if (!cleanBack && !backAudioUrl) {
+        console.warn('❌ Basic card missing back content:', { 
+          cleanBack: !!cleanBack, 
+          backAudio: !!backAudioUrl 
+        });
+        alert('Please add back content or audio.');
         return;
       }
       console.log('✅ Adding Basic card');
-      addFlashcard(frontContent, backContent, activeType);
+      addFlashcard(frontContent, backContent, activeType, frontAudioUrl, backAudioUrl);
     }
 
     // Clear content after successful add
@@ -239,11 +262,13 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
     
     const hasFrontContent = frontContent.replace(/<[^>]*>/g, '').trim() !== '';
     const hasBackContent = backContent.replace(/<[^>]*>/g, '').trim() !== '';
+    const hasFrontAudio = !!frontAudioUrl;
+    const hasBackAudio = !!backAudioUrl;
     
     if (activeType === 'Cloze') {
-      return hasFrontContent;
+      return hasFrontContent || hasFrontAudio;
     } else {
-      return hasFrontContent && hasBackContent;
+      return (hasFrontContent || hasFrontAudio) && (hasBackContent || hasBackAudio);
     }
   };
 
@@ -324,6 +349,13 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
             />
           </div>
 
+          {/* Front Audio Recorder */}
+          <AudioRecorder
+            onAudioSave={setFrontAudioUrl}
+            initialAudioUrl={frontAudioUrl}
+            disabled={disabled}
+          />
+
           <h4>
             Back Side {activeType === 'Cloze' && <span>(Optional)</span>}
             {activeType === 'Basic-Type' && <span>(Exact Answer)</span>}
@@ -337,6 +369,13 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
               readOnly={disabled}
             />
           </div>
+
+          {/* Back Audio Recorder */}
+          <AudioRecorder
+            onAudioSave={setBackAudioUrl}
+            initialAudioUrl={backAudioUrl}
+            disabled={disabled}
+          />
 
           {activeType === 'Basic-Type' && (
             <div style={{ marginBottom: '10px' }}>

@@ -1,4 +1,4 @@
-// src/components/Flashcard.jsx - FIXED VERSION WITH ENHANCED DEBUGGING
+// src/components/Flashcard.jsx - UPDATED WITH AUDIO SUPPORT
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from '../supabase';
@@ -145,11 +145,13 @@ export default function Flashcard() {
     return () => clearTimeout(timer);
   }, [title, setId]);
 
-  const addFlashcard = async (front, back, cardType = null) => {
+  const addFlashcard = async (front, back, cardType = null, frontAudioUrl = null, backAudioUrl = null) => {
     console.log('🚀 addFlashcard called with:', {
       front: front?.substring(0, 50) + '...',
       back: back?.substring(0, 50) + '...',
       cardType,
+      frontAudio: frontAudioUrl ? 'Yes' : 'No',
+      backAudio: backAudioUrl ? 'Yes' : 'No',
       setId,
       title: title?.substring(0, 30),
       userId: user?.id
@@ -157,7 +159,7 @@ export default function Flashcard() {
 
     const finalCardType = cardType || type;
     
-    // ENHANCED VALIDATION: Better content checking
+    // ENHANCED VALIDATION: Better content checking including audio
     const cleanFront = (front || '').replace(/<[^>]*>/g, '').trim();
     const cleanBack = (back || '').replace(/<[^>]*>/g, '').trim();
     
@@ -166,23 +168,25 @@ export default function Flashcard() {
       cleanFront: cleanFront.substring(0, 50),
       cleanBack: cleanBack.substring(0, 50),
       frontLength: cleanFront.length,
-      backLength: cleanBack.length
+      backLength: cleanBack.length,
+      frontAudio: frontAudioUrl ? 'Yes' : 'No',
+      backAudio: backAudioUrl ? 'Yes' : 'No'
     });
 
-    // Type-specific validation
-    if (finalCardType === 'Basic' && (!cleanFront || !cleanBack)) {
+    // Type-specific validation with audio support
+    if (finalCardType === 'Basic' && (!cleanFront && !frontAudioUrl) || (!cleanBack && !backAudioUrl)) {
       console.warn('❌ Basic card validation failed');
-      alert('Please fill in both front and back content for Basic cards.');
+      alert('Please fill in both front and back content or add audio for Basic cards.');
       return;
     }
-    if (finalCardType === 'Basic-Type' && (!cleanFront || !cleanBack)) {
+    if (finalCardType === 'Basic-Type' && (!cleanFront && !frontAudioUrl) || (!cleanBack && !backAudioUrl)) {
       console.warn('❌ Basic-Type card validation failed');
-      alert('Please fill in both front and back content for Basic-Type cards.');
+      alert('Please fill in both front and back content or add audio for Basic-Type cards.');
       return;
     }
-    if (finalCardType === 'Cloze' && !cleanFront) {
+    if (finalCardType === 'Cloze' && (!cleanFront && !frontAudioUrl)) {
       console.warn('❌ Cloze card validation failed');
-      alert('Please add front content for Cloze cards.');
+      alert('Please add front content or audio for Cloze cards.');
       return;
     }
 
@@ -197,6 +201,8 @@ export default function Flashcard() {
           front: front || '', 
           back: back || '',
           card_type: finalCardType,
+          front_audio_url: frontAudioUrl,
+          back_audio_url: backAudioUrl,
           user_id: user?.id || null // CRITICAL: Add user_id for better data integrity
         };
         
@@ -266,6 +272,8 @@ export default function Flashcard() {
           front: front || '', 
           back: back || '',
           card_type: finalCardType,
+          front_audio_url: frontAudioUrl,
+          back_audio_url: backAudioUrl,
           user_id: user.id // CRITICAL: Add user_id
         };
         
@@ -369,66 +377,4 @@ export default function Flashcard() {
       </div>
     );
   }
-
-  return (
-    <div className="flashcard-page">
-      <div className="flashcard-container">
-        <div className="flashcard-header">
-          <h2>{setId ? "Edit Flashcards" : "Create Flashcards"}</h2>
-          {user && (
-            <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
-              Logged in as: {user.email}
-            </div>
-          )}
-        </div>
-
-        <div className="flashcard-header-row">
-          <FlashcardTitle title={title} setTitle={setTitle} />
-          {setId && (
-            <button className="study-button" onClick={() => navigate(`/study/${setId}`)}>
-              Study
-            </button>
-          )}
-        </div>
-
-        <FlashcardInput
-          addFlashcard={addFlashcard}
-          disabled={!title.trim()}
-          type={type}
-          isPerCardMode={isPerCardMode}
-        />
-
-        {showSuccess && (
-          <SuccessPopup onClose={() => setShowSuccess(false)} />
-        )}
-
-        {/* Debug info (remove in production) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div style={{ 
-            background: '#1a1a1a', 
-            padding: '10px', 
-            borderRadius: '5px', 
-            margin: '10px 0',
-            fontSize: '0.8rem',
-            color: '#ccc'
-          }}>
-            <strong>Debug Info:</strong><br/>
-            Set ID: {setId || 'None'}<br/>
-            User ID: {user?.id || 'None'}<br/>
-            Title: {title || 'Empty'}<br/>
-            Cards Count: {flashcards.length}<br/>
-            Per-card Mode: {isPerCardMode ? 'Yes' : 'No'}<br/>
-            Type: {type}
-          </div>
-        )}
-      </div>
-
-      <FlashcardList
-        flashcards={flashcards}
-        updateFlashcard={updateFlashcard}
-        onDelete={handleDelete}
-        isPerCardMode={isPerCardMode}
-      />
-    </div>
-  );
 }

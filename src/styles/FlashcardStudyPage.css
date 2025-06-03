@@ -1480,3 +1480,260 @@
       transform: none;
     }
   }
+  /* Additional CSS for FlashcardStudyPage.css - Audio Support */
+
+/* Audio Settings */
+.audio-settings {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    padding: 12px 20px;
+    background: rgba(30, 30, 30, 0.95);
+    border-radius: 12px;
+    border: 1px solid rgba(79, 172, 254, 0.2);
+    backdrop-filter: blur(10px);
+    position: relative;
+    z-index: 1;
+  }
+  
+  .audio-setting-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ccc;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.3s ease;
+  }
+  
+  .audio-setting-item:hover {
+    color: #4facfe;
+  }
+  
+  .audio-setting-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #4facfe;
+    cursor: pointer;
+  }
+  
+  /* Card Audio Players */
+  .card-audio {
+    margin: 16px 0;
+    background: rgba(155, 89, 182, 0.1);
+    border: 1px solid rgba(155, 89, 182, 0.3);
+    border-radius: 12px;
+    padding: 12px;
+    backdrop-filter: blur(5px);
+  }
+  
+  .card-audio.front-audio {
+    border-color: rgba(79, 172, 254, 0.3);
+    background: rgba(79, 172, 254, 0.1);
+  }
+  
+  .card-audio.back-audio {
+    border-color: rgba(40, 167, 69, 0.3);
+    background: rgba(40, 167, 69, 0.1);
+  }
+  
+  .card-audio .audio-player {
+    margin: 0;
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+  
+  .card-audio .audio-player:hover {
+    border: none;
+    box-shadow: none;
+  }
+  
+  /* Enhanced Audio Player in Study Context */
+  .study-container .audio-player {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  .study-container .audio-player-full {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  
+  .study-container .play-btn-main {
+    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+  }
+  
+  .study-container .progress-bar-full {
+    background: rgba(0, 0, 0, 0.1);
+  }
+  
+  .study-container .progress-fill-full {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  }
+  
+  /* Audio Controls in Answer Sections */
+  .answer-results .card-audio {
+    margin-top: 16px;
+    border-color: rgba(40, 167, 69, 0.4);
+    background: rgba(40, 167, 69, 0.15);
+  }
+  
+  .type-answer-section .card-audio {
+    margin-top: 16px;
+    border-color: rgba(79, 172, 254, 0.4);
+    background: rgba(79, 172, 254, 0.15);
+  }
+  
+  /* Audio Player Compact Mode in Study */
+  .study-container .audio-player-compact {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    padding: 8px 12px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  
+  .study-container .play-btn-compact {
+    box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
+  }
+  
+  .study-container .time-compact {
+    color: #333;
+    font-weight: 600;
+  }
+  
+  /* Audio Visual Indicators */
+  .card-audio::before {
+    content: '🎵';
+    position: absolute;
+    top: -8px;
+    left: 12px;
+    background: inherit;
+    padding: 0 8px;
+    font-size: 0.9rem;
+    border-radius: 4px;
+  }
+  
+  .card-audio.front-audio::before {
+    content: '🎵 Front Audio';
+    color: #4facfe;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .card-audio.back-audio::before {
+    content: '🎵 Back Audio';
+    color: #28a745;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  /* Loading States for Audio */
+  .card-audio .loading-spinner,
+  .card-audio .loading-spinner-small {
+    border-top-color: #9b59b6;
+  }
+  
+  .card-audio.front-audio .loading-spinner,
+  .card-audio.front-audio .loading-spinner-small {
+    border-top-color: #4facfe;
+  }
+  
+  .card-audio.back-audio .loading-spinner,
+  .card-audio.back-audio .loading-spinner-small {
+    border-top-color: #28a745;
+  }
+  
+  /* Audio Error States */
+  .card-audio .audio-player.error {
+    border-color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+  }
+  
+  /* Mobile Responsive Audio */
+  @media (max-width: 768px) {
+    .audio-settings {
+      padding: 10px 16px;
+      margin-bottom: 16px;
+    }
+    
+    .audio-setting-item {
+      font-size: 0.85rem;
+    }
+    
+    .card-audio {
+      margin: 12px 0;
+      padding: 10px;
+    }
+    
+    .card-audio.front-audio::before,
+    .card-audio.back-audio::before {
+      font-size: 0.7rem;
+      top: -6px;
+      left: 10px;
+      padding: 0 6px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .audio-settings {
+      padding: 8px 12px;
+      margin-bottom: 12px;
+    }
+    
+    .audio-setting-item {
+      font-size: 0.8rem;
+      gap: 6px;
+    }
+    
+    .card-audio {
+      margin: 10px 0;
+      padding: 8px;
+    }
+    
+    .card-audio::before {
+      font-size: 0.8rem;
+    }
+    
+    .card-audio.front-audio::before,
+    .card-audio.back-audio::before {
+      content: '🎵';
+      font-size: 0.8rem;
+    }
+  }
+  
+  /* High Contrast Mode for Audio */
+  @media (prefers-contrast: high) {
+    .card-audio {
+      border: 2px solid #fff;
+      background: rgba(0, 0, 0, 0.8);
+    }
+    
+    .audio-setting-item {
+      color: #fff;
+    }
+    
+    .card-audio.front-audio::before,
+    .card-audio.back-audio::before {
+      color: #fff;
+      background: #000;
+    }
+  }
+  
+  /* Reduced Motion Support for Audio */
+  @media (prefers-reduced-motion: reduce) {
+    .card-audio .audio-player .play-btn-main,
+    .card-audio .audio-player .play-btn-compact {
+      transition: none;
+    }
+    
+    .card-audio .audio-player .play-btn-main:hover,
+    .card-audio .audio-player .play-btn-compact:hover {
+      transform: none;
+    }
+  }

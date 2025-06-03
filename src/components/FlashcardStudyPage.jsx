@@ -1,8 +1,9 @@
-// src/components/FlashcardStudyPage.jsx - FIXED: Master Again Button Clickability
+// src/components/FlashcardStudyPage.jsx - UPDATED WITH AUDIO SUPPORT
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
+import AudioPlayer from "./AudioPlayer";
 import { 
   calculateNextReview, 
   getDueCards, 
@@ -41,6 +42,9 @@ export default function FlashcardStudyPage() {
   const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
   const [isAnswerCorrect, setIsAnswerCorrect] = useState(null);
 
+  // Audio state
+  const [autoPlayAudio, setAutoPlayAudio] = useState(true);
+
   useEffect(() => {
     if (id) {
       fetchFlashcardSet(id);
@@ -69,7 +73,7 @@ export default function FlashcardStudyPage() {
         console.log(`Loaded deck: ${setData.title} (Type: ${setData.type})`);
       }
 
-      // Then, get the cards with spaced repetition data
+      // Then, get the cards with spaced repetition data and audio URLs
       const { data, error } = await supabase
         .from("flashcard_cards")
         .select("*")
@@ -498,6 +502,18 @@ export default function FlashcardStudyPage() {
         </div>
       </div>
 
+      {/* Audio Settings */}
+      <div className="audio-settings">
+        <label className="audio-setting-item">
+          <input
+            type="checkbox"
+            checked={autoPlayAudio}
+            onChange={(e) => setAutoPlayAudio(e.target.checked)}
+          />
+          <span>Auto-play audio</span>
+        </label>
+      </div>
+
       {/* Speed Focus Mode Button */}
       <div className="study-mode-selector">
         <button 
@@ -528,6 +544,18 @@ export default function FlashcardStudyPage() {
             <div dangerouslySetInnerHTML={{ __html: currentCard.front }} />
           )}
         </div>
+
+        {/* Front Audio Player */}
+        {currentCard.front_audio_url && (
+          <div className="card-audio front-audio">
+            <AudioPlayer 
+              audioUrl={currentCard.front_audio_url}
+              autoPlay={autoPlayAudio}
+              compact={false}
+              showControls={true}
+            />
+          </div>
+        )}
 
         {/* Basic Type Answer Input */}
         {currentCardType === 'Basic-Type' && !showCorrectAnswer && (
@@ -572,6 +600,19 @@ export default function FlashcardStudyPage() {
                 <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
               </div>
             </div>
+            
+            {/* Back Audio Player for Basic-Type */}
+            {currentCard.back_audio_url && (
+              <div className="card-audio back-audio">
+                <AudioPlayer 
+                  audioUrl={currentCard.back_audio_url}
+                  autoPlay={autoPlayAudio && isAnswerCorrect}
+                  compact={false}
+                  showControls={true}
+                />
+              </div>
+            )}
+            
             <div className="difficulty-buttons">
               <div className="interval-preview">
                 <div className="interval-item">
@@ -629,6 +670,18 @@ export default function FlashcardStudyPage() {
             {!isImageOcclusionCard && (currentCardType !== "Cloze" || hasCustomBackContent) && (
               <div className="flashcard-back">
                 <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
+              </div>
+            )}
+
+            {/* Back Audio Player */}
+            {currentCard.back_audio_url && (
+              <div className="card-audio back-audio">
+                <AudioPlayer 
+                  audioUrl={currentCard.back_audio_url}
+                  autoPlay={autoPlayAudio}
+                  compact={false}
+                  showControls={true}
+                />
               </div>
             )}
 

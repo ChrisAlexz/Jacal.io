@@ -1,4 +1,4 @@
-// src/components/FlashcardList.jsx - UPDATED WITH CARD TYPE SUPPORT
+// src/components/FlashcardList.jsx - UPDATED WITH AUDIO SUPPORT
 import React from 'react';
 import FlashcardItem from './FlashcardItem';
 import '../styles/FlashcardList.css';
@@ -16,6 +16,8 @@ const FlashcardList = ({ flashcards, updateFlashcard, onDelete }) => {
             front={card.front}
             back={card.back}
             cardType={card.card_type} // Pass the card type
+            frontAudioUrl={card.front_audio_url} // Pass front audio URL
+            backAudioUrl={card.back_audio_url} // Pass back audio URL
             updateFlashcard={updateFlashcard}
             onDelete={onDelete}
           />
