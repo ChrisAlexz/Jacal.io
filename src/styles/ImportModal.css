@@ -627,3 +627,210 @@
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
 }
+/* Add these styles to src/styles/ImportModal.css */
+
+/* Enhanced error message styling */
+.error-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.error-text {
+  color: #ff6b6b;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.debug-details {
+  margin-top: 8px;
+}
+
+.debug-details summary {
+  color: #ff8a8a;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(255, 138, 138, 0.3);
+}
+
+.debug-details summary:hover {
+  color: #ffaaaa;
+}
+
+.debug-info {
+  background: rgba(0, 0, 0, 0.3);
+  color: #ccc;
+  padding: 8px;
+  margin-top: 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border: 1px solid rgba(255, 107, 107, 0.2);
+}
+
+/* Import help section */
+.import-help {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.import-help h4 {
+  color: #ffc107;
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.help-content {
+  color: #ffcc33;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.help-content p {
+  margin: 0 0 12px 0;
+}
+
+.help-content ol {
+  margin: 12px 0;
+  padding-left: 20px;
+}
+
+.help-content li {
+  margin-bottom: 4px;
+  color: #ffdb66;
+}
+
+.help-content strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Enhanced preview styling */
+.import-preview {
+  background: rgba(79, 172, 254, 0.05);
+  border: 1px solid rgba(79, 172, 254, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.import-preview h4 {
+  color: #4facfe;
+  margin: 0 0 16px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Better progress indicators */
+.progress-label {
+  color: #4facfe;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.progress-label::before {
+  content: '⏳';
+  font-size: 1rem;
+  animation: progressPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes progressPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* Improved button states */
+.import-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.2);
+}
+
+.import-btn:disabled:hover {
+  transform: none;
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.2);
+}
+
+/* Enhanced radio options */
+.radio-option:has(input[type="radio"]:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.radio-option input[type="radio"]:disabled {
+  cursor: not-allowed;
+}
+
+/* Loading states */
+.file-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-group input:disabled,
+.form-group select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #1a1a1a;
+}
+
+/* Mobile responsiveness for new elements */
+@media (max-width: 768px) {
+  .import-help {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  
+  .help-content ol {
+    padding-left: 16px;
+  }
+  
+  .debug-info {
+    font-size: 0.7rem;
+    padding: 6px;
+  }
+  
+  .error-content {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .import-help {
+    padding: 12px;
+  }
+  
+  .import-help h4 {
+    font-size: 0.9rem;
+  }
+  
+  .help-content {
+    font-size: 0.85rem;
+  }
+  
+  .progress-label {
+    font-size: 0.8rem;
+  }
+  
+  .debug-info {
+    font-size: 0.65rem;
+  }
+}

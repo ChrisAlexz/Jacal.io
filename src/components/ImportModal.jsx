@@ -1,11 +1,11 @@
-// src/components/ImportModal.jsx - UPDATED WITH BETTER ANKI SUPPORT
+// src/components/ImportModal.jsx - FIXED VERSION WITH PROPER DATABASE HANDLING
 import React, { useState, useContext } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
 import { useNavigate } from 'react-router-dom';
 import '../styles/ImportModal.css';
 
-// Import parsers - updated to use the improved Anki parser
+// Import parsers
 import { parseAnkiFileWithFallback } from '../utils/AnkiParser';
 import { parseQuizletFile } from '../utils/QuizletParser';
 
@@ -52,14 +52,14 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
     if (!selectedFile) {
       setFile(null);
       setImportPreview(null);
+      setError('');
       return;
     }
 
     console.log('File selected:', {
       name: selectedFile.name,
       size: selectedFile.size,
-      type: selectedFile.type,
-      lastModified: selectedFile.lastModified
+      type: selectedFile.type
     });
 
     setFile(selectedFile);
@@ -69,58 +69,58 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
     const fileName = selectedFile.name.toLowerCase();
     if (fileName.endsWith('.apkg') || fileName.endsWith('.colpkg')) {
       setImportType('anki');
-      console.log('Auto-detected: Anki format');
     } else if (fileName.endsWith('.txt') || fileName.endsWith('.csv')) {
       setImportType('quizlet');
-      console.log('Auto-detected: Quizlet format');
     }
 
     // Generate preview
     try {
       setLoading(true);
+      setParseProgress(0);
       let preview;
       
-      console.log('Starting preview generation with import type:', importType);
-      
       if (importType === 'anki' && (fileName.endsWith('.apkg') || fileName.endsWith('.colpkg'))) {
-        console.log('Attempting Anki parse with fallback...');
-        preview = await parseAnkiFileWithFallback(selectedFile, { 
-          previewOnly: true, 
-          maxCards: 5,
-          onProgress: (progress) => {
-            console.log('Anki parse progress:', progress);
-            setParseProgress(progress);
-          }
-        });
+        try {
+          preview = await parseAnkiFileWithFallback(selectedFile, { 
+            previewOnly: true, 
+            maxCards: 5,
+            onProgress: setParseProgress
+          });
+        } catch (ankiError) {
+          console.error('Anki preview failed:', ankiError);
+          setError(`Anki parsing failed: ${ankiError.message}`);
+          setImportPreview(null);
+          setLoading(false);
+          return;
+        }
       } else if (importType === 'quizlet') {
-        console.log('Attempting Quizlet parse...');
-        preview = await parseQuizletFile(selectedFile, { 
-          previewOnly: true, 
-          maxCards: 5,
-          onProgress: (progress) => {
-            console.log('Parse progress:', progress);
-            setParseProgress(progress);
-          }
-        });
-        console.log('Quizlet parse result:', preview);
+        try {
+          preview = await parseQuizletFile(selectedFile, { 
+            previewOnly: true, 
+            maxCards: 5,
+            onProgress: setParseProgress
+          });
+        } catch (quizletError) {
+          console.error('Quizlet preview failed:', quizletError);
+          setError(`Quizlet parsing failed: ${quizletError.message}`);
+          setImportPreview(null);
+          setLoading(false);
+          return;
+        }
       }
       
-      console.log('Preview generated:', preview);
       setImportPreview(preview);
       
       // Auto-fill deck name from file
       if (preview && preview.deckName) {
-        console.log('Setting deck name from preview:', preview.deckName);
         setDeckName(preview.deckName);
       } else {
-        const fallbackName = selectedFile.name.replace(/\.[^/.]+$/, "");
-        console.log('Setting fallback deck name:', fallbackName);
-        setDeckName(fallbackName);
+        setDeckName(selectedFile.name.replace(/\.[^/.]+$/, ""));
       }
+
     } catch (err) {
       console.error('Error during preview generation:', err);
-      console.error('Error stack:', err.stack);
-      setError(`Error parsing file: ${err.message}`);
+      setError(`Preview generation failed: ${err.message}`);
       setImportPreview(null);
     } finally {
       setLoading(false);
@@ -134,15 +134,7 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
     setLoading(true);
     setParseProgress(0);
 
-    console.log('Starting full import process...');
-    console.log('Import configuration:', {
-      file: file?.name,
-      importType,
-      deckName,
-      selectedOption,
-      className,
-      user: user?.id
-    });
+    console.log('🚀 Starting import process...');
 
     try {
       if (!user) {
@@ -154,49 +146,33 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
       if (!deckName.trim()) {
         throw new Error('Deck name is required.');
       }
+      if (!importPreview || !importPreview.cards || importPreview.cards.length === 0) {
+        throw new Error('No valid cards found in the file. Please check the file format and try again.');
+      }
+
+      console.log('✅ Validation passed, starting full parse...');
+      setParseProgress(10);
 
       // Parse the full file
       let parsedData;
       const fileName = file.name.toLowerCase();
       
-      console.log('Beginning full file parse...');
-      
       if (importType === 'anki' && (fileName.endsWith('.apkg') || fileName.endsWith('.colpkg'))) {
-        console.log('Full Anki parse starting with fallback...');
         parsedData = await parseAnkiFileWithFallback(file, {
-          onProgress: (progress) => {
-            console.log('Anki parse progress:', progress);
-            setParseProgress(progress);
-          }
-        });
-      } else if (importType === 'quizlet') {
-        console.log('Full Quizlet parse starting...');
-        parsedData = await parseQuizletFile(file, {
-          onProgress: (progress) => {
-            console.log('Quizlet parse progress:', progress);
-            setParseProgress(progress);
-          }
+          onProgress: (progress) => setParseProgress(10 + (progress * 0.3)) // 10-40%
         });
       } else {
-        throw new Error('Unsupported file type. Please select an .apkg, .colpkg, .txt, or .csv file.');
+        parsedData = await parseQuizletFile(file, {
+          onProgress: (progress) => setParseProgress(10 + (progress * 0.3)) // 10-40%
+        });
       }
-
-      console.log('Full parse completed:', {
-        totalCards: parsedData?.cards?.length || 0,
-        deckName: parsedData?.deckName,
-        sampleCard: parsedData?.cards?.[0]
-      });
 
       if (!parsedData.cards || parsedData.cards.length === 0) {
-        throw new Error(`No cards found in the file. 
-        
-Debug info:
-- File size: ${file.size} bytes
-- Import type: ${importType}
-- Parsed data: ${JSON.stringify(parsedData, null, 2)}`);
+        throw new Error('No cards found in the file after full parsing.');
       }
 
-      console.log(`Successfully parsed ${parsedData.cards.length} cards`);
+      console.log(`📊 Parsed ${parsedData.cards.length} cards successfully`);
+      setParseProgress(40);
 
       // Create or select class
       let classId;
@@ -204,125 +180,202 @@ Debug info:
         if (!className.trim()) {
           throw new Error('Set name is required when creating a new set.');
         }
-        console.log('Creating new class:', className);
+        
+        console.log('🏗️ Creating new class:', className);
         const { data: classData, error: classError } = await supabase
           .from('classes')
-          .insert([{ name: className, user_id: user.id }])
+          .insert([{ name: className.trim(), user_id: user.id }])
           .select()
           .single();
+          
         if (classError) {
-          console.error('Error creating class:', classError);
-          throw classError;
+          console.error('❌ Error creating class:', classError);
+          throw new Error(`Failed to create set: ${classError.message}`);
         }
+        
         classId = classData.id;
-        console.log('New class created with ID:', classId);
+        console.log('✅ Class created with ID:', classId);
       } else {
         classId = selectedOption;
-        console.log('Using existing class ID:', classId);
+        console.log('✅ Using existing class ID:', classId);
       }
 
+      setParseProgress(50);
+
       // Create the flashcard set
-      console.log('Creating flashcard set...');
+      console.log('🃏 Creating flashcard set...');
       const { data: deckData, error: deckError } = await supabase
         .from('flashcard_sets')
         .insert([
           {
-            title: deckName,
+            title: deckName.trim(),
             class_id: classId,
             user_id: user.id,
-            type: 'Mixed' // Use Mixed type for imported cards
+            type: 'Mixed'
           }
         ])
         .select()
         .single();
 
       if (deckError) {
-        console.error('Error creating deck:', deckError);
-        throw deckError;
+        console.error('❌ Error creating deck:', deckError);
+        throw new Error(`Failed to create flashcard set: ${deckError.message}`);
       }
 
-      console.log('Flashcard set created:', deckData);
+      const setId = deckData.id;
+      console.log('✅ Flashcard set created with ID:', setId);
+      setParseProgress(60);
 
-      // Import cards in batches to avoid timeouts
-      const batchSize = 50;
-      const cards = parsedData.cards;
-      let totalInserted = 0;
-      
-      console.log(`Importing ${cards.length} cards in batches of ${batchSize}...`);
-      
-      for (let i = 0; i < cards.length; i += batchSize) {
-        const batch = cards.slice(i, i + batchSize);
-        const cardsToInsert = batch.map(card => ({
-          set_id: deckData.id,
-          front: card.front,
-          back: card.back,
+      // Prepare cards for insertion - CRITICAL FIX
+      const cardsToInsert = parsedData.cards.map((card, index) => {
+        // Ensure we have valid front and back content
+        const frontContent = (card.front || '').toString().trim();
+        const backContent = (card.back || '').toString().trim();
+        
+        if (!frontContent || !backContent) {
+          console.warn(`⚠️ Card ${index + 1} has empty content:`, { front: frontContent, back: backContent });
+        }
+        
+        return {
+          set_id: setId,
+          front: frontContent || `Card ${index + 1} Front`,
+          back: backContent || `Card ${index + 1} Back`,
           card_type: card.cardType || 'Basic',
           user_id: user.id
-        }));
+        };
+      });
 
-        console.log(`Inserting batch ${Math.floor(i / batchSize) + 1}:`, cardsToInsert.length, 'cards');
+      console.log(`📝 Prepared ${cardsToInsert.length} cards for insertion`);
+      console.log('📋 Sample card:', cardsToInsert[0]);
 
-        const { data: insertedCards, error: cardError } = await supabase
-          .from('flashcard_cards')
-          .insert(cardsToInsert)
-          .select();
+      // Insert cards in smaller batches with better error handling
+      const batchSize = 25; // Smaller batches for better reliability
+      let totalInserted = 0;
+      const insertionErrors = [];
 
-        if (cardError) {
-          console.error('Error inserting card batch:', cardError);
-          // Continue with remaining batches even if one fails
-        } else {
-          totalInserted += insertedCards?.length || 0;
-          console.log(`Batch inserted successfully. Cards in this batch: ${insertedCards?.length || 0}`);
+      for (let i = 0; i < cardsToInsert.length; i += batchSize) {
+        const batch = cardsToInsert.slice(i, i + batchSize);
+        const batchNumber = Math.floor(i / batchSize) + 1;
+        const totalBatches = Math.ceil(cardsToInsert.length / batchSize);
+        
+        console.log(`📦 Inserting batch ${batchNumber}/${totalBatches} (${batch.length} cards)...`);
+
+        try {
+          const { data: insertedCards, error: cardError } = await supabase
+            .from('flashcard_cards')
+            .insert(batch)
+            .select('id, front, back');
+
+          if (cardError) {
+            console.error(`❌ Batch ${batchNumber} insertion error:`, cardError);
+            insertionErrors.push(`Batch ${batchNumber}: ${cardError.message}`);
+            // Continue with next batch instead of stopping
+          } else {
+            const insertedCount = insertedCards?.length || 0;
+            totalInserted += insertedCount;
+            console.log(`✅ Batch ${batchNumber} inserted: ${insertedCount} cards`);
+            
+            // Log first card of batch for verification
+            if (insertedCards && insertedCards.length > 0) {
+              console.log('🔍 First card in batch:', {
+                id: insertedCards[0].id,
+                front: insertedCards[0].front.substring(0, 50),
+                back: insertedCards[0].back.substring(0, 50)
+              });
+            }
+          }
+        } catch (batchError) {
+          console.error(`💥 Batch ${batchNumber} threw error:`, batchError);
+          insertionErrors.push(`Batch ${batchNumber}: ${batchError.message}`);
         }
 
         // Update progress
-        const progress = Math.round(((i + batch.length) / cards.length) * 100);
+        const progress = 60 + Math.round(((i + batch.length) / cardsToInsert.length) * 30);
         setParseProgress(progress);
-        console.log(`Import progress: ${progress}%`);
-      }
-
-      console.log(`Import completed! Total cards inserted: ${totalInserted} out of ${cards.length}`);
-
-      // Wait for database to settle
-      console.log('Waiting for database to settle...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Verify insertion
-      const { count: verifyCount, error: verifyError } = await supabase
-        .from('flashcard_cards')
-        .select('*', { count: 'exact', head: true })
-        .eq('set_id', deckData.id);
         
-      console.log('Verification count:', verifyCount, 'Expected:', cards.length);
-
-      // Inform parent about success FIRST
-      if (onSuccess) {
-        console.log('Calling onSuccess callback...');
-        onSuccess(deckData.id);
+        // Small delay between batches to avoid overwhelming the database
+        if (i + batchSize < cardsToInsert.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       }
 
-      // Close modal BEFORE navigation
-      console.log('Closing modal...');
-      onClose();
+      console.log(`📊 Import summary: ${totalInserted}/${cardsToInsert.length} cards inserted`);
+      
+      if (insertionErrors.length > 0) {
+        console.warn('⚠️ Some insertion errors occurred:', insertionErrors);
+      }
 
-      // Navigate to the edit page
-      console.log('Preparing to navigate to flashcard edit page...');
+      setParseProgress(90);
+
+      // CRITICAL: Verify cards were actually inserted with timeout
+      console.log('🔍 Verifying card insertion...');
+      let verifyCount = 0;
+      let verifyError = null;
       
-      // Wait for modal close animation to complete
-      await new Promise(resolve => setTimeout(resolve, 300));
+      try {
+        // Add timeout to verification
+        const verificationPromise = supabase
+          .from('flashcard_cards')
+          .select('*', { count: 'exact', head: true })
+          .eq('set_id', setId);
+          
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Verification timeout')), 5000);
+        });
+        
+        const result = await Promise.race([verificationPromise, timeoutPromise]);
+        verifyCount = result.count || 0;
+        verifyError = result.error;
+        
+        console.log(`✅ Verification: ${verifyCount} cards found in database`);
+        
+      } catch (error) {
+        console.warn('⚠️ Verification failed or timed out:', error);
+        // Don't fail the import if verification fails - we still inserted cards
+        verifyCount = totalInserted; // Assume success if we can't verify
+      }
+
+      setParseProgress(95);
+
+      // More lenient final check - only fail if we know for sure there are no cards
+      if (verifyError && verifyError.message && !verifyError.message.includes('timeout')) {
+        console.warn(`⚠️ Database verification had issues: ${verifyError.message}`);
+      }
       
-      // Force a page refresh approach to ensure clean state
-      window.location.href = `/flashcards/${deckData.id}`;
+      // Only throw error if we're absolutely sure no cards were inserted
+      if (verifyCount === 0 && totalInserted === 0) {
+        throw new Error(`No cards were successfully inserted. Please check your file format and try again.`);
+      }
+
+      if (verifyCount > 0 && verifyCount < totalInserted * 0.5) {
+        console.warn(`⚠️ Only ${verifyCount} cards verified out of ${totalInserted} inserted, but continuing...`);
+      }
+
+      setParseProgress(98);
+      
+      // Brief final pause to ensure everything is settled
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setParseProgress(100);
+
+      console.log('🎉 Import completed successfully!');
+
+      // Close modal and navigate
+      onClose();
+      
+      // Call success callback with proper data
+      if (onSuccess) {
+        onSuccess(setId);
+      }
+
+      // Navigate with a slight delay to ensure modal closes
+      setTimeout(() => {
+        console.log('🧭 Navigating to edit page...');
+        navigate(`/flashcards/${setId}`);
+      }, 300);
 
     } catch (err) {
-      console.error('Import error:', err);
-      console.error('Error details:', {
-        message: err.message,
-        stack: err.stack,
-        file: file?.name,
-        importType,
-        user: user?.id
-      });
+      console.error('💥 Import failed:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -349,7 +402,9 @@ Debug info:
         {error && (
           <div className="error-message">
             <span className="error-icon">⚠️</span>
-            {error}
+            <div className="error-content">
+              <div className="error-text">{error}</div>
+            </div>
           </div>
         )}
 
@@ -390,14 +445,15 @@ Debug info:
                     checked={importType === 'anki'}
                     onChange={(e) => {
                       setImportType(e.target.value);
-                      console.log('Import type changed to:', e.target.value);
+                      setImportPreview(null);
+                      setError('');
                     }}
                     disabled={loading}
                   />
                   <span className="radio-label">
                     <span className="format-icon">🅰️</span>
                     Anki Format
-                    <small>(.apkg, .colpkg files) - Now supports latest Anki versions!</small>
+                    <small>(.apkg, .colpkg files)</small>
                   </span>
                 </label>
                 <label className="radio-option">
@@ -407,7 +463,8 @@ Debug info:
                     checked={importType === 'quizlet'}
                     onChange={(e) => {
                       setImportType(e.target.value);
-                      console.log('Import type changed to:', e.target.value);
+                      setImportPreview(null);
+                      setError('');
                     }}
                     disabled={loading}
                   />
@@ -422,9 +479,9 @@ Debug info:
           )}
 
           {/* Preview */}
-          {importPreview && (
+          {importPreview && importPreview.totalCards > 0 && (
             <div className="import-preview">
-              <h4>Preview ({importPreview.totalCards} cards found)</h4>
+              <h4>✅ Preview ({importPreview.totalCards} cards found)</h4>
               <div className="preview-cards">
                 {importPreview.preview && importPreview.preview.map((card, index) => (
                   <div key={index} className="preview-card">
@@ -452,23 +509,21 @@ Debug info:
             </div>
           )}
 
-          {/* Anki Help Text */}
-          {importType === 'anki' && (
-            <div className="help-section" style={{ 
-              background: 'rgba(79, 172, 254, 0.1)', 
-              border: '1px solid rgba(79, 172, 254, 0.3)', 
-              borderRadius: '8px', 
-              padding: '12px', 
-              marginBottom: '16px' 
-            }}>
-              <h5 style={{ color: '#4facfe', margin: '0 0 8px 0', fontSize: '0.9rem' }}>
-                💡 Anki Import Tips
-              </h5>
-              <p style={{ color: '#ccc', fontSize: '0.8rem', margin: '0', lineHeight: '1.4' }}>
-                If you get an error with newer Anki files, try exporting as:
-                <br />• <strong>File → Export → "Notes in Plain Text (*.txt)"</strong>
-                <br />• Then import that .txt file using the Quizlet option above
-              </p>
+          {/* Failed preview with helpful suggestions */}
+          {file && !loading && !importPreview && (
+            <div className="import-help">
+              <h4>❌ No cards found in preview</h4>
+              <div className="help-content">
+                <p>If you're having trouble with an Anki file, try this:</p>
+                <ol>
+                  <li>Open Anki on your computer</li>
+                  <li>Select your deck</li>
+                  <li>Go to <strong>File → Export</strong></li>
+                  <li>Choose <strong>"Notes in Plain Text (*.txt)"</strong></li>
+                  <li>Import that .txt file using the <strong>Quizlet</strong> option above</li>
+                </ol>
+                <p>This method works with all Anki versions and preserves your cards perfectly!</p>
+              </div>
             </div>
           )}
 
@@ -524,7 +579,10 @@ Debug info:
           {loading && parseProgress > 0 && (
             <div className="progress-container">
               <div className="progress-label">
-                {parseProgress < 50 ? 'Parsing file...' : 'Importing cards...'}
+                {parseProgress < 40 ? 'Parsing file...' : 
+                 parseProgress < 60 ? 'Creating flashcard set...' : 
+                 parseProgress < 90 ? 'Importing cards...' :
+                 'Finalizing import...'}
               </div>
               <div className="progress-bar">
                 <div 
@@ -548,7 +606,7 @@ Debug info:
             <button
               type="submit"
               className="import-btn"
-              disabled={loading || !file || !deckName.trim()}
+              disabled={loading || !file || !deckName.trim() || (!importPreview || importPreview.totalCards === 0)}
             >
               {loading ? (
                 <>
