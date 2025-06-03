@@ -1,4 +1,4 @@
-// src/components/FlashcardInput.jsx - FIXED VERSION WITH ALWAYS VISIBLE TYPE SELECTOR
+// src/components/FlashcardInput.jsx - FIXED VERSION WITH PROPER STRUCTURE
 import React, { useState } from 'react';
 import SimpleRichTextEditor from './SimpleRichTextEditor';
 import ImageOcclusionEditor from './ImageOcclusionEditor';
@@ -49,38 +49,110 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
   };
 
   const clearContent = () => {
+    console.log('🧹 Clearing content...');
     setFrontContent('');
     setBackContent('');
+    
     // Reset to default type if in per-card mode
     if (isPerCardMode) {
       setCurrentCardType(type);
     }
+    
+    // Force clear the rich text editors by directly manipulating DOM
+    setTimeout(() => {
+      const frontEditor = document.querySelector('.front-editor .editor-content');
+      const backEditor = document.querySelector('.flashcard-box .editor-content');
+      
+      if (frontEditor) {
+        frontEditor.innerHTML = '';
+        console.log('🧹 Front editor cleared');
+      }
+      if (backEditor) {
+        backEditor.innerHTML = '';
+        console.log('🧹 Back editor cleared');
+      }
+    }, 100);
+    
+    console.log('✅ Content cleared successfully');
   };
 
   const handleAdd = () => {
+    console.log('🔄 handleAdd called with:', {
+      activeType,
+      frontContent: frontContent.substring(0, 50),
+      backContent: backContent.substring(0, 50),
+      frontLength: frontContent.length,
+      backLength: backContent.length
+    });
+
+    // CRITICAL FIX: Better content validation
+    const cleanFront = frontContent.replace(/<[^>]*>/g, '').trim();
+    const cleanBack = backContent.replace(/<[^>]*>/g, '').trim();
+
+    console.log('📝 Cleaned content:', {
+      cleanFront: cleanFront.substring(0, 50),
+      cleanBack: cleanBack.substring(0, 50),
+      cleanFrontLength: cleanFront.length,
+      cleanBackLength: cleanBack.length
+    });
+
+    // Validation based on card type
     if (activeType === 'Cloze') {
-      if (!frontContent.trim()) return;
-      addFlashcard(frontContent, backContent.trim() || frontContent, activeType);
+      if (!cleanFront) {
+        console.warn('❌ Cloze card missing front content');
+        alert('Please add front content for Cloze cards.');
+        return;
+      }
+      // For cloze, back is optional but if empty, use front content
+      const finalBack = cleanBack || frontContent;
+      console.log('✅ Adding Cloze card');
+      addFlashcard(frontContent, finalBack, activeType);
     } else if (activeType === 'Basic-Type') {
-      if (!frontContent.trim() || !backContent.trim()) return;
+      if (!cleanFront || !cleanBack) {
+        console.warn('❌ Basic-Type card missing required content:', { 
+          cleanFront: !!cleanFront, 
+          cleanBack: !!cleanBack 
+        });
+        alert('Please fill in both front and back content for Basic-Type cards.');
+        return;
+      }
+      console.log('✅ Adding Basic-Type card');
       addFlashcard(frontContent, backContent, activeType);
     } else if (activeType === 'Image-Occlusion') {
-      // Image occlusion cards are handled by the ImageOcclusionEditor
+      console.warn('⚠️ Image occlusion cards should be handled by ImageOcclusionEditor');
       return;
     } else {
-      if (!frontContent.trim() || !backContent.trim()) return;
+      // Basic or other types
+      if (!cleanFront || !cleanBack) {
+        console.warn('❌ Basic card missing required content:', { 
+          cleanFront: !!cleanFront, 
+          cleanBack: !!cleanBack 
+        });
+        alert('Please fill in both front and back content.');
+        return;
+      }
+      console.log('✅ Adding Basic card');
       addFlashcard(frontContent, backContent, activeType);
     }
 
+    // Clear content after successful add
+    console.log('🧹 Clearing input content...');
     clearContent();
   };
 
   const handleImageOcclusionSave = (cards) => {
+    console.log('🖼️ Image occlusion save called with', cards.length, 'cards');
+    
     // Add each image occlusion card
-    cards.forEach(card => {
+    cards.forEach((card, index) => {
+      console.log(`🃏 Adding image occlusion card ${index + 1}:`, card.title);
+      
       // Get canvas dimensions for percentage calculations
       const canvas = document.querySelector('.image-occlusion-editor canvas');
-      if (!canvas) return;
+      if (!canvas) {
+        console.error('❌ Canvas not found for image occlusion');
+        return;
+      }
       
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;

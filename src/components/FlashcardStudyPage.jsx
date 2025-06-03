@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - ENHANCED VERSION WITH SMART CARD ORDERING
+// src/components/FlashcardStudyPage.jsx - FIXED: Master Again Button Clickability
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -99,6 +99,23 @@ export default function FlashcardStudyPage() {
     }
   };
 
+  // FIXED: Master Again Handler - Properly restart session with ALL cards
+  const handleMasterAgain = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Master Again clicked - restarting session!');
+    
+    // CRITICAL FIX: Get ALL cards, not just due cards
+    // When "Master Again" is clicked, we want to study ALL cards regardless of their due status
+    console.log(`Restarting session with ALL ${allCards.length} cards`);
+    setSessionCards([...allCards]); // Use all cards, not filtered due cards
+    setCurrentIndex(0);
+    setShowBack(false);
+    setShowCorrectAnswer(false);
+    setIsAnswerCorrect(null);
+    setUserAnswer('');
+  };
+
   // Calculate what the intervals would be for each button using enhanced preview
   const getIntervalPreviewsForCard = () => {
     if (sessionCards.length === 0 || currentIndex >= sessionCards.length || !sessionCards[currentIndex]) {
@@ -129,25 +146,19 @@ export default function FlashcardStudyPage() {
           <div className="completion-icon">🎉</div>
           <h2>Perfect! All Cards Mastered!</h2>
           <p>Congratulations! You've marked every single card as "Easy" - you've truly mastered this deck! All {allCards.length} cards have been successfully completed.</p>
+         
           <div className="completion-actions">
             <button 
+              type="button"
               className="back-button"
               onClick={() => navigate(-1)}
             >
               Back to Sets
             </button>
             <button 
+              type="button"
               className="restart-button"
-              onClick={() => {
-                // Restart session with ALL cards again
-                const newSessionCards = getDueCards(allCards, DEFAULT_SETTINGS);
-                setSessionCards(newSessionCards);
-                setCurrentIndex(0);
-                setShowBack(false);
-                setShowCorrectAnswer(false);
-                setIsAnswerCorrect(null);
-                setUserAnswer('');
-              }}
+              onClick={handleMasterAgain}
             >
               Master Again
             </button>

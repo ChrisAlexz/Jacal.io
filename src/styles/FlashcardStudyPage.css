@@ -1,4 +1,4 @@
-/* FlashcardStudyPage.css - Fixed Layout with Better Spacing and Animated Background */
+/* FlashcardStudyPage.css - FIXED: Master Again Button Clickability */
 .study-container {
     min-height: 100vh;
     width: 100vw;
@@ -1030,20 +1030,22 @@
     color: #86efac;
   }
   
-  /* Study Completion (separate from study box) */
+  /* CRITICAL FIX: Study Completion - Ensure buttons are clickable */
   .study-completion {
     text-align: center;
-    padding: 80px 40px !important;
-    max-width: 600px !important;
-    margin: 0 auto !important;
-    background: linear-gradient(135deg, rgba(30, 30, 30, 0.98) 0%, rgba(40, 40, 40, 0.98) 100%) !important;
-    border-radius: 24px !important;
-    backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(79, 172, 254, 0.2) !important;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4) !important;
+    padding: 80px 40px;
+    max-width: 600px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, rgba(30, 30, 30, 0.98) 0%, rgba(40, 40, 40, 0.98) 100%);
+    border-radius: 24px;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(79, 172, 254, 0.2);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     position: relative;
     z-index: 1;
     overflow: hidden;
+    /* CRITICAL FIX: Ensure no background interference */
+    isolation: isolate;
   }
   
   .study-completion::before {
@@ -1063,8 +1065,8 @@
   }
   
   .completion-icon {
-    font-size: 5rem !important;
-    margin-bottom: 24px !important;
+    font-size: 5rem;
+    margin-bottom: 24px;
     animation: bounce 2s ease-in-out infinite;
     filter: drop-shadow(0 4px 12px rgba(255, 193, 7, 0.3));
   }
@@ -1076,10 +1078,10 @@
   }
   
   .study-completion h2 {
-    color: white !important;
-    font-size: 2.2rem !important;
-    font-weight: 700 !important;
-    margin: 0 0 12px 0 !important;
+    color: white;
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin: 0 0 12px 0;
     background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -1087,45 +1089,60 @@
   }
   
   .study-completion p {
-    color: #aaa !important;
-    font-size: 1.1rem !important;
-    margin: 0 0 40px 0 !important;
+    color: #aaa;
+    font-size: 1.1rem;
+    margin: 0 0 40px 0;
     line-height: 1.6;
     max-width: 400px;
-    margin-left: auto !important;
-    margin-right: auto !important;
-    margin-bottom: 40px !important;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 40px;
   }
   
+  /* CRITICAL FIX: Ensure completion actions are clickable */
   .completion-actions {
-    display: flex !important;
-    gap: 20px !important;
-    justify-content: center !important;
+    display: flex;
+    gap: 20px;
+    justify-content: center;
     flex-wrap: wrap;
+    position: relative;
+    z-index: 100;
+    /* CRITICAL: Ensure buttons are above everything */
+    isolation: isolate;
   }
   
+  /* CRITICAL FIX: Ensure buttons are fully clickable */
   .back-button, .restart-button {
-    padding: 16px 32px !important;
-    border: none !important;
-    border-radius: 16px !important;
-    font-size: 1.1rem !important;
-    font-weight: 600 !important;
-    cursor: pointer !important;
-    transition: all 0.3s ease !important;
+    padding: 16px 32px;
+    border: none;
+    border-radius: 16px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
     text-decoration: none;
     min-width: 160px;
-    justify-content: center;
     position: relative;
     overflow: hidden;
+    z-index: 1000;
+    user-select: none;
+    -webkit-user-select: none;
+    /* CRITICAL: Ensure pointer events work */
+    pointer-events: auto;
+    /* CRITICAL: Prevent background interference */
+    isolation: isolate;
+    /* CRITICAL: Ensure button content is above background */
+    background-clip: padding-box;
   }
   
   .back-button {
-    background: rgba(255, 255, 255, 0.1) !important;
-    color: #ddd !important;
-    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ddd;
+    border: 2px solid rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(10px);
   }
   
@@ -1136,18 +1153,22 @@
   }
   
   .back-button:hover {
-    background: rgba(255, 255, 255, 0.15) !important;
-    border-color: rgba(255, 255, 255, 0.3) !important;
-    color: white !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.1) !important;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.1);
   }
   
+  /* CRITICAL FIX: Restart button with proper z-index and isolation */
   .restart-button {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
-    color: white !important;
-    border: 2px solid transparent !important;
-    box-shadow: 0 4px 20px rgba(79, 172, 254, 0.3) !important;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    border: 2px solid transparent;
+    box-shadow: 0 4px 20px rgba(79, 172, 254, 0.3);
+    /* CRITICAL: Additional isolation for this button */
+    transform: translateZ(0);
+    will-change: transform;
   }
   
   .restart-button::before {
@@ -1165,6 +1186,8 @@
     height: 100%;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
     transition: left 0.5s;
+    /* CRITICAL: Keep animation behind button content */
+    z-index: -1;
   }
   
   .restart-button:hover::after {
@@ -1172,9 +1195,25 @@
   }
   
   .restart-button:hover {
-    transform: translateY(-3px) !important;
-    box-shadow: 0 12px 35px rgba(79, 172, 254, 0.4) !important;
-    border-color: rgba(79, 172, 254, 0.5) !important;
+    transform: translateY(-3px) translateZ(0);
+    box-shadow: 0 12px 35px rgba(79, 172, 254, 0.4);
+    border-color: rgba(79, 172, 254, 0.5);
+  }
+  
+  .restart-button:active {
+    transform: translateY(-1px) translateZ(0);
+  }
+  
+  .restart-button:focus {
+    outline: 2px solid #4facfe;
+    outline-offset: 2px;
+  }
+  
+  /* CRITICAL: Ensure buttons work on touch devices */
+  .restart-button:focus-visible,
+  .back-button:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
   }
   
   /* Cloze styles */
@@ -1291,33 +1330,33 @@
     
     /* Mobile completion adjustments */
     .study-completion {
-      padding: 60px 30px !important;
-      margin: 20px !important;
-      border-radius: 20px !important;
+      padding: 60px 30px;
+      margin: 20px;
+      border-radius: 20px;
     }
     
     .completion-icon {
-      font-size: 4rem !important;
-      margin-bottom: 20px !important;
+      font-size: 4rem;
+      margin-bottom: 20px;
     }
     
     .study-completion h2 {
-      font-size: 1.8rem !important;
+      font-size: 1.8rem;
     }
     
     .study-completion p {
-      font-size: 1rem !important;
-      margin-bottom: 30px !important;
+      font-size: 1rem;
+      margin-bottom: 30px;
     }
     
     .completion-actions {
-      flex-direction: column !important;
-      gap: 15px !important;
+      flex-direction: column;
+      gap: 15px;
     }
     
     .back-button, .restart-button {
-      width: 100% !important;
-      padding: 18px 24px !important;
+      width: 100%;
+      padding: 18px 24px;
     }
   }
   
@@ -1412,16 +1451,16 @@
     
     /* Small mobile completion adjustments */
     .study-completion {
-      padding: 50px 20px !important;
-      margin: 15px !important;
+      padding: 50px 20px;
+      margin: 15px;
     }
     
     .completion-icon {
-      font-size: 3.5rem !important;
+      font-size: 3.5rem;
     }
     
     .study-completion h2 {
-      font-size: 1.6rem !important;
+      font-size: 1.6rem;
     }
   }
 

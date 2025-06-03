@@ -1,7 +1,8 @@
-// src/components/Flashcard.jsx - FIXED VERSION WITH BETTER LOADING AND ERROR HANDLING
-import React, { useState, useEffect } from "react";
+// src/components/Flashcard.jsx - FIXED VERSION WITH ENHANCED DEBUGGING
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from '../supabase';
+import UserAuthContext from './context/UserAuthContext';
 
 import FlashcardTitle from "./FlashcardTitle";
 import FlashcardInput from "./FlashcardInput";
@@ -13,6 +14,7 @@ import "../styles/Flashcard.css";
 export default function Flashcard() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { user } = useContext(UserAuthContext);
 
   const [title, setTitle] = useState("");
   const [type, setType] = useState("Basic");
@@ -23,24 +25,25 @@ export default function Flashcard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // *** CRITICAL FIX: Enhanced useEffect with better error handling and loading states ***
+  // *** CRITICAL FIX: Enhanced useEffect with better error handling and logging ***
   useEffect(() => {
     const loadData = async () => {
       if (id) {
-        console.log('Loading flashcard set with ID:', id);
+        console.log('🔄 Loading flashcard set with ID:', id);
         setLoading(true);
         setError(null);
         
         try {
           await fetchExistingSet(id);
         } catch (err) {
-          console.error('Error loading flashcard set:', err);
+          console.error('❌ Error loading flashcard set:', err);
           setError('Failed to load flashcard set. Please try again.');
         } finally {
           setLoading(false);
         }
       } else {
         // No ID - new set
+        console.log('🆕 Creating new flashcard set');
         setLoading(false);
       }
     };
@@ -49,7 +52,7 @@ export default function Flashcard() {
   }, [id]); // Only depend on id
 
   const fetchExistingSet = async (theId) => {
-    console.log('Fetching existing set with ID:', theId);
+    console.log('📦 Fetching existing set with ID:', theId);
     
     try {
       // First, try to get just the set info to verify it exists
@@ -60,7 +63,7 @@ export default function Flashcard() {
         .single();
 
       if (setError) {
-        console.error("Error fetching set:", setError);
+        console.error("❌ Error fetching set:", setError);
         if (setError.code === 'PGRST116') {
           throw new Error('Flashcard set not found');
         }
@@ -71,7 +74,7 @@ export default function Flashcard() {
         throw new Error('Flashcard set not found');
       }
 
-      console.log('Set data loaded:', setData);
+      console.log('✅ Set data loaded:', setData);
 
       // Set the basic info first
       setSetId(setData.id);
@@ -79,7 +82,7 @@ export default function Flashcard() {
       setType(setData.type || 'Basic');
 
       // Now fetch the cards separately with a small delay to ensure database consistency
-      console.log('Fetching cards for set:', setData.id);
+      console.log('🃏 Fetching cards for set:', setData.id);
       
       // Add a small delay to ensure database writes have settled
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -91,29 +94,29 @@ export default function Flashcard() {
         .order('created_at', { ascending: true });
 
       if (cardsError) {
-        console.error("Error fetching cards:", cardsError);
+        console.error("❌ Error fetching cards:", cardsError);
         // Don't throw here - just log and continue with empty cards
         setFlashcards([]);
       } else {
-        console.log('Cards loaded:', cardsData?.length || 0, 'cards');
+        console.log('✅ Cards loaded:', cardsData?.length || 0, 'cards');
         setFlashcards(cardsData || []);
       }
 
       // Always set deck type to 'Mixed' since we're always in per-card mode
       if (setData.type !== 'Mixed') {
-        console.log('Updating deck type to Mixed...');
+        console.log('🔄 Updating deck type to Mixed...');
         const { error: updateError } = await supabase
           .from('flashcard_sets')
           .update({ type: 'Mixed' })
           .eq('id', setData.id);
           
         if (updateError) {
-          console.error("Error updating set type:", updateError);
+          console.error("❌ Error updating set type:", updateError);
         }
       }
 
     } catch (error) {
-      console.error('Error in fetchExistingSet:', error);
+      console.error('💥 Error in fetchExistingSet:', error);
       throw error; // Re-throw to be handled by the calling function
     }
   };
@@ -122,13 +125,13 @@ export default function Flashcard() {
   useEffect(() => {
     const updateSetDetails = async () => {
       if (setId && title.trim()) {
-        console.log('Updating set title to:', title);
+        console.log('📝 Updating set title to:', title);
         const { error } = await supabase
           .from('flashcard_sets')
           .update({ title: title.trim() })
           .eq('id', setId);
         if (error) {
-          console.error("Error updating set title:", error);
+          console.error("❌ Error updating set title:", error);
         }
       }
     };
@@ -143,74 +146,152 @@ export default function Flashcard() {
   }, [title, setId]);
 
   const addFlashcard = async (front, back, cardType = null) => {
+    console.log('🚀 addFlashcard called with:', {
+      front: front?.substring(0, 50) + '...',
+      back: back?.substring(0, 50) + '...',
+      cardType,
+      setId,
+      title: title?.substring(0, 30),
+      userId: user?.id
+    });
+
     const finalCardType = cardType || type;
     
-    if (finalCardType === 'Basic' && (!front.trim() || !back.trim())) return;
-    if (finalCardType === 'Basic-Type' && (!front.trim() || !back.trim())) return;
-    if (finalCardType === 'Cloze' && !front.trim()) return;
+    // ENHANCED VALIDATION: Better content checking
+    const cleanFront = (front || '').replace(/<[^>]*>/g, '').trim();
+    const cleanBack = (back || '').replace(/<[^>]*>/g, '').trim();
+    
+    console.log('📝 Content validation:', {
+      finalCardType,
+      cleanFront: cleanFront.substring(0, 50),
+      cleanBack: cleanBack.substring(0, 50),
+      frontLength: cleanFront.length,
+      backLength: cleanBack.length
+    });
+
+    // Type-specific validation
+    if (finalCardType === 'Basic' && (!cleanFront || !cleanBack)) {
+      console.warn('❌ Basic card validation failed');
+      alert('Please fill in both front and back content for Basic cards.');
+      return;
+    }
+    if (finalCardType === 'Basic-Type' && (!cleanFront || !cleanBack)) {
+      console.warn('❌ Basic-Type card validation failed');
+      alert('Please fill in both front and back content for Basic-Type cards.');
+      return;
+    }
+    if (finalCardType === 'Cloze' && !cleanFront) {
+      console.warn('❌ Cloze card validation failed');
+      alert('Please add front content for Cloze cards.');
+      return;
+    }
 
     setShowSuccess(true);
 
     try {
       if (setId) {
-        console.log('Adding card to existing set:', setId);
+        console.log('📦 Adding card to existing set:', setId);
+        
+        const cardData = { 
+          set_id: setId, 
+          front: front || '', 
+          back: back || '',
+          card_type: finalCardType,
+          user_id: user?.id || null // CRITICAL: Add user_id for better data integrity
+        };
+        
+        console.log('📋 Inserting card data:', cardData);
+        
         const { data, error } = await supabase
           .from('flashcard_cards')
-          .insert({ 
-            set_id: setId, 
-            front, 
-            back,
-            card_type: finalCardType
-          })
+          .insert(cardData)
           .select();
 
         if (error) {
-          console.error('Error adding card:', error);
+          console.error('❌ Error adding card:', error);
+          alert(`Failed to add card: ${error.message}`);
           return;
         }
 
-        console.log('Card added successfully:', data[0]);
-        setFlashcards(prev => [...prev, data[0]]);
+        if (!data || data.length === 0) {
+          console.error('❌ No data returned from insert');
+          alert('Card may not have been saved properly. Please refresh and try again.');
+          return;
+        }
+
+        console.log('✅ Card added successfully:', data[0]);
+        
+        // CRITICAL FIX: Force re-render by creating new array
+        setFlashcards(prev => {
+          console.log('📊 Current flashcards count:', prev.length);
+          const newList = [...prev, data[0]];
+          console.log('📊 New flashcards count:', newList.length);
+          console.log('🔄 Flashcards state updated');
+          return newList;
+        });
+        
       } else {
-        console.log('Creating new set and adding first card...');
+        console.log('🆕 Creating new set and adding first card...');
+        
+        if (!user) {
+          alert('Please log in to create flashcard sets.');
+          return;
+        }
+        
+        const setData = { 
+          title: title?.trim() || 'New Flashcard Set', 
+          type: 'Mixed',
+          user_id: user.id // CRITICAL: Add user_id
+        };
+        
+        console.log('📋 Creating set with data:', setData);
+        
         const { data: newSetData, error: newSetErr } = await supabase
           .from('flashcard_sets')
-          .insert({ title: title.trim() || 'New Flashcard Set', type: 'Mixed' })
+          .insert(setData)
           .select()
           .single();
 
         if (newSetErr) {
-          console.error('Error creating set:', newSetErr);
+          console.error('❌ Error creating set:', newSetErr);
+          alert(`Failed to create flashcard set: ${newSetErr.message}`);
           return;
         }
 
-        console.log('New set created:', newSetData);
+        console.log('✅ New set created:', newSetData);
         setSetId(newSetData.id);
+
+        const cardData = { 
+          set_id: newSetData.id, 
+          front: front || '', 
+          back: back || '',
+          card_type: finalCardType,
+          user_id: user.id // CRITICAL: Add user_id
+        };
+        
+        console.log('📋 Inserting first card:', cardData);
 
         const { data: insertedCard, error: cardErr } = await supabase
           .from('flashcard_cards')
-          .insert({ 
-            set_id: newSetData.id, 
-            front, 
-            back,
-            card_type: finalCardType
-          })
+          .insert(cardData)
           .select()
           .single();
 
         if (cardErr) {
-          console.error('Error adding first card:', cardErr);
+          console.error('❌ Error adding first card:', cardErr);
+          alert(`Failed to add first card: ${cardErr.message}`);
           return;
         }
 
-        console.log('First card added successfully:', insertedCard);
+        console.log('✅ First card added successfully:', insertedCard);
         setFlashcards([insertedCard]);
         
         // Update URL to include the new set ID
         navigate(`/flashcards/${newSetData.id}`, { replace: true });
       }
     } catch (err) {
-      console.error("Unexpected error saving flashcard:", err);
+      console.error("💥 Unexpected error saving flashcard:", err);
+      alert(`An unexpected error occurred: ${err.message}`);
     }
   };
 
@@ -294,6 +375,11 @@ export default function Flashcard() {
       <div className="flashcard-container">
         <div className="flashcard-header">
           <h2>{setId ? "Edit Flashcards" : "Create Flashcards"}</h2>
+          {user && (
+            <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+              Logged in as: {user.email}
+            </div>
+          )}
         </div>
 
         <div className="flashcard-header-row">
@@ -314,6 +400,26 @@ export default function Flashcard() {
 
         {showSuccess && (
           <SuccessPopup onClose={() => setShowSuccess(false)} />
+        )}
+
+        {/* Debug info (remove in production) */}
+        {process.env.NODE_ENV === 'development' && (
+          <div style={{ 
+            background: '#1a1a1a', 
+            padding: '10px', 
+            borderRadius: '5px', 
+            margin: '10px 0',
+            fontSize: '0.8rem',
+            color: '#ccc'
+          }}>
+            <strong>Debug Info:</strong><br/>
+            Set ID: {setId || 'None'}<br/>
+            User ID: {user?.id || 'None'}<br/>
+            Title: {title || 'Empty'}<br/>
+            Cards Count: {flashcards.length}<br/>
+            Per-card Mode: {isPerCardMode ? 'Yes' : 'No'}<br/>
+            Type: {type}
+          </div>
         )}
       </div>
 
