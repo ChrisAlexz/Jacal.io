@@ -1,4 +1,4 @@
-// src/components/ImportModal.jsx - FIXED VERSION WITH PROPER DATABASE HANDLING
+// src/components/ImportModal.jsx - COMPLETE FIXED VERSION
 import React, { useState, useContext } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
@@ -226,7 +226,7 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
       console.log('✅ Flashcard set created with ID:', setId);
       setParseProgress(60);
 
-      // Prepare cards for insertion - CRITICAL FIX
+      // Prepare cards for insertion - CRITICAL FIX: Include user_id
       const cardsToInsert = parsedData.cards.map((card, index) => {
         // Ensure we have valid front and back content
         const frontContent = (card.front || '').toString().trim();
@@ -241,15 +241,15 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
           front: frontContent || `Card ${index + 1} Front`,
           back: backContent || `Card ${index + 1} Back`,
           card_type: card.cardType || 'Basic',
-          user_id: user.id
+          user_id: user.id // CRITICAL: Include user_id for proper foreign key relationship
         };
       });
 
       console.log(`📝 Prepared ${cardsToInsert.length} cards for insertion`);
       console.log('📋 Sample card:', cardsToInsert[0]);
 
-      // Insert cards in smaller batches with better error handling
-      const batchSize = 25; // Smaller batches for better reliability
+      // Insert cards in smaller batches for better reliability
+      const batchSize = 20; // Smaller batches
       let totalInserted = 0;
       const insertionErrors = [];
 
@@ -269,7 +269,25 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
           if (cardError) {
             console.error(`❌ Batch ${batchNumber} insertion error:`, cardError);
             insertionErrors.push(`Batch ${batchNumber}: ${cardError.message}`);
-            // Continue with next batch instead of stopping
+            
+            // Try to continue with smaller sub-batches
+            console.log(`🔄 Trying to insert cards individually for batch ${batchNumber}...`);
+            let individualInserts = 0;
+            for (const singleCard of batch) {
+              try {
+                const { error: singleError } = await supabase
+                  .from('flashcard_cards')
+                  .insert([singleCard]);
+                  
+                if (!singleError) {
+                  individualInserts++;
+                }
+              } catch (singleCardError) {
+                console.error('❌ Individual card insert failed:', singleCardError);
+              }
+            }
+            totalInserted += individualInserts;
+            console.log(`✅ Individual inserts: ${individualInserts}/${batch.length}`);
           } else {
             const insertedCount = insertedCards?.length || 0;
             totalInserted += insertedCount;
@@ -295,7 +313,7 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
         
         // Small delay between batches to avoid overwhelming the database
         if (i + batchSize < cardsToInsert.length) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
       }
 
@@ -344,7 +362,19 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
       
       // Only throw error if we're absolutely sure no cards were inserted
       if (verifyCount === 0 && totalInserted === 0) {
-        throw new Error(`No cards were successfully inserted. Please check your file format and try again.`);
+        throw new Error(`No cards were successfully inserted. Please check your file format and try again.
+
+Debug info:
+- File: ${file.name} (${file.size} bytes)
+- Cards prepared: ${cardsToInsert.length}
+- Insertion errors: ${insertionErrors.length}
+
+This might be due to:
+1. Database permission issues
+2. Invalid card data format
+3. Foreign key constraint violations
+
+Please try with a smaller file first, or check the browser console for more details.`);
       }
 
       if (verifyCount > 0 && verifyCount < totalInserted * 0.5) {
