@@ -1,4 +1,4 @@
-// src/components/SimpleRichTextEditor.jsx - FINAL REFACTORED WITH ORGANIZED FOLDER STRUCTURE
+// src/components/SimpleRichTextEditor.jsx - ROBUST VERSION THAT PREVENTS MATH DISAPPEARING
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { supabase } from '../supabase';
 
@@ -20,7 +20,7 @@ const SimpleRichTextEditor = ({
   onChange, 
   placeholder = '', 
   readOnly = false,
-  onAudioChange = null, // Callback for when audio is added/removed
+  onAudioChange = null,
   initialAudioUrl = null,
   user = null
 }) => {
@@ -31,6 +31,9 @@ const SimpleRichTextEditor = ({
   const audioRef = useRef(null);
   const fileInputRef = useRef(null);
   const recordingTimerRef = useRef(null);
+  const changeTimeoutRef = useRef(null);
+  const lastContentRef = useRef('');
+  const mathHandlerRef = useRef(null);
 
   const [activeFormats, setActiveFormats] = useState({
     bold: false,
@@ -50,13 +53,42 @@ const SimpleRichTextEditor = ({
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState('');
 
+  // ROBUST: Safe onChange that checks if we're typing in math
+  const safeOnChange = useCallback((content) => {
+    // Skip if content is the same
+    if (content === lastContentRef.current) {
+      return;
+    }
+    
+    // Skip if currently typing in math structure
+    if (mathHandlerRef.current?.isCurrentlyTypingInMath()) {
+      console.log('Skipping onChange - typing in math structure');
+      return;
+    }
+    
+    lastContentRef.current = content;
+    
+    clearTimeout(changeTimeoutRef.current);
+    changeTimeoutRef.current = setTimeout(() => {
+      if (onChange && !mathHandlerRef.current?.isCurrentlyTypingInMath()) {
+        console.log('Triggering onChange with content:', content.substring(0, 100) + '...');
+        onChange(content);
+      }
+    }, 150);
+  }, [onChange]);
+
   // Get editor content handlers
   const { handleEditorClick, handleEditorKeyDown, mathHandler } = EditorContentHandler({ 
     editorRef, 
-    onChange, 
+    onChange: safeOnChange,
     readOnly, 
     setActiveFormats 
   });
+
+  // Store math handler reference
+  useEffect(() => {
+    mathHandlerRef.current = mathHandler;
+  }, [mathHandler]);
 
   // Execute formatting command
   const execCommand = useCallback((command, value = null) => {
@@ -103,11 +135,11 @@ const SimpleRichTextEditor = ({
     setActiveFormats(newFormats);
     
     setTimeout(() => {
-      if (onChange && editorRef.current) {
-        onChange(editorRef.current.innerHTML);
+      if (editorRef.current) {
+        safeOnChange(editorRef.current.innerHTML);
       }
     }, 10);
-  }, [activeFormats, onChange, readOnly]);
+  }, [activeFormats, safeOnChange, readOnly]);
 
   // Insert math symbol using the math handler
   const insertMathSymbol = useCallback((symbol) => {
@@ -119,14 +151,22 @@ const SimpleRichTextEditor = ({
     mathHandler.insertMathSymbol(symbol, selection, editorRef);
   }, [readOnly, mathHandler]);
 
-  // Handle content changes
-  const handleInput = useCallback(() => {
-    if (onChange && editorRef.current) {
-      onChange(editorRef.current.innerHTML);
+  // ROBUST: Handle input with math structure protection
+  const handleInput = useCallback((e) => {
+    if (!editorRef.current) return;
+    
+    const content = editorRef.current.innerHTML;
+    
+    // Don't trigger onChange if typing in math
+    if (mathHandlerRef.current?.isCurrentlyTypingInMath()) {
+      console.log('Input detected but skipping - typing in math');
+      return;
     }
-  }, [onChange]);
+    
+    safeOnChange(content);
+  }, [safeOnChange]);
 
-  // Audio recording functions
+  // Audio recording functions (unchanged)
   const startRecording = async () => {
     try {
       setError('');
@@ -159,10 +199,8 @@ const SimpleRichTextEditor = ({
           type: mediaRecorder.mimeType || 'audio/webm' 
         });
         
-        // Upload immediately after recording
         await uploadAudioFile(audioBlob, true);
         
-        // Stop all tracks
         if (audioStreamRef.current) {
           audioStreamRef.current.getTracks().forEach(track => track.stop());
           audioStreamRef.current = null;
@@ -173,12 +211,10 @@ const SimpleRichTextEditor = ({
       setIsRecording(true);
       setRecordingTime(0);
       
-      // Clear any existing timer before starting new one
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
       }
       
-      // Start timer
       recordingTimerRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
@@ -194,7 +230,6 @@ const SimpleRichTextEditor = ({
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       
-      // Clear timer properly
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
@@ -202,7 +237,6 @@ const SimpleRichTextEditor = ({
     }
   };
 
-  // Upload audio file
   const uploadAudioFile = async (file, isRecording = false) => {
     if (!user || !file) return null;
 
@@ -241,19 +275,16 @@ const SimpleRichTextEditor = ({
     }
   };
 
-  // Handle file upload
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Validate file type
     const validTypes = ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/webm'];
     if (!validTypes.includes(file.type)) {
       setError('Please upload a valid audio file');
       return;
     }
 
-    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       setError('File size must be less than 10MB');
       return;
@@ -262,7 +293,6 @@ const SimpleRichTextEditor = ({
     await uploadAudioFile(file, false);
   };
 
-  // Audio playback
   const togglePlayback = () => {
     if (!audioRef.current || !audioUrl) return;
 
@@ -304,7 +334,6 @@ const SimpleRichTextEditor = ({
     setCurrentTime(newTime);
   };
 
-  // Remove audio
   const removeAudio = () => {
     setAudioUrl(null);
     setIsPlaying(false);
@@ -315,14 +344,18 @@ const SimpleRichTextEditor = ({
     }
   };
 
-  // Set initial content
+  // ROBUST: Set initial content with protection
   useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML !== value) {
-      editorRef.current.innerHTML = value;
+    if (editorRef.current && value !== lastContentRef.current) {
+      // Only update if not currently typing in math
+      if (!mathHandlerRef.current?.isCurrentlyTypingInMath()) {
+        console.log('Setting initial content:', value.substring(0, 100) + '...');
+        editorRef.current.innerHTML = value;
+        lastContentRef.current = value;
+      }
     }
   }, [value]);
 
-  // Set initial audio URL
   useEffect(() => {
     if (initialAudioUrl && initialAudioUrl !== audioUrl) {
       setAudioUrl(initialAudioUrl);
@@ -334,7 +367,6 @@ const SimpleRichTextEditor = ({
     const editor = editorRef.current;
     if (!editor) return;
     
-    // Add both click and keyboard event listeners
     editor.addEventListener('click', handleEditorClick);
     editor.addEventListener('keydown', handleEditorKeyDown);
     
@@ -344,7 +376,7 @@ const SimpleRichTextEditor = ({
     };
   }, [handleEditorClick, handleEditorKeyDown]);
 
-  // Cleanup function to properly clear timer
+  // Cleanup
   useEffect(() => {
     return () => {
       if (audioStreamRef.current) {
@@ -354,6 +386,10 @@ const SimpleRichTextEditor = ({
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
       }
+      if (changeTimeoutRef.current) {
+        clearTimeout(changeTimeoutRef.current);
+        changeTimeoutRef.current = null;
+      }
     };
   }, []);
 
@@ -361,26 +397,21 @@ const SimpleRichTextEditor = ({
     <div className="simple-rich-text-editor">
       {!readOnly && (
         <div className="editor-toolbar">
-          {/* Text formatting buttons */}
           <FormattingToolbar
             activeFormats={activeFormats}
             onFormatCommand={execCommand}
             disabled={readOnly}
           />
 
-          {/* Divider */}
           <div className="toolbar-divider"></div>
 
-          {/* Math Symbols Dropdown */}
           <MathSymbolsDropdown
             onInsertSymbol={insertMathSymbol}
             disabled={readOnly}
           />
 
-          {/* Divider */}
           <div className="toolbar-divider"></div>
 
-          {/* Audio buttons */}
           <AudioToolbar
             audioUrl={audioUrl}
             isRecording={isRecording}
@@ -407,7 +438,6 @@ const SimpleRichTextEditor = ({
         suppressContentEditableWarning={true}
       />
 
-      {/* Audio Player Display */}
       <AudioPlayerDisplay
         audioUrl={audioUrl}
         isPlaying={isPlaying}
@@ -424,7 +454,6 @@ const SimpleRichTextEditor = ({
         onLoadedMetadata={handleLoadedMetadata}
       />
 
-      {/* Error display */}
       {error && (
         <div className="audio-error">
           <small>{error}</small>
