@@ -1,4 +1,4 @@
-// Fixed FlashcardInput.jsx - Ensures proper card type validation
+// Fixed FlashcardInput.jsx - FIXED UNDEFINED REPLACE ERROR
 import React, { useState, useContext } from 'react';
 import SimpleRichTextEditor from './SimpleRichTextEditor';
 import ImageOcclusionEditor from './ImageOcclusionEditor';
@@ -81,14 +81,15 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
     
     console.log('🔄 handleAdd called with:', {
       finalCardType,
-      frontContent: frontContent.substring(0, 50),
-      backContent: backContent.substring(0, 50),
+      frontContent: (frontContent || '').substring(0, 50),
+      backContent: (backContent || '').substring(0, 50),
       frontAudio: frontAudioUrl ? 'Yes' : 'No',
       backAudio: backAudioUrl ? 'Yes' : 'No'
     });
 
-    const cleanFront = frontContent.replace(/<[^>]*>/g, '').trim();
-    const cleanBack = backContent.replace(/<[^>]*>/g, '').trim();
+    // FIXED: Ensure frontContent and backContent are strings before calling replace
+    const cleanFront = (frontContent || '').replace(/<[^>]*>/g, '').trim();
+    const cleanBack = (backContent || '').replace(/<[^>]*>/g, '').trim();
 
     // Validation based on card type - allow audio-only cards
     if (finalCardType === 'Cloze') {
@@ -206,14 +207,18 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
     });
   };
 
-  // Check if content is valid based on type
+  // FIXED: Check if content is valid based on type - handle undefined values
   const isContentValid = () => {
     if (activeType === 'Image-Occlusion') {
       return false; // Handled by ImageOcclusionEditor
     }
     
-    const hasFrontContent = frontContent.replace(/<[^>]*>/g, '').trim() !== '';
-    const hasBackContent = backContent.replace(/<[^>]*>/g, '').trim() !== '';
+    // FIXED: Ensure content is a string before calling replace
+    const safeFrontContent = frontContent || '';
+    const safeBackContent = backContent || '';
+    
+    const hasFrontContent = safeFrontContent.replace(/<[^>]*>/g, '').trim() !== '';
+    const hasBackContent = safeBackContent.replace(/<[^>]*>/g, '').trim() !== '';
     const hasFrontAudio = !!frontAudioUrl;
     const hasBackAudio = !!backAudioUrl;
     
