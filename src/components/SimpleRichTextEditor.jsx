@@ -611,7 +611,7 @@ const SimpleRichTextEditor = ({
     }
   }, [readOnly]);
 
-  // FIXED: Handle keyboard navigation, formatting, and fraction conversion
+  // FIXED: Enhanced handleEditorKeyDown function with nested fraction support
   const handleEditorKeyDown = useCallback((event) => {
     if (readOnly) return;
     
@@ -622,86 +622,151 @@ const SimpleRichTextEditor = ({
     
     // FIXED: Handle "/" key to create fractions (including nested fractions)
     if (event.key === '/') {
+      event.preventDefault();
+      
       const currentNode = range.startContainer;
-      const currentText = currentNode.textContent || '';
       const cursorPos = range.startOffset;
       
-      // Look for a number or text before the cursor (allowing for nested fractions)
-      const textBeforeCursor = currentText.substring(0, cursorPos);
-      const numberMatch = textBeforeCursor.match(/([a-zA-Z0-9+\-*/.()]+)$/);
+      // Check if we're inside a fraction editable area
+      const isInFractionEditable = currentNode.parentElement?.closest('.fraction-num-editable, .fraction-den-editable');
       
-      if (numberMatch) {
-        const numerator = numberMatch[1];
-        const numberStartPos = cursorPos - numerator.length;
+      if (isInFractionEditable) {
+        // Handle nested fraction creation within existing fraction
+        const editableElement = currentNode.parentElement.closest('.fraction-num-editable, .fraction-den-editable');
+        const textContent = editableElement.textContent || '';
+        const textBeforeCursor = textContent.substring(0, cursorPos);
+        const textAfterCursor = textContent.substring(cursorPos);
         
-        event.preventDefault();
+        // Look for numerator pattern (more flexible for nested fractions)
+        const numeratorMatch = textBeforeCursor.match(/([^/\s]+)$/);
         
-        // Create the fraction structure
-        const fractionElement = document.createElement('span');
-        fractionElement.className = 'math-fraction';
-        fractionElement.contentEditable = false;
-        fractionElement.innerHTML = `
-          <span class="fraction-numerator">
-            <span class="fraction-num-editable" contenteditable="true" spellcheck="false">${numerator}</span>
-          </span>
-          <span class="fraction-line"></span>
-          <span class="fraction-denominator">
-            <span class="fraction-den-editable" contenteditable="true" spellcheck="false" data-placeholder=""></span>
-          </span>
-        `;
-        
-        // Remove the number from the text node
-        const beforeText = currentText.substring(0, numberStartPos);
-        const afterText = currentText.substring(cursorPos);
-        
-        // Replace the current text node
-        if (beforeText || afterText) {
-          currentNode.textContent = beforeText;
+        if (numeratorMatch) {
+          const numerator = numeratorMatch[1];
+          const numeratorStartPos = cursorPos - numerator.length;
           
-          // Insert the fraction
-          const wrapper = document.createElement('span');
-          wrapper.style.display = 'inline';
-          const afterSpace = document.createTextNode(afterText);
+          // Create nested fraction
+          const nestedFraction = document.createElement('span');
+          nestedFraction.className = 'math-fraction nested-fraction';
+          nestedFraction.contentEditable = false;
+          nestedFraction.innerHTML = `
+            <span class="fraction-numerator">
+              <span class="fraction-num-editable" contenteditable="true" spellcheck="false">${numerator}</span>
+            </span>
+            <span class="fraction-line"></span>
+            <span class="fraction-denominator">
+              <span class="fraction-den-editable" contenteditable="true" spellcheck="false" data-placeholder=""></span>
+            </span>
+          `;
           
-          wrapper.appendChild(fractionElement);
+          // Replace content in the editable element
+          const beforeNumerator = textBeforeCursor.substring(0, numeratorStartPos);
+          editableElement.innerHTML = '';
           
-          if (currentNode.parentNode) {
-            currentNode.parentNode.insertBefore(wrapper, currentNode.nextSibling);
-            if (afterText) {
-              currentNode.parentNode.insertBefore(afterSpace, wrapper.nextSibling);
+          if (beforeNumerator) {
+            editableElement.appendChild(document.createTextNode(beforeNumerator));
+          }
+          
+          editableElement.appendChild(nestedFraction);
+          
+          if (textAfterCursor) {
+            editableElement.appendChild(document.createTextNode(textAfterCursor));
+          }
+          
+          // Set up events for nested fraction
+          setupFractionEvents(nestedFraction);
+          
+          // Focus on denominator of nested fraction
+          setTimeout(() => {
+            const denominator = nestedFraction.querySelector('.fraction-den-editable');
+            if (denominator) {
+              denominator.focus();
+              const range = document.createRange();
+              range.selectNodeContents(denominator);
+              const selection = window.getSelection();
+              selection.removeAllRanges();
+              selection.addRange(range);
+            }
+          }, 10);
+          
+          return;
+        }
+      } else {
+        // Handle regular fraction creation in main editor
+        const currentText = currentNode.textContent || '';
+        const textBeforeCursor = currentText.substring(0, cursorPos);
+        const numberMatch = textBeforeCursor.match(/([a-zA-Z0-9+\-*/.()]+)$/);
+        
+        if (numberMatch) {
+          const numerator = numberMatch[1];
+          const numberStartPos = cursorPos - numerator.length;
+          
+          // Create the fraction structure
+          const fractionElement = document.createElement('span');
+          fractionElement.className = 'math-fraction';
+          fractionElement.contentEditable = false;
+          fractionElement.innerHTML = `
+            <span class="fraction-numerator">
+              <span class="fraction-num-editable" contenteditable="true" spellcheck="false">${numerator}</span>
+            </span>
+            <span class="fraction-line"></span>
+            <span class="fraction-denominator">
+              <span class="fraction-den-editable" contenteditable="true" spellcheck="false" data-placeholder=""></span>
+            </span>
+          `;
+          
+          // Remove the number from the text node
+          const beforeText = currentText.substring(0, numberStartPos);
+          const afterText = currentText.substring(cursorPos);
+          
+          // Replace the current text node
+          if (beforeText || afterText) {
+            currentNode.textContent = beforeText;
+            
+            // Insert the fraction
+            const wrapper = document.createElement('span');
+            wrapper.style.display = 'inline';
+            const afterSpace = document.createTextNode(afterText);
+            
+            wrapper.appendChild(fractionElement);
+            
+            if (currentNode.parentNode) {
+              currentNode.parentNode.insertBefore(wrapper, currentNode.nextSibling);
+              if (afterText) {
+                currentNode.parentNode.insertBefore(afterSpace, wrapper.nextSibling);
+              }
+            }
+          } else {
+            // Replace the entire text node
+            if (currentNode.parentNode) {
+              currentNode.parentNode.replaceChild(fractionElement, currentNode);
             }
           }
-        } else {
-          // Replace the entire text node
-          if (currentNode.parentNode) {
-            currentNode.parentNode.replaceChild(fractionElement, currentNode);
-          }
+          
+          // Set up event handling for the fraction
+          setupFractionEvents(fractionElement);
+          
+          // Focus on the denominator for user to type
+          setTimeout(() => {
+            const denominator = fractionElement.querySelector('.fraction-den-editable');
+            if (denominator) {
+              denominator.focus();
+              const range = document.createRange();
+              range.selectNodeContents(denominator);
+              const selection = window.getSelection();
+              selection.removeAllRanges();
+              selection.addRange(range);
+            }
+          }, 10);
+          
+          // Trigger content change
+          setTimeout(() => {
+            if (onChange && editorRef.current) {
+              onChange(editorRef.current.innerHTML);
+            }
+          }, 50);
+          
+          return;
         }
-        
-        // Set up event handling for the fraction
-        setupFractionEvents(fractionElement);
-        
-        // Focus on the denominator for user to type
-        setTimeout(() => {
-          const denominator = fractionElement.querySelector('.fraction-den-editable');
-          if (denominator) {
-            denominator.focus();
-            const range = document.createRange();
-            range.selectNodeContents(denominator);
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
-          }
-        }, 10);
-        
-        // Trigger content change
-        setTimeout(() => {
-          if (onChange && editorRef.current) {
-            onChange(editorRef.current.innerHTML);
-          }
-        }, 50);
-        
-        return;
       }
     }
     
@@ -827,7 +892,7 @@ const SimpleRichTextEditor = ({
     }
   }, [readOnly, handleInput, setActiveFormats, onChange]);
 
-  // FIXED: Set up fraction event handling
+  // FIXED: Enhanced setupFractionEvents function with nested fraction support
   const setupFractionEvents = useCallback((fractionElement) => {
     const numeratorInput = fractionElement.querySelector('.fraction-num-editable');
     const denominatorInput = fractionElement.querySelector('.fraction-den-editable');
@@ -837,6 +902,80 @@ const SimpleRichTextEditor = ({
       
       // Handle keyboard navigation
       input.addEventListener('keydown', (e) => {
+        // FIXED: Handle "/" key for nested fractions within fraction elements
+        if (e.key === '/') {
+          const selection = window.getSelection();
+          if (!selection.rangeCount) return;
+          
+          const range = selection.getRangeAt(0);
+          const currentNode = range.startContainer;
+          const cursorPos = range.startOffset;
+          const textContent = currentNode.textContent || '';
+          const textBeforeCursor = textContent.substring(0, cursorPos);
+          
+          // Look for numerator pattern for nested fraction
+          const numeratorMatch = textBeforeCursor.match(/([^/\s]+)$/);
+          
+          if (numeratorMatch) {
+            e.preventDefault();
+            
+            const numerator = numeratorMatch[1];
+            const numeratorStartPos = cursorPos - numerator.length;
+            const textAfterCursor = textContent.substring(cursorPos);
+            
+            // Create nested fraction
+            const nestedFraction = document.createElement('span');
+            nestedFraction.className = 'math-fraction nested-fraction';
+            nestedFraction.contentEditable = false;
+            nestedFraction.innerHTML = `
+              <span class="fraction-numerator">
+                <span class="fraction-num-editable" contenteditable="true" spellcheck="false">${numerator}</span>
+              </span>
+              <span class="fraction-line"></span>
+              <span class="fraction-denominator">
+                <span class="fraction-den-editable" contenteditable="true" spellcheck="false" data-placeholder=""></span>
+              </span>
+            `;
+            
+            // Replace content in the current input
+            const beforeNumerator = textBeforeCursor.substring(0, numeratorStartPos);
+            input.innerHTML = '';
+            
+            if (beforeNumerator) {
+              input.appendChild(document.createTextNode(beforeNumerator));
+            }
+            
+            input.appendChild(nestedFraction);
+            
+            if (textAfterCursor) {
+              input.appendChild(document.createTextNode(textAfterCursor));
+            }
+            
+            // Set up events for nested fraction
+            setupFractionEvents(nestedFraction);
+            
+            // Focus on denominator of nested fraction
+            setTimeout(() => {
+              const denominator = nestedFraction.querySelector('.fraction-den-editable');
+              if (denominator) {
+                denominator.focus();
+                const range = document.createRange();
+                range.selectNodeContents(denominator);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+              }
+            }, 10);
+            
+            // Trigger change
+            if (onChange && editorRef.current) {
+              onChange(editorRef.current.innerHTML);
+            }
+            
+            return;
+          }
+        }
+        
         if (e.key === 'Enter' || e.key === 'Tab') {
           e.preventDefault();
           
@@ -849,11 +988,11 @@ const SimpleRichTextEditor = ({
             selection.removeAllRanges();
             selection.addRange(range);
           } else {
-            // Exit the fraction
-            const wrapper = fractionElement.parentNode;
+            // Exit the fraction - position cursor after the main fraction wrapper
+            const mainWrapper = fractionElement.parentNode;
             const range = document.createRange();
             const selection = window.getSelection();
-            range.setStartAfter(wrapper);
+            range.setStartAfter(mainWrapper);
             range.collapse(true);
             selection.removeAllRanges();
             selection.addRange(range);
@@ -863,10 +1002,10 @@ const SimpleRichTextEditor = ({
         
         if (e.key === 'Escape') {
           e.preventDefault();
-          const wrapper = fractionElement.parentNode;
+          const mainWrapper = fractionElement.parentNode;
           const range = document.createRange();
           const selection = window.getSelection();
-          range.setStartAfter(wrapper);
+          range.setStartAfter(mainWrapper);
           range.collapse(true);
           selection.removeAllRanges();
           selection.addRange(range);
@@ -876,9 +1015,20 @@ const SimpleRichTextEditor = ({
       
       // Handle content changes
       input.addEventListener('input', (e) => {
+        // Handle paste and ensure plain text only
         const text = input.textContent;
         if (input.innerHTML !== text) {
-          input.textContent = text;
+          // Keep only text content, preserve any nested fractions
+          const children = Array.from(input.childNodes);
+          input.innerHTML = '';
+          
+          children.forEach(child => {
+            if (child.nodeType === Node.TEXT_NODE) {
+              input.appendChild(document.createTextNode(child.textContent));
+            } else if (child.classList && child.classList.contains('math-fraction')) {
+              input.appendChild(child);
+            }
+          });
         }
         
         if (onChange && editorRef.current) {
@@ -890,7 +1040,19 @@ const SimpleRichTextEditor = ({
       input.addEventListener('paste', (e) => {
         e.preventDefault();
         const text = (e.clipboardData || window.clipboardData).getData('text/plain');
-        document.execCommand('insertText', false, text.replace(/\s+/g, ' ').trim());
+        
+        // Check if pasted text contains "/" for auto-fraction conversion
+        if (text.includes('/')) {
+          // Insert text and then trigger fraction detection
+          document.execCommand('insertText', false, text);
+          // Trigger a synthetic "/" keydown to convert any fractions
+          setTimeout(() => {
+            const syntheticEvent = new KeyboardEvent('keydown', { key: '/' });
+            input.dispatchEvent(syntheticEvent);
+          }, 10);
+        } else {
+          document.execCommand('insertText', false, text.replace(/\s+/g, ' ').trim());
+        }
       });
       
       // Handle focus

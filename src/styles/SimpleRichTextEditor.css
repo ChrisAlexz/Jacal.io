@@ -735,15 +735,6 @@
   margin-left: 2px;
 }
 
-/* FIXED: Ensure proper spacing and cursor positioning around math structures */
-.math-structure + * {
-  margin-left: 2px;
-}
-
-* + .math-structure {
-  margin-left: 2px;
-}
-
 /* FIXED: Use truly invisible spacing for cursor positioning */
 .math-structure::before {
   content: ''; /* Remove visible characters */
@@ -798,27 +789,36 @@
   cursor: text;
 }
 
-/* Mathematical Fraction Styling */
+/* FIXED: Enhanced Mathematical Fraction Styling with Better Alignment */
 .math-fraction {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  vertical-align: 0.1em; /* FIXED: Middle value between 0.05em and 0.15em */
-  margin: 0 2px;
+  vertical-align: 0.2em; /* FIXED: Improved baseline alignment for better text flow */
+  margin: 0 3px; /* FIXED: Increased horizontal spacing */
   position: relative;
   font-family: 'Times New Roman', serif;
   font-size: 1em;
+  line-height: 1;
 }
 
-/* FIXED: Main fraction line positioning for baseline alignment */
-.math-fraction > .fraction-line {
-  width: 100%;
-  min-width: 24px;
-  height: 1px;
-  background: currentColor;
-  margin: 1px 0;
-  position: relative;
-  /* This is the reference line for text alignment */
+/* FIXED: Nested fractions with better scaling and alignment */
+.math-fraction.nested-fraction {
+  font-size: 0.8em; /* FIXED: Better scaling for nested fractions */
+  margin: 0 2px;
+  vertical-align: 0.15em; /* FIXED: Adjusted for nested alignment */
+}
+
+.math-fraction .math-fraction.nested-fraction {
+  font-size: 0.75em; /* FIXED: Even smaller for deeply nested fractions */
+  margin: 0 1px;
+  vertical-align: 0.1em;
+}
+
+.math-fraction .math-fraction .math-fraction.nested-fraction {
+  font-size: 0.65em; /* FIXED: Smallest for deeply nested */
+  margin: 0;
+  vertical-align: 0.05em;
 }
 
 .fraction-numerator,
@@ -829,31 +829,49 @@
   min-width: 20px;
   padding: 2px 4px;
   position: relative;
+  line-height: 1.1; /* FIXED: Tighter line height for better spacing */
 }
 
 .fraction-numerator {
   margin-bottom: 1px;
+  min-height: 16px; /* FIXED: Minimum height for consistent spacing */
 }
 
 .fraction-denominator {
   margin-top: 1px;
+  min-height: 16px; /* FIXED: Minimum height for consistent spacing */
 }
 
+/* FIXED: Enhanced fraction line for better visual alignment */
 .fraction-line {
   width: 100%;
-  min-width: 24px;
-  height: 1px;
+  min-width: 26px; /* FIXED: Slightly wider minimum width */
+  height: 1.5px; /* FIXED: Slightly thicker line for better visibility */
   background: currentColor;
-  margin: 1px 0;
+  margin: 0.5px 0; /* FIXED: Reduced margin for tighter spacing */
   position: relative;
+  box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.1); /* FIXED: Subtle shadow for depth */
+}
+
+/* FIXED: Nested fraction lines scale appropriately */
+.nested-fraction .fraction-line {
+  min-width: 20px;
+  height: 1px;
+  margin: 0.25px 0;
+}
+
+.math-fraction .nested-fraction .fraction-line {
+  min-width: 16px;
+  height: 0.8px;
+  margin: 0.2px 0;
 }
 
 .fraction-num-editable,
 .fraction-den-editable {
   background: transparent;
   border: none;
-  padding: 1px 3px;
-  min-width: 12px;
+  padding: 1px 4px; /* FIXED: Increased padding for better touch targets */
+  min-width: 14px; /* FIXED: Slightly larger minimum width */
   display: inline-block;
   cursor: text;
   transition: all 0.2s ease;
@@ -861,33 +879,49 @@
   font-style: normal;
   white-space: nowrap;
   text-align: center;
-  font-size: 0.9em;
+  font-size: 1em; /* FIXED: Use relative sizing */
   line-height: 1.2;
   color: inherit;
   vertical-align: baseline;
+  border-radius: 2px; /* FIXED: Slight rounding for better appearance */
 }
 
+/* FIXED: Better hover and focus states */
 .fraction-num-editable:hover,
 .fraction-den-editable:hover {
-  background: rgba(79, 172, 254, 0.05);
-  border-radius: 2px;
+  background: rgba(79, 172, 254, 0.08); /* FIXED: Slightly more visible */
+  box-shadow: 0 0 0 1px rgba(79, 172, 254, 0.2); /* FIXED: Subtle border on hover */
 }
 
 .fraction-num-editable:focus,
 .fraction-den-editable:focus {
-  background: rgba(79, 172, 254, 0.08);
-  border-radius: 2px;
-  box-shadow: none;
+  background: rgba(79, 172, 254, 0.12); /* FIXED: More visible when focused */
+  box-shadow: 0 0 0 2px rgba(79, 172, 254, 0.3); /* FIXED: Clear focus indicator */
 }
 
 .fraction-den-editable:empty::before {
   content: attr(data-placeholder);
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.4); /* FIXED: Better contrast for placeholder */
   font-style: italic;
   font-size: 0.9em;
 }
 
-/* Ensure fractions don't break layout */
+/* FIXED: Nested fraction editable elements scale properly */
+.nested-fraction .fraction-num-editable,
+.nested-fraction .fraction-den-editable {
+  padding: 0.5px 3px;
+  min-width: 12px;
+  font-size: 0.95em;
+}
+
+.math-fraction .nested-fraction .fraction-num-editable,
+.math-fraction .nested-fraction .fraction-den-editable {
+  padding: 0.5px 2px;
+  min-width: 10px;
+  font-size: 0.9em;
+}
+
+/* FIXED: Selection behavior for fractions */
 .math-fraction {
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -903,55 +937,21 @@
   user-select: text;
 }
 
-/* FIXED: Nested fractions with consistent baseline */
-.math-fraction .math-fraction {
-  font-size: 0.75em;
-  margin: 0 1px;
-  vertical-align: 0.05em; /* Proportional to main fraction */
-}
-
-.math-fraction .math-fraction .math-fraction {
-  font-size: 0.65em;
-  margin: 0;
-  vertical-align: 0.03em;
-}
-
-/* FIXED: Force text alignment with main fraction baseline */
-.editor-content {
-  line-height: 1.8; /* Increased to accommodate fraction heights */
-}
-
-/* FIXED: Ensure all inline elements align consistently */
-.editor-content * {
-  vertical-align: baseline;
-}
-
-/* FIXED: Override for fractions to align with text baseline */
-.editor-content .math-fraction {
-  vertical-align: 0.1em; /* Middle value for better alignment */
-}
-
-/* FIXED: Prevent nested fractions from affecting text alignment */
-.fraction-num-editable .math-fraction,
-.fraction-den-editable .math-fraction {
-  vertical-align: 0.05em;
-  display: inline-flex;
-}
-
-/* FIXED: Text and elements immediately after fractions */
+/* FIXED: Better text alignment after fractions */
 .math-fraction + * {
-  vertical-align: baseline !important; /* Force baseline alignment */
+  vertical-align: baseline !important;
+  margin-left: 1px; /* FIXED: Small spacing after fractions */
 }
 
 .math-fraction + span,
-.math-fraction + text,
-.math-fraction ~ * {
+.math-fraction + text {
   vertical-align: baseline !important;
 }
 
-/* FIXED: Special handling for text nodes after fractions */
+/* FIXED: Improved spacing and positioning */
 .editor-content .math-fraction {
   position: relative;
+  transform: translateY(-0.05em); /* FIXED: Slight adjustment for better baseline alignment */
 }
 
 .editor-content .math-fraction::after {
@@ -961,44 +961,143 @@
   top: 50%;
   width: 0;
   height: 0;
-  /* This invisible marker helps with text alignment */
+  /* FIXED: Invisible marker for text alignment */
 }
 
-/* Responsive fraction sizing */
+/* FIXED: Enhanced visual feedback for math fractions */
+.editor-content .math-fraction:hover {
+  outline: 1px dashed rgba(79, 172, 254, 0.4);
+  border-radius: 3px;
+  background: rgba(79, 172, 254, 0.02);
+}
+
+/* FIXED: Special handling for text flow around fractions */
+.math-fraction {
+  white-space: nowrap;
+  overflow: visible;
+}
+
+/* FIXED: Ensure fractions don't break layout on small screens */
 @media (max-width: 768px) {
   .math-fraction {
-    font-size: 0.9em;
-    vertical-align: 0.12em; /* Adjusted for mobile */
+    font-size: 0.95em;
+    vertical-align: 0.18em;
+    margin: 0 2px;
+  }
+  
+  .nested-fraction {
+    font-size: 0.75em;
+    vertical-align: 0.12em;
   }
   
   .fraction-num-editable,
   .fraction-den-editable {
-    font-size: 0.85em;
-    padding: 1px 2px;
-    min-width: 10px;
+    font-size: 0.9em;
+    padding: 1px 3px;
+    min-width: 12px;
   }
   
   .fraction-line {
-    min-width: 20px;
+    min-width: 22px;
+    height: 1.2px;
   }
 }
 
 @media (max-width: 480px) {
   .math-fraction {
-    font-size: 0.85em;
-    vertical-align: 0.1em; /* Adjusted for small screens */
+    font-size: 0.9em;
+    vertical-align: 0.15em;
+    margin: 0 1px;
+  }
+  
+  .nested-fraction {
+    font-size: 0.7em;
+    vertical-align: 0.1em;
   }
   
   .fraction-num-editable,
   .fraction-den-editable {
-    font-size: 0.8em;
-    padding: 0px 2px;
-    min-width: 8px;
+    font-size: 0.85em;
+    padding: 0.5px 2px;
+    min-width: 10px;
   }
   
   .fraction-line {
-    min-width: 16px;
+    min-width: 18px;
+    height: 1px;
   }
+}
+
+/* FIXED: High contrast mode support */
+@media (prefers-contrast: high) {
+  .fraction-line {
+    background: currentColor;
+    box-shadow: none;
+  }
+  
+  .fraction-num-editable:hover,
+  .fraction-den-editable:hover {
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 0 2px #fff;
+  }
+  
+  .fraction-num-editable:focus,
+  .fraction-den-editable:focus {
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 0 3px #fff;
+  }
+}
+
+/* FIXED: Improved transition behavior */
+.fraction-num-editable,
+.fraction-den-editable {
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+.fraction-num-editable:focus,
+.fraction-den-editable:focus {
+  transform: scale(1.02); /* FIXED: Subtle scale on focus for better UX */
+}
+
+/* FIXED: Better support for complex mathematical expressions */
+.math-fraction .math-structure,
+.math-fraction .math-fraction {
+  margin: 0 1px;
+}
+
+/* FIXED: Ensure proper line height in editor content for fractions */
+.editor-content {
+  line-height: 2; /* FIXED: Increased to accommodate fraction heights better */
+}
+
+/* FIXED: Override line height for nested content to prevent excessive spacing */
+.fraction-num-editable,
+.fraction-den-editable {
+  line-height: 1.3; /* FIXED: Tighter line height within fractions */
+}
+
+/* FIXED: Special styling for complex fractions with multiple elements */
+.math-fraction:has(.nested-fraction) {
+  padding: 2px 0; /* FIXED: Extra padding for complex fractions */
+}
+
+/* FIXED: Ensure cursor positioning works correctly around fractions */
+.math-fraction::before,
+.math-fraction::after {
+  content: '';
+  display: inline;
+  width: 0;
+  height: 0;
+  position: absolute;
+  pointer-events: none;
+}
+
+.math-fraction::before {
+  left: -1px;
+}
+
+.math-fraction::after {
+  right: -1px;
 }
 
 /* Click outside to close math dropdown */
