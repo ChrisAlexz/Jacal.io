@@ -1,11 +1,10 @@
-// src/components/SimpleRichTextEditor.jsx - ROBUST VERSION THAT PREVENTS MATH DISAPPEARING
+// src/components/SimpleRichTextEditor.jsx - MATH REMOVED VERSION
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { supabase } from '../supabase';
 
 // Import toolbar components from organized folder
 import {
   FormattingToolbar,
-  MathSymbolsDropdown,
   AudioToolbar,
   AudioPlayerDisplay
 } from './toolbar';
@@ -13,12 +12,9 @@ import {
 // Import editor components from organized folder
 import { EditorContentHandler } from './editor';
 
-// UPDATED: Import split CSS files instead of single large file
+// UPDATED: Import split CSS files (removed MathDropdown and MathStructures)
 import '../styles/SimpleRichTextEditor.css';
 import '../styles/EditorToolbar.css';
-import '../styles/MathDropdown.css';
-import '../styles/MathStructures.css';
-import '../styles/MathFractions.css';
 import '../styles/AudioPlayerEmbedded.css';
 
 const SimpleRichTextEditor = ({ 
@@ -39,7 +35,6 @@ const SimpleRichTextEditor = ({
   const recordingTimerRef = useRef(null);
   const changeTimeoutRef = useRef(null);
   const lastContentRef = useRef('');
-  const mathHandlerRef = useRef(null);
 
   const [activeFormats, setActiveFormats] = useState({
     bold: false,
@@ -59,16 +54,9 @@ const SimpleRichTextEditor = ({
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState('');
 
-  // ROBUST: Safe onChange that checks if we're typing in math
+  // Simple onChange that doesn't need math handling
   const safeOnChange = useCallback((content) => {
-    // Skip if content is the same
     if (content === lastContentRef.current) {
-      return;
-    }
-    
-    // Skip if currently typing in math structure
-    if (mathHandlerRef.current?.isCurrentlyTypingInMath()) {
-      console.log('Skipping onChange - typing in math structure');
       return;
     }
     
@@ -76,25 +64,19 @@ const SimpleRichTextEditor = ({
     
     clearTimeout(changeTimeoutRef.current);
     changeTimeoutRef.current = setTimeout(() => {
-      if (onChange && !mathHandlerRef.current?.isCurrentlyTypingInMath()) {
-        console.log('Triggering onChange with content:', content.substring(0, 100) + '...');
+      if (onChange) {
         onChange(content);
       }
     }, 150);
   }, [onChange]);
 
-  // Get editor content handlers
-  const { handleEditorClick, handleEditorKeyDown, mathHandler } = EditorContentHandler({ 
+  // Get editor content handlers (simplified without math)
+  const { handleEditorClick, handleEditorKeyDown } = EditorContentHandler({ 
     editorRef, 
     onChange: safeOnChange,
     readOnly, 
     setActiveFormats 
   });
-
-  // Store math handler reference
-  useEffect(() => {
-    mathHandlerRef.current = mathHandler;
-  }, [mathHandler]);
 
   // Execute formatting command
   const execCommand = useCallback((command, value = null) => {
@@ -147,68 +129,13 @@ const SimpleRichTextEditor = ({
     }, 10);
   }, [activeFormats, safeOnChange, readOnly]);
 
-  // Insert math symbol using the math handler
-  const insertMathSymbol = useCallback((symbol) => {
-    if (readOnly) return;
-    
-    editorRef.current?.focus();
-    const selection = window.getSelection();
-    
-    mathHandler.insertMathSymbol(symbol, selection, editorRef);
-  }, [readOnly, mathHandler]);
-
-  // ROBUST: Handle input with math structure protection
+  // Handle input (simplified without math handling)
   const handleInput = useCallback((e) => {
     if (!editorRef.current) return;
     
     const content = editorRef.current.innerHTML;
-    
-    // Don't trigger onChange if typing in math
-    if (mathHandlerRef.current?.isCurrentlyTypingInMath()) {
-      console.log('Input detected but skipping - typing in math');
-      return;
-    }
-    
-    // FIXED: Handle "/" key specifically to prevent disappearing
-    const selection = window.getSelection();
-    if (selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const currentNode = range.startContainer;
-      
-      // Check if we just typed "/" and it should create a fraction
-      if (currentNode.nodeType === Node.TEXT_NODE) {
-        const text = currentNode.textContent || '';
-        const cursorPos = range.startOffset;
-        
-        // Look for "/" at cursor position
-        if (text.charAt(cursorPos - 1) === '/') {
-          const textBeforeCursor = text.substring(0, cursorPos - 1);
-          const numberMatch = textBeforeCursor.match(/([a-zA-Z0-9+\-*/.()]+)$/);
-          
-          if (numberMatch) {
-            // We have a numerator before "/", create fraction
-            const numerator = numberMatch[1];
-            
-            // Remove the "/" and numerator from text
-            const beforeNumerator = text.substring(0, cursorPos - 1 - numerator.length);
-            const afterCursor = text.substring(cursorPos);
-            
-            // Update the text node
-            currentNode.textContent = beforeNumerator + afterCursor;
-            
-            // Create fraction
-            setTimeout(() => {
-              mathHandler.createFraction(numerator, selection, editorRef);
-            }, 10);
-            
-            return; // Don't trigger normal onChange
-          }
-        }
-      }
-    }
-    
     safeOnChange(content);
-  }, [safeOnChange, mathHandler]);
+  }, [safeOnChange]);
 
   // Audio recording functions
   const startRecording = async () => {
@@ -388,15 +315,11 @@ const SimpleRichTextEditor = ({
     }
   };
 
-  // ROBUST: Set initial content with protection
+  // Set initial content
   useEffect(() => {
     if (editorRef.current && value !== lastContentRef.current) {
-      // Only update if not currently typing in math
-      if (!mathHandlerRef.current?.isCurrentlyTypingInMath()) {
-        console.log('Setting initial content:', value.substring(0, 100) + '...');
-        editorRef.current.innerHTML = value;
-        lastContentRef.current = value;
-      }
+      editorRef.current.innerHTML = value;
+      lastContentRef.current = value;
     }
   }, [value]);
 
@@ -406,7 +329,7 @@ const SimpleRichTextEditor = ({
     }
   }, [initialAudioUrl]);
 
-  // Add event listeners for math structure handling
+  // Add event listeners
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -444,13 +367,6 @@ const SimpleRichTextEditor = ({
           <FormattingToolbar
             activeFormats={activeFormats}
             onFormatCommand={execCommand}
-            disabled={readOnly}
-          />
-
-          <div className="toolbar-divider"></div>
-
-          <MathSymbolsDropdown
-            onInsertSymbol={insertMathSymbol}
             disabled={readOnly}
           />
 
