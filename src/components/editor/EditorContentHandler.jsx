@@ -1,4 +1,4 @@
-// src/components/editor/EditorContentHandler.jsx - ROBUST VERSION
+// src/components/editor/EditorContentHandler.jsx - ENHANCED WITH NESTED FRACTION SUPPORT
 import React, { useCallback } from 'react';
 import { MathStructureHandler } from './MathStructureHandler';
 
@@ -10,22 +10,21 @@ const EditorContentHandler = ({
 }) => {
   const mathHandler = new MathStructureHandler(onChange);
 
-  // Enhanced handleEditorClick function with math structure support
   const handleEditorClick = useCallback((event) => {
     if (readOnly) return;
     
     const target = event.target;
     const editor = editorRef.current;
     
-    // Check if we clicked on or near a math structure
+    // Check if we clicked on or near a math structure (including fractions)
     const mathStructure = target.closest('.math-structure, .math-fraction');
     
     if (mathStructure) {
-      // If we clicked on a math structure but not on an editable area
+      // Check if we clicked on an editable area
       const editableArea = target.closest('.math-limit-editable, .fraction-num-editable, .fraction-den-editable');
       
       if (!editableArea) {
-        // Clicked on the structure itself, position cursor after it
+        // Clicked on the structure itself, position cursor appropriately
         event.preventDefault();
         
         const selection = window.getSelection();
@@ -86,7 +85,6 @@ const EditorContentHandler = ({
     }
   }, [readOnly]);
 
-  // Enhanced handleEditorKeyDown function
   const handleEditorKeyDown = useCallback((event) => {
     if (readOnly) return;
     
@@ -95,18 +93,20 @@ const EditorContentHandler = ({
     
     const range = selection.getRangeAt(0);
     
-    // Handle "/" key to create fractions
+    // ENHANCED: Handle "/" key for both regular and nested fraction creation
     if (event.key === '/') {
       event.preventDefault();
       
       const currentNode = range.startContainer;
       const cursorPos = range.startOffset;
       
-      // Check if we're inside a fraction editable area
+      // Check if we're inside a fraction editable area (for nested fractions)
       const isInFractionEditable = currentNode.parentElement?.closest('.fraction-num-editable, .fraction-den-editable');
       
       if (isInFractionEditable) {
-        // Handle nested fraction creation within existing fraction
+        // NESTED FRACTION: Handle nested fraction creation within existing fraction
+        console.log('Creating nested fraction within existing fraction editable area');
+        
         const editableElement = currentNode.parentElement.closest('.fraction-num-editable, .fraction-den-editable');
         const textContent = editableElement.textContent || '';
         const textBeforeCursor = textContent.substring(0, cursorPos);
@@ -119,7 +119,9 @@ const EditorContentHandler = ({
           return;
         }
       } else {
-        // Handle regular fraction creation in main editor
+        // REGULAR FRACTION: Handle regular fraction creation in main editor
+        console.log('Creating regular fraction in main editor');
+        
         const currentText = currentNode.textContent || '';
         const textBeforeCursor = currentText.substring(0, cursorPos);
         const numberMatch = textBeforeCursor.match(/([a-zA-Z0-9+\-*/.()]+)$/);
@@ -130,6 +132,9 @@ const EditorContentHandler = ({
           return;
         }
       }
+      
+      // If no numerator found, insert a default fraction
+      mathHandler.createFraction('x', selection, editorRef);
     }
     
     // Handle Enter and Right Arrow to exit superscript/subscript
@@ -173,7 +178,6 @@ const EditorContentHandler = ({
             subscript: false
           }));
           
-          // Only trigger onChange if not typing in math
           if (!mathHandler.isCurrentlyTypingInMath()) {
             setTimeout(() => {
               if (onChange && editorRef.current) {
@@ -187,7 +191,7 @@ const EditorContentHandler = ({
       }
     }
     
-    // Handle arrow key navigation around math structures
+    // ENHANCED: Handle arrow key navigation around math structures and fractions
     const isArrowKey = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key);
     
     if (isArrowKey) {
@@ -222,7 +226,7 @@ const EditorContentHandler = ({
       });
     }
     
-    // Handle backspace and delete around math structures
+    // ENHANCED: Handle backspace and delete around math structures and fractions
     if (event.key === 'Backspace' || event.key === 'Delete') {
       const mathStructures = editorRef.current.querySelectorAll('.math-structure, .math-fraction');
       
