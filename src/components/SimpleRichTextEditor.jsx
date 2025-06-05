@@ -1,4 +1,4 @@
-// src/components/SimpleRichTextEditor.jsx - ENHANCED WITH MATH SYMBOLS TOOLBAR AND CURSOR FIXES
+// src/components/SimpleRichTextEditor.jsx - FIXED FRACTION CURSOR POSITIONING
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -611,7 +611,7 @@ const SimpleRichTextEditor = ({
     }
   }, [readOnly]);
 
-  // FIXED: Enhanced handleEditorKeyDown function with nested fraction support
+  // FIXED: Enhanced handleEditorKeyDown function with proper fraction cursor exit
   const handleEditorKeyDown = useCallback((event) => {
     if (readOnly) return;
     
@@ -620,7 +620,7 @@ const SimpleRichTextEditor = ({
     
     const range = selection.getRangeAt(0);
     
-    // FIXED: Handle "/" key to create fractions (including nested fractions)
+    // FIXED: Handle "/" key to create fractions with proper cursor positioning
     if (event.key === '/') {
       event.preventDefault();
       
@@ -714,32 +714,32 @@ const SimpleRichTextEditor = ({
             </span>
           `;
           
-          // Remove the number from the text node
+          // FIXED: Create proper text node structure for better cursor positioning
           const beforeText = currentText.substring(0, numberStartPos);
           const afterText = currentText.substring(cursorPos);
           
-          // Replace the current text node
-          if (beforeText || afterText) {
-            currentNode.textContent = beforeText;
-            
-            // Insert the fraction
-            const wrapper = document.createElement('span');
-            wrapper.style.display = 'inline';
-            const afterSpace = document.createTextNode(afterText);
-            
-            wrapper.appendChild(fractionElement);
-            
-            if (currentNode.parentNode) {
-              currentNode.parentNode.insertBefore(wrapper, currentNode.nextSibling);
-              if (afterText) {
-                currentNode.parentNode.insertBefore(afterSpace, wrapper.nextSibling);
-              }
-            }
+          // Create a document fragment to properly insert the fraction
+          const fragment = document.createDocumentFragment();
+          
+          if (beforeText) {
+            const beforeTextNode = document.createTextNode(beforeText);
+            fragment.appendChild(beforeTextNode);
+          }
+          
+          fragment.appendChild(fractionElement);
+          
+          if (afterText) {
+            const afterTextNode = document.createTextNode(afterText);
+            fragment.appendChild(afterTextNode);
           } else {
-            // Replace the entire text node
-            if (currentNode.parentNode) {
-              currentNode.parentNode.replaceChild(fractionElement, currentNode);
-            }
+            // FIXED: Always add a text node after the fraction for cursor positioning
+            const afterTextNode = document.createTextNode(' ');
+            fragment.appendChild(afterTextNode);
+          }
+          
+          // Replace the current text node with the fragment
+          if (currentNode.parentNode) {
+            currentNode.parentNode.replaceChild(fragment, currentNode);
           }
           
           // Set up event handling for the fraction
@@ -892,7 +892,7 @@ const SimpleRichTextEditor = ({
     }
   }, [readOnly, handleInput, setActiveFormats, onChange]);
 
-  // FIXED: Enhanced setupFractionEvents function with nested fraction support
+  // FIXED: Enhanced setupFractionEvents function with proper cursor exit
   const setupFractionEvents = useCallback((fractionElement) => {
     const numeratorInput = fractionElement.querySelector('.fraction-num-editable');
     const denominatorInput = fractionElement.querySelector('.fraction-den-editable');
@@ -988,28 +988,191 @@ const SimpleRichTextEditor = ({
             selection.removeAllRanges();
             selection.addRange(range);
           } else {
-            // Exit the fraction - position cursor after the main fraction wrapper
-            const mainWrapper = fractionElement.parentNode;
-            const range = document.createRange();
-            const selection = window.getSelection();
-            range.setStartAfter(mainWrapper);
-            range.collapse(true);
-            selection.removeAllRanges();
-            selection.addRange(range);
+            // FIXED: Exit the fraction - find the nearest text node after the fraction
             editorRef.current?.focus();
+            
+            // Find the text node after the fraction for cursor positioning
+            let targetNode = null;
+            let currentElement = fractionElement;
+            
+            // Walk up the DOM tree to find a suitable text node
+            while (currentElement && currentElement !== editorRef.current) {
+              // Check for next sibling text nodes
+              let nextSibling = currentElement.nextSibling;
+              
+              while (nextSibling) {
+                if (nextSibling.nodeType === Node.TEXT_NODE && nextSibling.textContent.length > 0) {
+                  targetNode = nextSibling;
+                  break;
+                } else if (nextSibling.nodeType === Node.ELEMENT_NODE) {
+                  // Look for text nodes within the next element
+                  const textNode = nextSibling.firstChild;
+                  if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+                    targetNode = textNode;
+                    break;
+                  }
+                }
+                nextSibling = nextSibling.nextSibling;
+              }
+              
+              if (targetNode) break;
+              currentElement = currentElement.parentNode;
+            }
+            
+            // If no text node found, create one after the fraction
+            if (!targetNode) {
+              const newTextNode = document.createTextNode(' ');
+              
+              // Find the parent container and insert after the fraction
+              let insertionPoint = fractionElement;
+              while (insertionPoint.parentNode && insertionPoint.parentNode !== editorRef.current) {
+                insertionPoint = insertionPoint.parentNode;
+              }
+              
+              if (insertionPoint.nextSibling) {
+                insertionPoint.parentNode.insertBefore(newTextNode, insertionPoint.nextSibling);
+              } else {
+                insertionPoint.parentNode.appendChild(newTextNode);
+              }
+              
+              targetNode = newTextNode;
+            }
+            
+            // Position cursor at the beginning of the target text node
+            setTimeout(() => {
+              if (targetNode) {
+                const range = document.createRange();
+                const selection = window.getSelection();
+                
+                // Position cursor at the start of the text node
+                range.setStart(targetNode, 0);
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+              }
+            }, 10);
           }
         }
         
+        // FIXED: Handle Escape key to exit the fraction properly
         if (e.key === 'Escape') {
           e.preventDefault();
-          const mainWrapper = fractionElement.parentNode;
-          const range = document.createRange();
-          const selection = window.getSelection();
-          range.setStartAfter(mainWrapper);
-          range.collapse(true);
-          selection.removeAllRanges();
-          selection.addRange(range);
           editorRef.current?.focus();
+          
+          // Find or create a text node after the fraction
+          let targetNode = null;
+          let currentElement = fractionElement;
+          
+          // Walk up the DOM tree to find a suitable text node
+          while (currentElement && currentElement !== editorRef.current) {
+            let nextSibling = currentElement.nextSibling;
+            
+            while (nextSibling) {
+              if (nextSibling.nodeType === Node.TEXT_NODE && nextSibling.textContent.length > 0) {
+                targetNode = nextSibling;
+                break;
+              }
+              nextSibling = nextSibling.nextSibling;
+            }
+            
+            if (targetNode) break;
+            currentElement = currentElement.parentNode;
+          }
+          
+          // If no text node found, create one
+          if (!targetNode) {
+            const newTextNode = document.createTextNode(' ');
+            
+            let insertionPoint = fractionElement;
+            while (insertionPoint.parentNode && insertionPoint.parentNode !== editorRef.current) {
+              insertionPoint = insertionPoint.parentNode;
+            }
+            
+            if (insertionPoint.nextSibling) {
+              insertionPoint.parentNode.insertBefore(newTextNode, insertionPoint.nextSibling);
+            } else {
+              insertionPoint.parentNode.appendChild(newTextNode);
+            }
+            
+            targetNode = newTextNode;
+          }
+          
+          // Position cursor
+          setTimeout(() => {
+            if (targetNode) {
+              const range = document.createRange();
+              const selection = window.getSelection();
+              range.setStart(targetNode, 0);
+              range.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(range);
+            }
+          }, 10);
+        }
+        
+        // FIXED: Handle right arrow key to exit fraction when at end of denominator
+        if (e.key === 'ArrowRight' && index === 1) { // Only for denominator
+          const selection = window.getSelection();
+          if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const isAtEnd = range.startOffset >= (range.startContainer.textContent?.length || 0);
+            
+            if (isAtEnd) {
+              e.preventDefault();
+              
+              // Exit the fraction
+              editorRef.current?.focus();
+              
+              // Find the text node after the fraction
+              let targetNode = null;
+              let currentElement = fractionElement;
+              
+              while (currentElement && currentElement !== editorRef.current) {
+                let nextSibling = currentElement.nextSibling;
+                
+                while (nextSibling) {
+                  if (nextSibling.nodeType === Node.TEXT_NODE) {
+                    targetNode = nextSibling;
+                    break;
+                  }
+                  nextSibling = nextSibling.nextSibling;
+                }
+                
+                if (targetNode) break;
+                currentElement = currentElement.parentNode;
+              }
+              
+              // If no text node found, create one
+              if (!targetNode) {
+                const newTextNode = document.createTextNode(' ');
+                
+                let insertionPoint = fractionElement;
+                while (insertionPoint.parentNode && insertionPoint.parentNode !== editorRef.current) {
+                  insertionPoint = insertionPoint.parentNode;
+                }
+                
+                if (insertionPoint.nextSibling) {
+                  insertionPoint.parentNode.insertBefore(newTextNode, insertionPoint.nextSibling);
+                } else {
+                  insertionPoint.parentNode.appendChild(newTextNode);
+                }
+                
+                targetNode = newTextNode;
+              }
+              
+              // Position cursor at the beginning of the text node
+              setTimeout(() => {
+                if (targetNode) {
+                  const range = document.createRange();
+                  const selection = window.getSelection();
+                  range.setStart(targetNode, 0);
+                  range.collapse(true);
+                  selection.removeAllRanges();
+                  selection.addRange(range);
+                }
+              }, 10);
+            }
+          }
         }
       });
       
@@ -1064,6 +1227,53 @@ const SimpleRichTextEditor = ({
           selection.removeAllRanges();
           selection.addRange(range);
         }, 10);
+      });
+      
+      // FIXED: Handle blur to properly exit fraction when clicking outside
+      input.addEventListener('blur', (e) => {
+        // Small delay to check if focus moved to another fraction input
+        setTimeout(() => {
+          const focusedElement = document.activeElement;
+          const isStillInFraction = fractionElement.contains(focusedElement);
+          
+          if (!isStillInFraction && !focusedElement.closest('.fraction-num-editable, .fraction-den-editable')) {
+            // Focus moved completely outside all fractions
+            // Ensure there's a text node after the fraction for future cursor positioning
+            let hasTextAfter = false;
+            let currentElement = fractionElement;
+            
+            while (currentElement && currentElement !== editorRef.current) {
+              let nextSibling = currentElement.nextSibling;
+              
+              while (nextSibling) {
+                if (nextSibling.nodeType === Node.TEXT_NODE && nextSibling.textContent.length > 0) {
+                  hasTextAfter = true;
+                  break;
+                }
+                nextSibling = nextSibling.nextSibling;
+              }
+              
+              if (hasTextAfter) break;
+              currentElement = currentElement.parentNode;
+            }
+            
+            // If no text node found after the fraction, create one
+            if (!hasTextAfter) {
+              const newTextNode = document.createTextNode(' ');
+              
+              let insertionPoint = fractionElement;
+              while (insertionPoint.parentNode && insertionPoint.parentNode !== editorRef.current) {
+                insertionPoint = insertionPoint.parentNode;
+              }
+              
+              if (insertionPoint.nextSibling) {
+                insertionPoint.parentNode.insertBefore(newTextNode, insertionPoint.nextSibling);
+              } else {
+                insertionPoint.parentNode.appendChild(newTextNode);
+              }
+            }
+          }
+        }, 50);
       });
     });
   }, [onChange]);
@@ -1442,16 +1652,6 @@ const SimpleRichTextEditor = ({
           {/* Audio buttons */}
           {!audioUrl && !isRecording && (
             <>
-              <button
-                type="button"
-                className="toolbar-btn audio-btn"
-                onClick={startRecording}
-                disabled={isUploading}
-                title="Record Audio"
-              >
-                <FontAwesomeIcon icon={faMicrophone} />
-              </button>
-              
               <button
                 type="button"
                 className="toolbar-btn audio-btn"
