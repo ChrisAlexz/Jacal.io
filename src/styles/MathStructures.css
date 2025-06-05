@@ -1,0 +1,246 @@
+/* src/styles/MathStructures.css - Math integral, summation, product structures */
+
+/* Beautiful Integral Structure Styling */
+.math-structure {
+  display: inline-block;
+  position: relative;
+  margin: 0 4px;
+  vertical-align: middle;
+  font-family: 'Times New Roman', serif;
+  cursor: default;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.integral-symbol,
+.summation-symbol,
+.product-symbol {
+  font-size: 2.2em;
+  color: #4facfe;
+  vertical-align: middle;
+  font-weight: normal;
+  line-height: 1;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+  display: inline-block;
+  position: relative;
+  z-index: 0;
+}
+
+.math-limits {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75em;
+  font-weight: 500;
+  min-width: 24px;
+  text-align: center;
+  color: #ff9500;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  z-index: 1;
+  white-space: nowrap;
+  pointer-events: auto;
+  user-select: text;
+}
+
+/* Increased spacing for integral limits */
+.integral-structure .upper-limit {
+  top: -1.6em;
+}
+
+.integral-structure .lower-limit {
+  bottom: -1.6em;
+}
+
+/* Adjusted spacing for summation and product limits */
+.summation-structure .upper-limit,
+.product-structure .upper-limit {
+  top: -1.8em;
+}
+
+.summation-structure .lower-limit,
+.product-structure .lower-limit {
+  bottom: -1.8em;
+}
+
+/* Add more horizontal spacing for the structures */
+.integral-structure {
+  padding: 0 8px;
+  margin: 0 6px;
+}
+
+.summation-structure,
+.product-structure {
+  padding: 0 6px;
+  margin: 0 4px;
+}
+
+/* Special styling for different symbols */
+.integral-structure .integral-symbol {
+  font-size: 2.4em;
+  margin: 0 4px;
+  position: relative;
+  z-index: 0;
+}
+
+.summation-structure .summation-symbol,
+.product-structure .product-symbol {
+  font-size: 2.0em;
+  margin: 0 4px;
+  position: relative;
+  z-index: 0;
+}
+
+/* Improved editable limit styling */
+.math-limit-editable {
+  background: rgba(255, 149, 0, 0.12);
+  border: 1px solid rgba(255, 149, 0, 0.3);
+  border-radius: 3px;
+  padding: 2px 6px;
+  min-width: 20px;
+  display: inline-block;
+  cursor: text;
+  transition: all 0.2s ease;
+  outline: none;
+  font-style: normal;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+.math-limit-editable:hover {
+  background: rgba(255, 149, 0, 0.18);
+  border-color: rgba(255, 149, 0, 0.5);
+  transform: scale(1.02);
+}
+
+.math-limit-editable:focus {
+  background: rgba(255, 149, 0, 0.2);
+  border-color: #ff9500;
+  box-shadow: 0 0 0 2px rgba(255, 149, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.1);
+  transform: scale(1.02);
+}
+
+.math-limit-editable:empty::before {
+  content: attr(data-placeholder);
+  color: rgba(255, 149, 0, 0.4);
+  font-style: italic;
+  font-size: 0.9em;
+}
+
+/* Use truly invisible spacing for cursor positioning */
+.math-structure::before,
+.math-structure::after {
+  content: '';
+  display: inline;
+  width: 1px;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Ensure proper cursor behavior in contenteditable areas */
+.editor-content .math-structure {
+  cursor: default;
+}
+
+.editor-content .math-structure:hover {
+  outline: 1px dashed rgba(79, 172, 254, 0.3);
+  border-radius: 2px;
+}
+
+/* Ensure math structures don't run together */
+.math-structure + .math-structure {
+  margin-left: 4px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .integral-structure .upper-limit {
+    top: -1.4em;
+  }
+  
+  .integral-structure .lower-limit {
+    bottom: -1.4em;
+  }
+  
+  .summation-structure .upper-limit,
+  .product-structure .upper-limit {
+    top: -1.6em;
+  }
+  
+  .summation-structure .lower-limit,
+  .product-structure .lower-limit {
+    bottom: -1.6em;
+  }
+  
+  .math-limit-editable {
+    padding: 1px 4px;
+    min-width: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .integral-structure .upper-limit {
+    top: -1.2em;
+  }
+  
+  .integral-structure .lower-limit {
+    bottom: -1.2em;
+  }
+  
+  .summation-structure .upper-limit,
+  .product-structure .upper-limit {
+    top: -1.4em;
+  }
+  
+  .summation-structure .lower-limit,
+  .product-structure .lower-limit {
+    bottom: -1.4em;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .math-limit-editable:hover {
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 0 2px #fff;
+  }
+  
+  .math-limit-editable:focus {
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 0 3px #fff;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .math-limit-editable {
+    transition: none;
+  }
+  
+  .math-structure:hover {
+    outline-style: solid;
+    outline-width: 1px;
+  }
+}
+
+/* Print-friendly styling */
+@media print {
+  .math-structure {
+    margin: 0 2px;
+  }
+  
+  .math-limit-editable:hover,
+  .math-limit-editable:focus {
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+  }
+}

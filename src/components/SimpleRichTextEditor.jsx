@@ -13,7 +13,13 @@ import {
 // Import editor components from organized folder
 import { EditorContentHandler } from './editor';
 
+// UPDATED: Import split CSS files instead of single large file
 import '../styles/SimpleRichTextEditor.css';
+import '../styles/EditorToolbar.css';
+import '../styles/MathDropdown.css';
+import '../styles/MathStructures.css';
+import '../styles/MathFractions.css';
+import '../styles/AudioPlayerEmbedded.css';
 
 const SimpleRichTextEditor = ({ 
   value = '', 
@@ -163,10 +169,48 @@ const SimpleRichTextEditor = ({
       return;
     }
     
+    // FIXED: Handle "/" key specifically to prevent disappearing
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const currentNode = range.startContainer;
+      
+      // Check if we just typed "/" and it should create a fraction
+      if (currentNode.nodeType === Node.TEXT_NODE) {
+        const text = currentNode.textContent || '';
+        const cursorPos = range.startOffset;
+        
+        // Look for "/" at cursor position
+        if (text.charAt(cursorPos - 1) === '/') {
+          const textBeforeCursor = text.substring(0, cursorPos - 1);
+          const numberMatch = textBeforeCursor.match(/([a-zA-Z0-9+\-*/.()]+)$/);
+          
+          if (numberMatch) {
+            // We have a numerator before "/", create fraction
+            const numerator = numberMatch[1];
+            
+            // Remove the "/" and numerator from text
+            const beforeNumerator = text.substring(0, cursorPos - 1 - numerator.length);
+            const afterCursor = text.substring(cursorPos);
+            
+            // Update the text node
+            currentNode.textContent = beforeNumerator + afterCursor;
+            
+            // Create fraction
+            setTimeout(() => {
+              mathHandler.createFraction(numerator, selection, editorRef);
+            }, 10);
+            
+            return; // Don't trigger normal onChange
+          }
+        }
+      }
+    }
+    
     safeOnChange(content);
-  }, [safeOnChange]);
+  }, [safeOnChange, mathHandler]);
 
-  // Audio recording functions (unchanged)
+  // Audio recording functions
   const startRecording = async () => {
     try {
       setError('');

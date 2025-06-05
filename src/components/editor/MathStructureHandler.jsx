@@ -275,7 +275,7 @@ export class MathStructureHandler {
     return this.isTypingInMath;
   }
 
-  // FIXED: Enhanced fraction creation with nested fraction support and better alignment
+  // FIXED: Enhanced fraction creation with proper CSS structure
   createFraction(numerator, selection, editorRef) {
     if (!selection?.rangeCount || !editorRef?.current) return;
 
@@ -283,7 +283,7 @@ export class MathStructureHandler {
     const currentNode = range.startContainer;
     const cursorPos = range.startOffset;
 
-    // FIXED: Check if we're inside an existing fraction editable area
+    // Check if we're inside an existing fraction editable area
     const parentEditableArea = currentNode.parentElement?.closest('.fraction-num-editable, .fraction-den-editable');
     
     if (parentEditableArea) {
@@ -298,7 +298,7 @@ export class MathStructureHandler {
       const numberMatch = textBeforeCursor.match(/([a-zA-Z0-9+\-*/.()]+)$/);
       const actualNumerator = numberMatch ? numberMatch[1] : numerator;
       
-      // Create nested fraction element
+      // Create nested fraction element with FIXED simple structure
       const nestedFraction = document.createElement('span');
       nestedFraction.className = 'math-fraction nested-fraction';
       nestedFraction.contentEditable = false;
@@ -353,7 +353,7 @@ export class MathStructureHandler {
       const numberMatch = textBeforeCursor.match(/([a-zA-Z0-9+\-*/.()]+)$/);
       const actualNumerator = numberMatch ? numberMatch[1] : numerator;
 
-      // Create main fraction element with FIXED baseline alignment
+      // Create main fraction element with FIXED simple structure
       const fractionElement = document.createElement('span');
       fractionElement.className = 'math-fraction';
       fractionElement.contentEditable = false;
@@ -383,7 +383,7 @@ export class MathStructureHandler {
       if (textAfterCursor) {
         fragment.appendChild(document.createTextNode(textAfterCursor));
       } else {
-        // FIXED: Add space after fraction for proper text flow
+        // Add space after fraction for proper text flow
         fragment.appendChild(document.createTextNode(' '));
       }
       
@@ -430,7 +430,7 @@ export class MathStructureHandler {
         }, 100);
       });
       
-      // FIXED: Enhanced keydown handling for nested fractions
+      // Enhanced keydown handling for nested fractions
       input.addEventListener('keydown', (e) => {
         // Handle "/" key for nested fractions within fraction editables
         if (e.key === '/') {
@@ -490,7 +490,7 @@ export class MathStructureHandler {
     this.isTypingInMath = false;
     
     try {
-      // FIXED: Check if this is a nested fraction
+      // Check if this is a nested fraction
       const isNested = fractionElement.classList.contains('nested-fraction');
       
       if (isNested) {
