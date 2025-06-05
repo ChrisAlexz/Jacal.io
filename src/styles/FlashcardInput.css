@@ -1,4 +1,4 @@
-/* src/styles/FlashcardInput.css */
+/* src/styles/FlashcardInput.css - WITH INCREASED SPACING FOR MATH SYMBOLS */
 
 .flashcard-input {
   background: #1e1e1e;
@@ -30,6 +30,32 @@
 
 .flashcard-box {
   margin-bottom: 20px;
+}
+
+/* FIXED: Increased spacing between toolbar and editor content */
+.flashcard-box .simple-rich-text-editor .editor-content {
+  min-height: 120px;
+  padding: 25px 15px 15px 15px; /* INCREASED top padding from 15px to 25px */
+  color: white;
+  font-size: 1rem;
+  line-height: 1.5;
+  outline: none;
+  overflow-y: auto;
+  word-wrap: break-word;
+  margin-top: 8px; /* ADDED: Extra margin between toolbar and content */
+}
+
+/* Additional spacing for math structures in the editor */
+.flashcard-box .simple-rich-text-editor .editor-content .math-structure {
+  margin: 8px 4px; /* INCREASED vertical margin for math structures */
+}
+
+/* Ensure math limits have enough space */
+.flashcard-box .simple-rich-text-editor .editor-content .integral-structure,
+.flashcard-box .simple-rich-text-editor .editor-content .summation-structure,
+.flashcard-box .simple-rich-text-editor .editor-content .product-structure {
+  padding: 12px 8px; /* INCREASED vertical padding */
+  margin: 12px 6px; /* INCREASED vertical margin */
 }
 
 /* Button styling */
@@ -79,6 +105,23 @@
   .flashcard-input {
     padding: 20px;
   }
+  
+  /* Slightly reduced spacing on tablets */
+  .flashcard-box .simple-rich-text-editor .editor-content {
+    padding: 20px 12px 12px 12px;
+    margin-top: 6px;
+  }
+  
+  .flashcard-box .simple-rich-text-editor .editor-content .math-structure {
+    margin: 6px 4px;
+  }
+  
+  .flashcard-box .simple-rich-text-editor .editor-content .integral-structure,
+  .flashcard-box .simple-rich-text-editor .editor-content .summation-structure,
+  .flashcard-box .simple-rich-text-editor .editor-content .product-structure {
+    padding: 10px 6px;
+    margin: 10px 4px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -88,5 +131,22 @@
   
   .flashcard-input h4 {
     font-size: 1rem;
+  }
+  
+  /* Further reduced spacing on mobile */
+  .flashcard-box .simple-rich-text-editor .editor-content {
+    padding: 18px 10px 10px 10px;
+    margin-top: 4px;
+  }
+  
+  .flashcard-box .simple-rich-text-editor .editor-content .math-structure {
+    margin: 4px 2px;
+  }
+  
+  .flashcard-box .simple-rich-text-editor .editor-content .integral-structure,
+  .flashcard-box .simple-rich-text-editor .editor-content .summation-structure,
+  .flashcard-box .simple-rich-text-editor .editor-content .product-structure {
+    padding: 8px 4px;
+    margin: 8px 2px;
   }
 }

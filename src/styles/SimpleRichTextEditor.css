@@ -1,11 +1,12 @@
-/* src/styles/SimpleRichTextEditor.css - ENHANCED WITH AUDIO TOOLBAR */
+/* src/styles/SimpleRichTextEditor.css - ENHANCED WITH MATH SYMBOLS TOOLBAR */
 
 .simple-rich-text-editor {
   border: 2px solid #333;
   border-radius: 8px;
   background: #2a2a2a;
-  overflow: hidden;
+  overflow: visible;
   transition: border-color 0.2s ease;
+  position: relative;
 }
 
 .simple-rich-text-editor:focus-within {
@@ -21,6 +22,8 @@
   background: #333;
   border-bottom: 1px solid #444;
   flex-wrap: wrap;
+  position: relative;
+  overflow: visible;
 }
 
 .toolbar-btn {
@@ -66,6 +69,231 @@
   background: #555;
   margin: 0 4px;
   flex-shrink: 0;
+}
+
+/* Math Button Styling */
+.toolbar-btn.math-btn {
+  color: #ff9500;
+  font-family: 'Times New Roman', serif;
+  font-size: 16px;
+  font-weight: bold;
+  font-style: italic;
+  min-width: 40px;
+  position: relative;
+}
+
+.toolbar-btn.math-btn:hover {
+  background: rgba(255, 149, 0, 0.2);
+  color: #ffab33;
+}
+
+.toolbar-btn.math-btn.active {
+  background: rgba(255, 149, 0, 0.3);
+  color: #ff9500;
+  box-shadow: 0 2px 8px rgba(255, 149, 0, 0.3);
+}
+
+/* Math Symbols Container */
+.math-symbols-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* Math Dropdown */
+.math-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: #1e1e1e;
+  border: 2px solid #444;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 9999;
+  min-width: 400px;
+  max-width: 500px;
+  backdrop-filter: blur(10px);
+  animation: mathDropdownSlide 0.2s ease-out;
+}
+
+@keyframes mathDropdownSlide {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.math-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #2a2a2a 0%, #333 100%);
+  border-bottom: 1px solid #444;
+  border-radius: 10px 10px 0 0;
+}
+
+.math-dropdown-header span {
+  color: #ff9500;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.close-dropdown-btn {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.close-dropdown-btn:hover {
+  background: rgba(220, 53, 69, 0.2);
+  border-color: rgba(220, 53, 69, 0.5);
+  transform: scale(1.1);
+}
+
+/* Math Categories */
+.math-categories {
+  padding: 16px 20px 20px 20px;
+  max-height: 400px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #555 #2a2a2a;
+}
+
+.math-categories::-webkit-scrollbar {
+  width: 6px;
+}
+
+.math-categories::-webkit-scrollbar-track {
+  background: #2a2a2a;
+  border-radius: 3px;
+}
+
+.math-categories::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 3px;
+}
+
+.math-categories::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+.math-category {
+  margin-bottom: 20px;
+}
+
+.math-category:last-child {
+  margin-bottom: 0;
+}
+
+.category-header {
+  color: #ff9500;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 149, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.category-header::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  background: #ff9500;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Symbols Grid */
+.symbols-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+  gap: 6px;
+}
+
+.symbol-btn {
+  background: #333;
+  color: white;
+  border: 2px solid #444;
+  border-radius: 6px;
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.symbol-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 149, 0, 0.1) 0%, rgba(255, 171, 51, 0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.symbol-btn:hover {
+  background: #3a3a3a;
+  border-color: #ff9500;
+  color: #ff9500;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(255, 149, 0, 0.2);
+}
+
+.symbol-btn:hover::before {
+  opacity: 1;
+}
+
+.symbol-btn:active {
+  transform: scale(0.95);
+}
+
+/* Tooltip on hover */
+.symbol-btn:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a1a;
+  color: #ff9500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid #444;
+  z-index: 1001;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Audio-specific toolbar buttons */
@@ -327,13 +555,461 @@
   justify-content: center;
 }
 
-/* Audio error display */
-.audio-error {
-  padding: 8px 12px;
-  background: rgba(220, 53, 69, 0.1);
-  border-top: 1px solid rgba(220, 53, 69, 0.3);
-  color: #ff6b6b;
-  font-size: 12px;
+/* Beautiful Integral Structure Styling - FIXED VERSION */
+.math-structure {
+  display: inline-block;
+  position: relative;
+  margin: 0 4px;
+  vertical-align: middle;
+  font-family: 'Times New Roman', serif;
+}
+
+.integral-symbol,
+.summation-symbol,
+.product-symbol {
+  font-size: 2.2em;
+  color: #4facfe;
+  vertical-align: middle;
+  font-weight: normal;
+  line-height: 1;
+}
+
+.math-limits {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75em;
+  font-weight: 500;
+  min-width: 24px;
+  text-align: center;
+  color: #ff9500;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  z-index: 1; /* Ensure limits appear above the symbol */
+}
+
+/* FIXED: Increased spacing for integral limits */
+.integral-structure .upper-limit {
+  top: -1.6em; /* Moved even further up for better clearance */
+}
+
+.integral-structure .lower-limit {
+  bottom: -1.6em; /* Moved even further down for better clearance */
+}
+
+/* FIXED: Adjusted spacing for summation and product limits */
+.summation-structure .upper-limit,
+.product-structure .upper-limit {
+  top: -1.8em; /* Moved even further up for better clearance */
+}
+
+.summation-structure .lower-limit,
+.product-structure .lower-limit {
+  bottom: -1.8em; /* Moved even further down for better clearance */
+}
+
+/* FIXED: Add more horizontal spacing for the structures */
+.integral-structure {
+  padding: 0 8px; /* Add horizontal padding */
+  margin: 0 6px; /* Add horizontal margin */
+}
+
+.summation-structure,
+.product-structure {
+  padding: 0 6px; /* Add horizontal padding */
+  margin: 0 4px; /* Add horizontal margin */
+}
+
+/* Special styling for different symbols */
+.integral-structure .integral-symbol {
+  font-size: 2.4em;
+  margin: 0 4px; /* Increased horizontal margin */
+  position: relative;
+  z-index: 0; /* Behind the limits */
+}
+
+.summation-structure .summation-symbol,
+.product-structure .product-symbol {
+  font-size: 2.0em;
+  margin: 0 4px; /* Increased horizontal margin */
+  position: relative;
+  z-index: 0; /* Behind the limits */
+}
+
+/* FIXED: Improved editable limit styling */
+.math-limit-editable {
+  background: rgba(255, 149, 0, 0.12); /* Slightly more visible background */
+  border: 1px solid rgba(255, 149, 0, 0.3);
+  border-radius: 3px;
+  padding: 2px 6px; /* Increased padding */
+  min-width: 20px; /* Slightly larger minimum width */
+  display: inline-block;
+  cursor: text;
+  transition: all 0.2s ease;
+  outline: none;
+  font-style: normal;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Add subtle shadow */
+}
+
+.math-limit-editable:hover {
+  background: rgba(255, 149, 0, 0.18);
+  border-color: rgba(255, 149, 0, 0.5);
+  transform: scale(1.02); /* Slight scale on hover */
+}
+
+.math-limit-editable:focus {
+  background: rgba(255, 149, 0, 0.2);
+  border-color: #ff9500;
+  box-shadow: 0 0 0 2px rgba(255, 149, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.1);
+  transform: scale(1.02);
+}
+
+.math-limit-editable:empty::before {
+  content: attr(data-placeholder);
+  color: rgba(255, 149, 0, 0.4);
+  font-style: italic;
+  font-size: 0.9em;
+}
+
+/* FIXED: Prevent selection and positioning issues */
+.math-structure {
+  user-select: text;
+  -webkit-user-select: text;
+  display: inline-block; /* CRITICAL: Ensures proper block behavior */
+  position: relative;
+  vertical-align: middle;
+  white-space: nowrap; /* PREVENTS limits from wrapping */
+}
+
+.integral-symbol,
+.summation-symbol,
+.product-symbol {
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+  display: inline-block; /* ENSURES proper positioning */
+  position: relative;
+}
+
+/* FIXED: Math limits positioning to prevent drift */
+.math-limits {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75em;
+  font-weight: 500;
+  min-width: 24px;
+  text-align: center;
+  color: #ff9500;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  z-index: 1;
+  white-space: nowrap; /* PREVENTS text wrapping */
+  pointer-events: auto; /* ALLOWS editing */
+  user-select: text; /* ALLOWS text selection within limits */
+}
+
+/* FIXED: Editable limits behavior */
+.math-limit-editable {
+  background: rgba(255, 149, 0, 0.12);
+  border: 1px solid rgba(255, 149, 0, 0.3);
+  border-radius: 3px;
+  padding: 2px 6px;
+  min-width: 20px;
+  display: inline-block;
+  cursor: text;
+  transition: all 0.2s ease;
+  outline: none;
+  font-style: normal;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative; /* ENSURES proper containment */
+  vertical-align: baseline; /* PREVENTS vertical drift */
+}
+
+/* FIXED: Ensure proper spacing and cursor positioning around math structures */
+.math-structure + * {
+  margin-left: 2px;
+}
+
+* + .math-structure {
+  margin-left: 2px;
+}
+
+/* FIXED: Ensure proper spacing and cursor positioning around math structures */
+.math-structure + * {
+  margin-left: 2px;
+}
+
+* + .math-structure {
+  margin-left: 2px;
+}
+
+/* FIXED: Use truly invisible spacing for cursor positioning */
+.math-structure::before {
+  content: ''; /* Remove visible characters */
+  display: inline;
+  width: 1px; /* Minimal width for cursor positioning */
+  user-select: none;
+  pointer-events: none;
+}
+
+.math-structure::after {
+  content: ''; /* Remove visible characters */
+  display: inline;
+  width: 1px; /* Minimal width for cursor positioning */
+  user-select: none;
+  pointer-events: none;
+}
+
+/* FIXED: Ensure proper cursor behavior in contenteditable areas */
+.editor-content .math-structure {
+  cursor: default;
+}
+
+.editor-content .math-structure:hover {
+  outline: 1px dashed rgba(79, 172, 254, 0.3);
+  border-radius: 2px;
+}
+
+/* FIXED: Prevent cursor from getting trapped inside math structures */
+.math-structure {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  white-space: nowrap;
+  margin: 0 2px; /* Small margins for better cursor positioning and spacing */
+}
+
+/* FIXED: Ensure math structures don't run together */
+.math-structure + .math-structure {
+  margin-left: 4px;
+}
+
+/* FIXED: Only the editable limits should be selectable */
+.math-limit-editable {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  cursor: text;
+}
+
+/* Mathematical Fraction Styling */
+.math-fraction {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: 0.1em; /* FIXED: Middle value between 0.05em and 0.15em */
+  margin: 0 2px;
+  position: relative;
+  font-family: 'Times New Roman', serif;
+  font-size: 1em;
+}
+
+/* FIXED: Main fraction line positioning for baseline alignment */
+.math-fraction > .fraction-line {
+  width: 100%;
+  min-width: 24px;
+  height: 1px;
+  background: currentColor;
+  margin: 1px 0;
+  position: relative;
+  /* This is the reference line for text alignment */
+}
+
+.fraction-numerator,
+.fraction-denominator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 20px;
+  padding: 2px 4px;
+  position: relative;
+}
+
+.fraction-numerator {
+  margin-bottom: 1px;
+}
+
+.fraction-denominator {
+  margin-top: 1px;
+}
+
+.fraction-line {
+  width: 100%;
+  min-width: 24px;
+  height: 1px;
+  background: currentColor;
+  margin: 1px 0;
+  position: relative;
+}
+
+.fraction-num-editable,
+.fraction-den-editable {
+  background: transparent;
+  border: none;
+  padding: 1px 3px;
+  min-width: 12px;
+  display: inline-block;
+  cursor: text;
+  transition: all 0.2s ease;
+  outline: none;
+  font-style: normal;
+  white-space: nowrap;
+  text-align: center;
+  font-size: 0.9em;
+  line-height: 1.2;
+  color: inherit;
+  vertical-align: baseline;
+}
+
+.fraction-num-editable:hover,
+.fraction-den-editable:hover {
+  background: rgba(79, 172, 254, 0.05);
+  border-radius: 2px;
+}
+
+.fraction-num-editable:focus,
+.fraction-den-editable:focus {
+  background: rgba(79, 172, 254, 0.08);
+  border-radius: 2px;
+  box-shadow: none;
+}
+
+.fraction-den-editable:empty::before {
+  content: attr(data-placeholder);
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+  font-size: 0.9em;
+}
+
+/* Ensure fractions don't break layout */
+.math-fraction {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.fraction-num-editable,
+.fraction-den-editable {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* FIXED: Nested fractions with consistent baseline */
+.math-fraction .math-fraction {
+  font-size: 0.75em;
+  margin: 0 1px;
+  vertical-align: 0.05em; /* Proportional to main fraction */
+}
+
+.math-fraction .math-fraction .math-fraction {
+  font-size: 0.65em;
+  margin: 0;
+  vertical-align: 0.03em;
+}
+
+/* FIXED: Force text alignment with main fraction baseline */
+.editor-content {
+  line-height: 1.8; /* Increased to accommodate fraction heights */
+}
+
+/* FIXED: Ensure all inline elements align consistently */
+.editor-content * {
+  vertical-align: baseline;
+}
+
+/* FIXED: Override for fractions to align with text baseline */
+.editor-content .math-fraction {
+  vertical-align: 0.1em; /* Middle value for better alignment */
+}
+
+/* FIXED: Prevent nested fractions from affecting text alignment */
+.fraction-num-editable .math-fraction,
+.fraction-den-editable .math-fraction {
+  vertical-align: 0.05em;
+  display: inline-flex;
+}
+
+/* FIXED: Text and elements immediately after fractions */
+.math-fraction + * {
+  vertical-align: baseline !important; /* Force baseline alignment */
+}
+
+.math-fraction + span,
+.math-fraction + text,
+.math-fraction ~ * {
+  vertical-align: baseline !important;
+}
+
+/* FIXED: Special handling for text nodes after fractions */
+.editor-content .math-fraction {
+  position: relative;
+}
+
+.editor-content .math-fraction::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  /* This invisible marker helps with text alignment */
+}
+
+/* Responsive fraction sizing */
+@media (max-width: 768px) {
+  .math-fraction {
+    font-size: 0.9em;
+    vertical-align: 0.12em; /* Adjusted for mobile */
+  }
+  
+  .fraction-num-editable,
+  .fraction-den-editable {
+    font-size: 0.85em;
+    padding: 1px 2px;
+    min-width: 10px;
+  }
+  
+  .fraction-line {
+    min-width: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .math-fraction {
+    font-size: 0.85em;
+    vertical-align: 0.1em; /* Adjusted for small screens */
+  }
+  
+  .fraction-num-editable,
+  .fraction-den-editable {
+    font-size: 0.8em;
+    padding: 0px 2px;
+    min-width: 8px;
+  }
+  
+  .fraction-line {
+    min-width: 16px;
+  }
+}
+
+/* Click outside to close math dropdown */
+.math-dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  background: transparent;
 }
 
 /* Responsive design */
@@ -348,6 +1024,38 @@
     height: 28px;
     padding: 4px 6px;
     font-size: 12px;
+  }
+  
+  .toolbar-btn.math-btn {
+    min-width: 32px;
+    font-size: 14px;
+  }
+  
+  .math-dropdown {
+    min-width: 320px;
+    max-width: 90vw;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .math-dropdown-header {
+    padding: 12px 16px;
+  }
+  
+  .math-categories {
+    padding: 12px 16px 16px 16px;
+    max-height: 300px;
+  }
+  
+  .symbols-grid {
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: 4px;
+  }
+  
+  .symbol-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
   }
   
   .editor-content {
@@ -365,6 +1073,30 @@
   .toolbar-divider {
     height: 16px;
     margin: 0 2px;
+  }
+
+  /* FIXED: Responsive adjustments for math limits */
+  .integral-structure .upper-limit {
+    top: -1.4em; /* Adjusted for tablet screens */
+  }
+  
+  .integral-structure .lower-limit {
+    bottom: -1.4em;
+  }
+  
+  .summation-structure .upper-limit,
+  .product-structure .upper-limit {
+    top: -1.6em; /* Adjusted for tablet screens */
+  }
+  
+  .summation-structure .lower-limit,
+  .product-structure .lower-limit {
+    bottom: -1.6em;
+  }
+  
+  .math-limit-editable {
+    padding: 1px 4px;
+    min-width: 16px;
   }
 }
 
@@ -384,11 +1116,69 @@
     padding: 3px 5px;
   }
   
+  .toolbar-btn.math-btn {
+    min-width: 30px;
+    font-size: 13px;
+  }
+  
+  .math-dropdown {
+    min-width: 280px;
+    max-width: 95vw;
+  }
+  
+  .math-dropdown-header {
+    padding: 10px 12px;
+  }
+  
+  .math-dropdown-header span {
+    font-size: 0.9rem;
+  }
+  
+  .math-categories {
+    padding: 10px 12px 12px 12px;
+    max-height: 250px;
+  }
+  
+  .symbols-grid {
+    grid-template-columns: repeat(auto-fill, minmax(35px, 1fr));
+    gap: 3px;
+  }
+  
+  .symbol-btn {
+    width: 35px;
+    height: 35px;
+    font-size: 14px;
+  }
+  
+  .category-header {
+    font-size: 0.8rem;
+    margin-bottom: 8px;
+  }
+  
   .recording-time,
   .uploading-indicator {
     font-size: 10px;
     padding: 0 4px;
     height: 20px;
+  }
+
+  /* FIXED: Smaller screen adjustments for math limits */
+  .integral-structure .upper-limit {
+    top: -1.2em; /* Adjusted for small screens */
+  }
+  
+  .integral-structure .lower-limit {
+    bottom: -1.2em;
+  }
+  
+  .summation-structure .upper-limit,
+  .product-structure .upper-limit {
+    top: -1.4em; /* Adjusted for small screens */
+  }
+  
+  .summation-structure .lower-limit,
+  .product-structure .lower-limit {
+    bottom: -1.4em;
   }
 }
 
@@ -405,6 +1195,31 @@
   .toolbar-btn.active {
     border-color: #4facfe;
     background: #4facfe;
+    color: #000;
+  }
+  
+  .toolbar-btn.math-btn {
+    border-color: #ff9500;
+  }
+  
+  .toolbar-btn.math-btn:hover,
+  .toolbar-btn.math-btn.active {
+    border-color: #ff9500;
+    background: #ff9500;
+    color: #000;
+  }
+  
+  .math-dropdown {
+    border: 2px solid #fff;
+  }
+  
+  .symbol-btn {
+    border: 2px solid #666;
+  }
+  
+  .symbol-btn:hover {
+    border-color: #ff9500;
+    background: #ff9500;
     color: #000;
   }
   
@@ -433,5 +1248,21 @@
   
   .uploading-indicator::before {
     animation: none;
+  }
+  
+  .math-dropdown {
+    animation: none;
+  }
+  
+  .symbol-btn {
+    transition: none;
+  }
+  
+  .symbol-btn:hover {
+    transform: none;
+  }
+  
+  .symbol-btn:active {
+    transform: none;
   }
 }

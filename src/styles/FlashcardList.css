@@ -1,4 +1,4 @@
-/* src/styles/FlashcardList.css - UPDATED: REMOVED ADD AUDIO BUTTONS */
+/* src/styles/FlashcardList.css - UPDATED: WITH INCREASED SPACING FOR MATH SYMBOLS */
 
 .flashcard-list {
   max-width: 1200px;
@@ -136,6 +136,89 @@
 /* Editor container styling */
 .editor-container {
   margin-bottom: 0;
+}
+
+/* FIXED: Increased spacing for editor content in flashcard list */
+.flashcard-list .simple-rich-text-editor .editor-content {
+  min-height: 120px;
+  padding: 25px 15px 15px 15px; /* INCREASED top padding from 15px to 25px */
+  color: white;
+  font-size: 1rem;
+  line-height: 1.5;
+  outline: none;
+  overflow-y: auto;
+  word-wrap: break-word;
+  margin-top: 8px; /* ADDED: Extra margin between toolbar and content */
+}
+
+/* FIXED: Better cursor handling for math structures in flashcard list */
+.flashcard-list .simple-rich-text-editor .editor-content .math-structure {
+  margin: 8px 4px;
+  cursor: default;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* FIXED: Remove visible spacing characters in flashcard list */
+.flashcard-list .math-structure::before {
+  content: ''; /* Remove visible characters */
+  display: inline;
+  width: 0; /* No visible width */
+  user-select: none;
+  pointer-events: none;
+}
+
+.flashcard-list .math-structure::after {
+  content: ''; /* Remove visible characters */
+  display: inline;
+  width: 0; /* No visible width */
+  user-select: none;
+  pointer-events: none;
+}
+
+/* FIXED: Ensure only the editable limits are selectable in flashcard list */
+.flashcard-list .math-limit-editable {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+  cursor: text !important;
+  position: relative;
+  z-index: 10;
+}
+
+/* FIXED: Visual indicator when hovering over math structures in edit mode */
+.flashcard-list .math-structure:hover {
+  outline: 1px dashed rgba(79, 172, 254, 0.4);
+  border-radius: 3px;
+  background: rgba(79, 172, 254, 0.05);
+}
+
+/* FIXED: Prevent cursor trapping around math structures */
+.flashcard-list .editor-content {
+  caret-color: white; /* Ensure cursor is visible */
+}
+
+.flashcard-list .editor-content .math-structure + br {
+  display: none; /* Prevent extra line breaks after math structures */
+}
+
+.flashcard-list .editor-content .math-structure + div {
+  display: inline; /* Ensure proper text flow after math structures */
+}
+
+/* FIXED: Ensure math limits have enough space in flashcard list */
+.flashcard-list .simple-rich-text-editor .editor-content .integral-structure,
+.flashcard-list .simple-rich-text-editor .editor-content .summation-structure,
+.flashcard-list .simple-rich-text-editor .editor-content .product-structure {
+  padding: 12px 8px; /* INCREASED vertical padding */
+  margin: 12px 6px; /* INCREASED vertical margin */
 }
 
 /* Audio Display Section (Read-only audio player for existing audio) */
@@ -403,6 +486,23 @@
   .audio-label {
     font-size: 0.75rem;
   }
+
+  /* FIXED: Tablet spacing for math symbols */
+  .flashcard-list .simple-rich-text-editor .editor-content {
+    padding: 20px 12px 12px 12px;
+    margin-top: 6px;
+  }
+  
+  .flashcard-list .simple-rich-text-editor .editor-content .math-structure {
+    margin: 6px 4px;
+  }
+  
+  .flashcard-list .simple-rich-text-editor .editor-content .integral-structure,
+  .flashcard-list .simple-rich-text-editor .editor-content .summation-structure,
+  .flashcard-list .simple-rich-text-editor .editor-content .product-structure {
+    padding: 10px 6px;
+    margin: 10px 4px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -456,5 +556,22 @@
 
   .audio-label {
     font-size: 0.7rem;
+  }
+
+  /* FIXED: Mobile spacing for math symbols */
+  .flashcard-list .simple-rich-text-editor .editor-content {
+    padding: 18px 10px 10px 10px;
+    margin-top: 4px;
+  }
+  
+  .flashcard-list .simple-rich-text-editor .editor-content .math-structure {
+    margin: 4px 2px;
+  }
+  
+  .flashcard-list .simple-rich-text-editor .editor-content .integral-structure,
+  .flashcard-list .simple-rich-text-editor .editor-content .summation-structure,
+  .flashcard-list .simple-rich-text-editor .editor-content .product-structure {
+    padding: 8px 4px;
+    margin: 8px 2px;
   }
 }
