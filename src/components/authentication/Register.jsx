@@ -3,7 +3,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import UserAuthContext from '../context/UserAuthContext';
 import { supabase } from '../../supabase';
-import { emailService } from '../../utils/emailService';
+import { emailService } from '../api/emailService';
 import { 
   FaEye, 
   FaEyeSlash, 
