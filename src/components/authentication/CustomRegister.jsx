@@ -1,4 +1,4 @@
-// components/authentication/Register.jsx - CLEAN VERSION
+// components/authentication/CustomRegister.jsx - Updated Register Component
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import UserAuthContext from '../context/UserAuthContext';
@@ -17,7 +17,7 @@ import {
 } from 'react-icons/fa';
 import '../../styles/Register.css';
 
-export default function Register() {
+export default function CustomRegister() {
   const navigate = useNavigate();
   const { login, isLoggedIn } = useContext(UserAuthContext);
 
@@ -175,12 +175,10 @@ export default function Register() {
     }
   };
 
-  // Custom sign up with Gmail email verification
+  // Custom sign up with manual email verification
   const handleCustomSignUp = async () => {
     try {
-      console.log('🚀 Starting custom sign up process...');
-      
-      // Create user in Supabase
+      // Create user in Supabase without automatic email verification
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -189,13 +187,12 @@ export default function Register() {
           data: {
             name: formData.fullName.trim(),
             picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullName)}&background=4facfe&color=fff&size=200`,
-            email_verified: false
+            email_verified: false // We'll handle verification manually
           }
         }
       });
 
       if (signUpError) {
-        console.error('❌ Supabase signup error:', signUpError);
         if (signUpError.message.includes('already registered')) {
           setError('An account with this email already exists. Try signing in instead.');
         } else {
@@ -210,11 +207,8 @@ export default function Register() {
         return;
       }
 
-      console.log('✅ User created in Supabase:', userId);
-
       // Generate custom verification token
       const verificationToken = emailService.generateVerificationToken();
-      console.log('🔑 Generated verification token');
       
       // Store verification token in database
       await emailService.storeVerificationToken(
@@ -223,22 +217,19 @@ export default function Register() {
         verificationToken, 
         'email_confirmation'
       );
-      console.log('💾 Stored verification token in database');
 
       // Create confirmation URL
       const confirmationUrl = `${window.location.origin}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(formData.email)}`;
 
-      // Send custom confirmation email via Gmail
-      console.log('📧 Sending confirmation email...');
+      // Send custom confirmation email
       await emailService.sendConfirmationEmail(
         formData.email,
         confirmationUrl,
         formData.fullName.trim()
       );
-      console.log('✅ Confirmation email sent successfully!');
 
       setMessage(
-        `🎉 Welcome to Jacal, ${formData.fullName}! We've sent a beautiful confirmation email to ${formData.email}. Please check your inbox and click the verification link to start your learning journey!`
+        `Welcome ${formData.fullName}! A confirmation email has been sent to ${formData.email}. Please check your inbox and click the verification link to activate your account.`
       );
       
       // Clear form after successful sign up
@@ -250,12 +241,12 @@ export default function Register() {
       });
 
     } catch (error) {
-      console.error('❌ Custom sign up error:', error);
-      setError(`Failed to send verification email: ${error.message}`);
+      console.error('Custom sign up error:', error);
+      setError('Failed to send verification email. Please try again.');
     }
   };
 
-  // Handle sign in
+  // Handle sign in (unchanged)
   const handleSignIn = async () => {
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email: formData.email,
@@ -279,7 +270,7 @@ export default function Register() {
     }
   };
 
-  // Handle Google sign in
+  // Handle Google sign in (unchanged)
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
@@ -310,7 +301,7 @@ export default function Register() {
     setValidationErrors({});
     setFormData({
       fullName: '',
-      email: formData.email,
+      email: formData.email, // Keep email when switching
       password: '',
       confirmPassword: ''
     });
@@ -324,11 +315,11 @@ export default function Register() {
           <div className="auth-icon">
             <FaUser />
           </div>
-          <h1>{isSignUp ? 'Join Jacal' : 'Welcome Back'}</h1>
+          <h1>{isSignUp ? 'Create Account' : 'Welcome Back'}</h1>
           <p>
             {isSignUp 
-              ? 'Start your intelligent learning journey today' 
-              : 'Continue mastering new skills with Jacal'
+              ? 'Join thousands of learners mastering new skills' 
+              : 'Sign in to continue your learning journey'
             }
           </p>
         </div>
@@ -497,7 +488,7 @@ export default function Register() {
                   {isSignUp ? 'Creating Account...' : 'Signing In...'}
                 </>
               ) : (
-                isSignUp ? 'Start Learning with Jacal' : 'Sign In'
+                isSignUp ? 'Create Account' : 'Sign In'
               )}
             </button>
           </form>
@@ -549,52 +540,8 @@ export default function Register() {
           </div>
         )}
 
-        {/* Success Message with Resend Option */}
-        {message && isSignUp && (
-          <div className="terms-privacy" style={{ marginTop: '24px' }}>
-            <div style={{ 
-              background: 'rgba(40, 167, 69, 0.1)', 
-              border: '1px solid rgba(40, 167, 69, 0.3)',
-              borderRadius: '12px',
-              padding: '20px',
-              marginBottom: '20px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ fontSize: '2rem' }}>📧</div>
-                <div>
-                  <strong style={{ color: '#28a745', fontSize: '1.1rem' }}>Check Your Email!</strong>
-                  <p style={{ 
-                    color: '#28a745', 
-                    margin: '4px 0 0 0', 
-                    fontSize: '0.9rem', 
-                    lineHeight: 1.5 
-                  }}>
-                    We've sent a beautiful welcome email with your verification link.
-                  </p>
-                </div>
-              </div>
-              
-              <div style={{
-                background: '#f8f9fa',
-                padding: '12px',
-                borderRadius: '8px',
-                borderLeft: '4px solid #4facfe'
-              }}>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
-                  💡 <strong>Pro tip:</strong> Check your spam folder if you don't see it in a few minutes!
-                </p>
-              </div>
-            </div>
-            
-            <ResendVerificationButton 
-              email={formData.email} 
-              userName={formData.fullName}
-            />
-          </div>
-        )}
-
         {/* Terms and Privacy (Sign Up Only) */}
-        {isSignUp && !message && (
+        {isSignUp && (
           <div className="terms-privacy">
             <p>
               By creating an account, you agree to our{' '}
@@ -602,6 +549,38 @@ export default function Register() {
               {' '}and{' '}
               <Link to="/privacy" className="legal-link">Privacy Policy</Link>
             </p>
+          </div>
+        )}
+
+        {/* Success Message with Resend Option */}
+        {message && isSignUp && (
+          <div className="terms-privacy" style={{ marginTop: '24px' }}>
+            <div style={{ 
+              background: 'rgba(40, 167, 69, 0.1)', 
+              border: '1px solid rgba(40, 167, 69, 0.3)',
+              borderRadius: '12px',
+              padding: '16px',
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <FaEnvelope style={{ color: '#28a745' }} />
+                <strong style={{ color: '#28a745' }}>Check Your Email</strong>
+              </div>
+              <p style={{ 
+                color: '#28a745', 
+                margin: 0, 
+                fontSize: '0.9rem', 
+                lineHeight: 1.5 
+              }}>
+                We've sent a verification link to your email address. 
+                Please click the link to activate your account.
+              </p>
+            </div>
+            
+            <ResendVerificationButton 
+              email={formData.email} 
+              userName={formData.fullName}
+            />
           </div>
         )}
       </div>
@@ -642,11 +621,11 @@ const ResendVerificationButton = ({ email, userName }) => {
       // Generate new verification token
       const newToken = emailService.generateVerificationToken();
       
-      // Get user data
+      // Get user ID (this is a simplified approach - in production you might want to handle this differently)
       const { data: userData, error: userError } = await supabase.auth.getUser();
       
       if (userError || !userData.user) {
-        throw new Error('User session not found');
+        throw new Error('User not found');
       }
 
       // Store new token
@@ -667,7 +646,7 @@ const ResendVerificationButton = ({ email, userName }) => {
         userName || ''
       );
 
-      setResendMessage('✅ New verification email sent successfully!');
+      setResendMessage('✅ Verification email sent successfully!');
       setCanResend(false);
       setCountdown(60);
 
@@ -697,11 +676,8 @@ const ResendVerificationButton = ({ email, userName }) => {
         <p style={{ 
           color: resendMessage.includes('✅') ? '#28a745' : '#ff4757',
           fontSize: '0.9rem',
-          marginBottom: '16px',
-          fontWeight: '500',
-          padding: '8px',
-          borderRadius: '6px',
-          background: resendMessage.includes('✅') ? 'rgba(40, 167, 69, 0.1)' : 'rgba(255, 71, 87, 0.1)'
+          marginBottom: '12px',
+          fontWeight: '500'
         }}>
           {resendMessage}
         </p>
@@ -711,13 +687,12 @@ const ResendVerificationButton = ({ email, userName }) => {
         onClick={handleResendVerification}
         disabled={!canResend || resendLoading}
         style={{
-          background: canResend ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' : 'rgba(255, 255, 255, 0.1)',
+          background: canResend ? 'rgba(79, 172, 254, 0.1)' : 'rgba(255, 255, 255, 0.05)',
           border: `2px solid ${canResend ? 'rgba(79, 172, 254, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
-          borderRadius: '10px',
-          padding: '12px 24px',
-          color: canResend ? 'white' : '#666',
-          fontSize: '0.9rem',
-          fontWeight: '600',
+          borderRadius: '8px',
+          padding: '8px 16px',
+          color: canResend ? '#4facfe' : '#666',
+          fontSize: '0.85rem',
           cursor: canResend ? 'pointer' : 'not-allowed',
           transition: 'all 0.3s ease',
           display: 'flex',
@@ -725,22 +700,22 @@ const ResendVerificationButton = ({ email, userName }) => {
           justifyContent: 'center',
           gap: '8px',
           margin: '0 auto',
-          minWidth: '200px'
+          minWidth: '180px'
         }}
       >
         {resendLoading ? (
           <>
-            <FaSpinner className="spinner" style={{ fontSize: '0.9rem' }} />
+            <FaSpinner className="spinner" style={{ fontSize: '0.8rem' }} />
             Sending...
           </>
         ) : canResend ? (
           <>
-            <FaEnvelope style={{ fontSize: '0.9rem' }} />
+            <FaEnvelope style={{ fontSize: '0.8rem' }} />
             Resend Email
           </>
         ) : (
           <>
-            <FaSpinner style={{ fontSize: '0.9rem', animation: 'none' }} />
+            <FaSpinner style={{ fontSize: '0.8rem' }} />
             Resend in {countdown}s
           </>
         )}
@@ -749,13 +724,10 @@ const ResendVerificationButton = ({ email, userName }) => {
       <p style={{ 
         color: '#999', 
         fontSize: '0.8rem', 
-        marginTop: '16px',
+        marginTop: '12px',
         lineHeight: 1.4 
       }}>
-        Still having trouble? Contact us at{' '}
-        <a href="mailto:jacal.io.service@gmail.com" style={{ color: '#4facfe' }}>
-          jacal.io.service@gmail.com
-        </a>
+        Didn't receive the email? Check your spam folder or try resending.
       </p>
     </div>
   );

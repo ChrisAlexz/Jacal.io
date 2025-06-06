@@ -1,4 +1,3 @@
-// src/App.js - UPDATED WITH NEW AUTH ROUTES
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 
@@ -8,9 +7,13 @@ import Set from './components/Set';
 import Flashcard from './components/Flashcard';
 import FlashcardStudyPage from './components/FlashcardStudyPage';
 import SpeedFocusMode from './components/SpeedFocusMode';
+
+// Updated authentication components
 import Register from './components/authentication/Register';
+import EmailVerification from './components/authentication/EmailVerification';
 import PasswordReset from './components/authentication/PasswordReset';
 import AuthCallback from './components/authentication/AuthCallback';
+
 import Navbar from './components/Navbar';
 import { UserAuthProvider } from './components/context/UserAuthContext';
 
@@ -25,8 +28,9 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/set" element={<Set />} />
             
-            {/* Authentication Routes */}
+            {/* Updated Authentication Routes */}
             <Route path="/register" element={<Register />} />
+            <Route path="/auth/verify-email" element={<EmailVerification />} />
             <Route path="/auth/reset-password" element={<PasswordReset />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             
@@ -43,3 +47,4 @@ function App() {
 }
 
 export default App;
+
