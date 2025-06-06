@@ -6,7 +6,17 @@ import '../styles/FlashcardList.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 
-const FlashcardItem = ({ index, front, back, updateFlashcard, onDelete, cardType, frontAudioUrl, backAudioUrl }) => {
+const FlashcardItem = ({ 
+  index, 
+  front, 
+  back, 
+  updateFlashcard, 
+  onDelete, 
+  cardType, 
+  frontAudioUrl, 
+  backAudioUrl,
+  isStudyMode = false // NEW: Indicates if we're in study mode
+}) => {
   const { user } = useContext(UserAuthContext);
   const [frontContent, setFrontContent] = useState('');
   const [backContent, setBackContent] = useState('');
@@ -90,7 +100,8 @@ const FlashcardItem = ({ index, front, back, updateFlashcard, onDelete, cardType
               {isBack ? '🖼️ Back: Answer revealed' : '🖼️ Front: Question view'}
             </span>
           </div>
-          {audioUrl && (
+          {/* Audio in image cards - only if not in study mode */}
+          {audioUrl && !isStudyMode && (
             <div className="audio-in-image-card">
               <AudioPlayer audioUrl={audioUrl} compact={true} />
             </div>
@@ -108,10 +119,11 @@ const FlashcardItem = ({ index, front, back, updateFlashcard, onDelete, cardType
               onAudioChange={isBack ? handleBackAudioChange : handleFrontAudioChange}
               initialAudioUrl={audioUrl}
               user={user}
+              hideAudioPlayer={false} // Always show embedded audio player in edit mode
             />
           </div>
           
-          {/* REMOVED: Duplicate audio player - the SimpleRichTextEditor now handles audio display */}
+          {/* REMOVED: No duplicate AudioPlayer - SimpleRichTextEditor handles it */}
         </div>
       );
     }
@@ -124,14 +136,16 @@ const FlashcardItem = ({ index, front, back, updateFlashcard, onDelete, cardType
         {isImageOcclusionCard && (
           <div className="card-type-badge">Image Occlusion</div>
         )}
-        {(frontAudio || backAudio) && !isImageOcclusionCard && (
+        {(frontAudio || backAudio) && !isImageOcclusionCard && !isStudyMode && (
           <div className="audio-indicator">
             🎵 Audio
           </div>
         )}
-        <button className="delete-btn" onClick={() => onDelete(index)}>
-          <FontAwesomeIcon icon={faTrash} />
-        </button>
+        {!isStudyMode && (
+          <button className="delete-btn" onClick={() => onDelete(index)}>
+            <FontAwesomeIcon icon={faTrash} />
+          </button>
+        )}
       </div>
 
       <div className="front-back">
@@ -146,7 +160,7 @@ const FlashcardItem = ({ index, front, back, updateFlashcard, onDelete, cardType
         </div>
       </div>
 
-      {isImageOcclusionCard && (
+      {isImageOcclusionCard && !isStudyMode && (
         <div className="image-occlusion-info">
           <div className="info-item">
             <span className="info-icon">⚠️</span>

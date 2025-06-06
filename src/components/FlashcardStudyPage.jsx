@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - UPDATED WITH AUDIO SUPPORT
+// src/components/FlashcardStudyPage.jsx - FIXED: Manual Audio Controls Only
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -42,8 +42,7 @@ export default function FlashcardStudyPage() {
   const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
   const [isAnswerCorrect, setIsAnswerCorrect] = useState(null);
 
-  // Audio state
-  const [autoPlayAudio, setAutoPlayAudio] = useState(true);
+  // REMOVED: autoPlayAudio state - no auto play functionality
 
   useEffect(() => {
     if (id) {
@@ -502,18 +501,6 @@ export default function FlashcardStudyPage() {
         </div>
       </div>
 
-      {/* Audio Settings */}
-      <div className="audio-settings">
-        <label className="audio-setting-item">
-          <input
-            type="checkbox"
-            checked={autoPlayAudio}
-            onChange={(e) => setAutoPlayAudio(e.target.checked)}
-          />
-          <span>Auto-play audio</span>
-        </label>
-      </div>
-
       {/* Speed Focus Mode Button */}
       <div className="study-mode-selector">
         <button 
@@ -545,15 +532,20 @@ export default function FlashcardStudyPage() {
           )}
         </div>
 
-        {/* Front Audio Player */}
+        {/* DEAD SIMPLE: Front Audio */}
         {currentCard.front_audio_url && (
-          <div className="card-audio front-audio">
-            <AudioPlayer 
-              audioUrl={currentCard.front_audio_url}
-              autoPlay={autoPlayAudio}
-              compact={false}
-              showControls={true}
-            />
+          <div className="card-audio front-audio" key={`front-audio-${currentCard.id}-${currentIndex}`}>
+            <div style={{ padding: '12px', background: 'rgba(79, 172, 254, 0.1)', borderRadius: '8px' }}>
+              <div style={{ marginBottom: '8px', color: '#4facfe', fontWeight: '600', fontSize: '0.9rem' }}>
+                🎵 Front Audio
+              </div>
+              <audio controls style={{ width: '100%' }}>
+                <source src={currentCard.front_audio_url} type="audio/webm" />
+                <source src={currentCard.front_audio_url} type="audio/mp4" />
+                <source src={currentCard.front_audio_url} type="audio/mpeg" />
+                Your browser does not support audio playback.
+              </audio>
+            </div>
           </div>
         )}
 
@@ -601,15 +593,20 @@ export default function FlashcardStudyPage() {
               </div>
             </div>
             
-            {/* Back Audio Player for Basic-Type */}
+            {/* DEAD SIMPLE: Back Audio */}
             {currentCard.back_audio_url && (
-              <div className="card-audio back-audio">
-                <AudioPlayer 
-                  audioUrl={currentCard.back_audio_url}
-                  autoPlay={autoPlayAudio && isAnswerCorrect}
-                  compact={false}
-                  showControls={true}
-                />
+              <div className="card-audio back-audio" key={`back-audio-basic-${currentCard.id}-${currentIndex}`}>
+                <div style={{ padding: '12px', background: 'rgba(40, 167, 69, 0.1)', borderRadius: '8px' }}>
+                  <div style={{ marginBottom: '8px', color: '#28a745', fontWeight: '600', fontSize: '0.9rem' }}>
+                    🎵 Back Audio
+                  </div>
+                  <audio controls style={{ width: '100%' }}>
+                    <source src={currentCard.back_audio_url} type="audio/webm" />
+                    <source src={currentCard.back_audio_url} type="audio/mp4" />
+                    <source src={currentCard.back_audio_url} type="audio/mpeg" />
+                    Your browser does not support audio playback.
+                  </audio>
+                </div>
               </div>
             )}
             
@@ -673,15 +670,20 @@ export default function FlashcardStudyPage() {
               </div>
             )}
 
-            {/* Back Audio Player */}
+            {/* DEAD SIMPLE: Back Audio */}
             {currentCard.back_audio_url && (
-              <div className="card-audio back-audio">
-                <AudioPlayer 
-                  audioUrl={currentCard.back_audio_url}
-                  autoPlay={autoPlayAudio}
-                  compact={false}
-                  showControls={true}
-                />
+              <div className="card-audio back-audio" key={`back-audio-${currentCard.id}-${currentIndex}`}>
+                <div style={{ padding: '12px', background: 'rgba(40, 167, 69, 0.1)', borderRadius: '8px' }}>
+                  <div style={{ marginBottom: '8px', color: '#28a745', fontWeight: '600', fontSize: '0.9rem' }}>
+                    🎵 Back Audio
+                  </div>
+                  <audio controls style={{ width: '100%' }}>
+                    <source src={currentCard.back_audio_url} type="audio/webm" />
+                    <source src={currentCard.back_audio_url} type="audio/mp4" />
+                    <source src={currentCard.back_audio_url} type="audio/mpeg" />
+                    Your browser does not support audio playback.
+                  </audio>
+                </div>
               </div>
             )}
 

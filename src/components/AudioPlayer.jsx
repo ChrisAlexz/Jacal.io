@@ -1,5 +1,5 @@
-// src/components/AudioPlayer.jsx - WebM COMPATIBLE VERSION
-import React, { useState, useRef, useEffect } from 'react';
+// src/components/AudioPlayer.jsx - SIMPLIFIED: Stable Audio Player
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faPlay, 
@@ -30,11 +30,12 @@ const AudioPlayer = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [hasValidDuration, setHasValidDuration] = useState(false);
+  const [canPlay, setCanPlay] = useState(false);
   
   const audioRef = useRef(null);
   const progressRef = useRef(null);
-  const durationCheckInterval = useRef(null);
+  const mountedRef = useRef(true);
+  const lastStateRef = useRef(null);
 
   const formatTime = (seconds) => {
     const num = Number(seconds);
@@ -44,207 +45,199 @@ const AudioPlayer = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Aggressive duration checking for WebM files
-  const checkDuration = (audio) => {
-    if (!audio) return;
+  // Debounced state setter to prevent rapid changes
+  const setPlayingState = useCallback((playing) => {
+    if (!mountedRef.current) return;
     
-    const dur = audio.duration;
-    if (Number.isFinite(dur) && dur > 0 && dur !== Infinity) {
-      setDuration(dur);
-      setHasValidDuration(true);
-      setIsLoading(false);
-      if (durationCheckInterval.current) {
-        clearInterval(durationCheckInterval.current);
-        durationCheckInterval.current = null;
-      }
-      return true;
+    // Only update if state actually changed
+    if (lastStateRef.current !== playing) {
+      lastStateRef.current = playing;
+      setIsPlaying(playing);
     }
-    return false;
-  };
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !audioUrl) return;
 
-    // Reset states
+    console.log('🎵 Loading audio:', audioUrl);
+    
+    // Reset all states
     setCurrentTime(0);
     setDuration(0);
     setIsLoading(true);
     setError(null);
-    setIsPlaying(false);
-    setHasValidDuration(false);
+    setCanPlay(false);
+    setPlayingState(false);
+    lastStateRef.current = false;
 
-    // Clear any existing interval
-    if (durationCheckInterval.current) {
-      clearInterval(durationCheckInterval.current);
-      durationCheckInterval.current = null;
-    }
+    // Simple event handlers that don't over-complicate things
+    const handleCanPlay = () => {
+      if (!mountedRef.current) return;
+      console.log('✅ Audio can play');
+      setCanPlay(true);
+      setIsLoading(false);
+      setError(null);
+    };
 
     const handleLoadedMetadata = () => {
-      checkDuration(audio);
-    };
-
-    const handleLoadedData = () => {
-      if (!checkDuration(audio)) {
-        // If duration is still invalid, start aggressive checking
-        durationCheckInterval.current = setInterval(() => {
-          if (checkDuration(audio)) {
-            return; // Duration found, interval will be cleared in checkDuration
-          }
-          
-          // Try seeking to a small position to force metadata loading
-          if (audio.readyState >= 2) {
-            try {
-              const originalTime = audio.currentTime;
-              audio.currentTime = 0.1;
-              setTimeout(() => {
-                audio.currentTime = originalTime;
-              }, 50);
-            } catch (e) {
-              // Ignore seek errors
-            }
-          }
-        }, 100);
-        
-        // Stop trying after 10 seconds
-        setTimeout(() => {
-          if (durationCheckInterval.current) {
-            clearInterval(durationCheckInterval.current);
-            durationCheckInterval.current = null;
-            setIsLoading(false);
-            // If we still don't have duration, show error
-            if (!hasValidDuration) {
-              setError('Unable to read audio duration');
-            }
-          }
-        }, 10000);
+      if (!mountedRef.current) return;
+      const dur = audio.duration;
+      if (Number.isFinite(dur) && dur > 0) {
+        console.log('📏 Duration loaded:', dur);
+        setDuration(dur);
+      } else {
+        console.log('⚠️ No duration available');
+        setDuration(0); // Allow playback without duration
       }
-      
-      if (autoPlay && hasValidDuration) {
-        audio.play().catch(() => {});
-      }
-    };
-
-    const handleCanPlay = () => {
-      checkDuration(audio);
-    };
-
-    const handleCanPlayThrough = () => {
-      checkDuration(audio);
-    };
-
-    const handleDurationChange = () => {
-      checkDuration(audio);
     };
 
     const handleTimeUpdate = () => {
-      const current = Number(audio.currentTime);
-      if (Number.isFinite(current) && current >= 0) {
+      if (!mountedRef.current) return;
+      const current = audio.currentTime;
+      if (Number.isFinite(current)) {
         setCurrentTime(current);
       }
     };
 
     const handlePlay = () => {
-      setIsPlaying(true);
+      if (!mountedRef.current) return;
+      console.log('▶️ Audio started playing');
+      setPlayingState(true);
       onPlay?.();
     };
 
     const handlePause = () => {
-      setIsPlaying(false);
+      if (!mountedRef.current) return;
+      console.log('⏸️ Audio paused');
+      setPlayingState(false);
       onPause?.();
     };
 
     const handleEnded = () => {
-      setIsPlaying(false);
+      if (!mountedRef.current) return;
+      console.log('🏁 Audio ended');
+      setPlayingState(false);
       setCurrentTime(0);
       onEnded?.();
     };
 
     const handleError = (e) => {
-      console.error('Audio error:', e);
+      if (!mountedRef.current) return;
+      console.error('💥 Audio error:', e);
       setError('Failed to load audio');
       setIsLoading(false);
-      if (durationCheckInterval.current) {
-        clearInterval(durationCheckInterval.current);
-        durationCheckInterval.current = null;
-      }
+      setCanPlay(false);
+      setPlayingState(false);
     };
 
-    const handleProgress = () => {
-      checkDuration(audio);
+    const handleWaiting = () => {
+      if (!mountedRef.current) return;
+      console.log('⏳ Audio waiting...');
+      // Don't change playing state, just show it's buffering
     };
 
-    // Add all event listeners
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('loadeddata', handleLoadedData);
+    const handleStalled = () => {
+      if (!mountedRef.current) return;
+      console.log('🔄 Audio stalled');
+      // Don't change playing state
+    };
+
+    // Add event listeners
     audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('canplaythrough', handleCanPlayThrough);
-    audio.addEventListener('durationchange', handleDurationChange);
-    audio.addEventListener('progress', handleProgress);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
+    audio.addEventListener('waiting', handleWaiting);
+    audio.addEventListener('stalled', handleStalled);
 
+    // Set up audio
+    audio.preload = 'metadata';
+    audio.volume = volume;
+    audio.playbackRate = playbackRate;
+    
     // Load the audio
     audio.load();
 
-    // Fallback timeout
-    const fallbackTimeout = setTimeout(() => {
-      if (isLoading && !hasValidDuration) {
+    // Simple timeout for loading
+    const loadTimeout = setTimeout(() => {
+      if (mountedRef.current && isLoading) {
+        console.log('⏰ Load timeout - trying anyway');
         setIsLoading(false);
-        setError('Audio loading timeout');
+        setCanPlay(true); // Allow user to try
       }
-    }, 15000);
+    }, 5000);
 
     return () => {
-      clearTimeout(fallbackTimeout);
-      if (durationCheckInterval.current) {
-        clearInterval(durationCheckInterval.current);
-      }
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('loadeddata', handleLoadedData);
+      clearTimeout(loadTimeout);
       audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('canplaythrough', handleCanPlayThrough);
-      audio.removeEventListener('durationchange', handleDurationChange);
-      audio.removeEventListener('progress', handleProgress);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
+      audio.removeEventListener('waiting', handleWaiting);
+      audio.removeEventListener('stalled', handleStalled);
     };
-  }, [audioUrl, autoPlay, onPlay, onPause, onEnded, hasValidDuration, isLoading]);
+  }, [audioUrl, volume, playbackRate, onPlay, onPause, onEnded, isLoading, setPlayingState]);
 
-  const togglePlayback = () => {
-    if (!audioRef.current) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play().catch((err) => {
-        console.error('Playback failed:', err);
-        setError('Playback failed');
-      });
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const togglePlayback = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio || !canPlay || isLoading) {
+      console.log('❌ Cannot toggle playback - not ready');
+      return;
     }
-  };
 
-  const handleProgressClick = (e) => {
-    if (!audioRef.current || !progressRef.current || !hasValidDuration || duration <= 0) return;
+    try {
+      if (audio.paused) {
+        console.log('🎯 Attempting to play');
+        await audio.play();
+      } else {
+        console.log('🎯 Attempting to pause');
+        audio.pause();
+      }
+    } catch (err) {
+      console.error('🚨 Playback error:', err);
+      setError('Playback failed');
+      setPlayingState(false);
+    }
+  }, [canPlay, isLoading, setPlayingState]);
+
+  const handleProgressClick = useCallback((e) => {
+    const audio = audioRef.current;
+    if (!audio || !progressRef.current || !canPlay || duration <= 0) return;
+    
     const rect = progressRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, clickX / rect.width));
     const newTime = percentage * duration;
-    audioRef.current.currentTime = newTime;
+    
+    audio.currentTime = newTime;
     setCurrentTime(newTime);
-  };
+  }, [canPlay, duration]);
 
-  const skipTime = (seconds) => {
-    if (!audioRef.current || !hasValidDuration || duration <= 0) return;
-    const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
-    audioRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
-  };
+  const skipTime = useCallback((seconds) => {
+    const audio = audioRef.current;
+    if (!audio || !canPlay) return;
+    
+    const newTime = Math.max(0, currentTime + seconds);
+    if (duration > 0) {
+      audio.currentTime = Math.min(newTime, duration);
+    } else {
+      audio.currentTime = newTime;
+    }
+  }, [canPlay, currentTime, duration]);
 
   if (!audioUrl) return null;
 
@@ -253,25 +246,51 @@ const AudioPlayer = ({
       <div className={`audio-player error ${className}`}>
         <div className="audio-error">
           <span>❌ {error}</span>
+          <button 
+            onClick={() => {
+              setError(null);
+              setIsLoading(true);
+              setCanPlay(false);
+              if (audioRef.current) {
+                audioRef.current.load();
+              }
+            }}
+            style={{ 
+              marginLeft: '10px', 
+              padding: '4px 8px', 
+              background: '#4facfe', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
   }
 
-  const progressPercentage = hasValidDuration && duration > 0 
+  const progressPercentage = canPlay && duration > 0 
     ? Math.max(0, Math.min(100, (currentTime / duration) * 100)) 
     : 0;
 
   return (
     <div className={`audio-player ${compact ? 'compact' : ''} ${className}`}>
-      <audio ref={audioRef} src={audioUrl} preload="metadata" />
+      <audio 
+        ref={audioRef} 
+        src={audioUrl} 
+        preload="metadata"
+        muted={isMuted}
+      />
 
       {compact ? (
         <div className="audio-player-compact">
           <button
             className="play-btn-compact"
             onClick={togglePlayback}
-            disabled={isLoading || !hasValidDuration}
+            disabled={isLoading || !canPlay}
             title={isPlaying ? "Pause" : "Play"}
           >
             {isLoading ? (
@@ -289,7 +308,7 @@ const AudioPlayer = ({
               />
             </div>
             <span className="time-compact">
-              {isLoading ? 'Loading...' : `${formatTime(currentTime)} / ${formatTime(duration)}`}
+              {isLoading ? 'Loading...' : `${formatTime(currentTime)}${duration > 0 ? ` / ${formatTime(duration)}` : ''}`}
             </span>
           </div>
         </div>
@@ -299,7 +318,7 @@ const AudioPlayer = ({
             <button
               className="skip-btn"
               onClick={() => skipTime(-10)}
-              disabled={isLoading || !hasValidDuration}
+              disabled={isLoading || !canPlay}
               title="Skip backward 10s"
             >
               <FontAwesomeIcon icon={faBackward} />
@@ -309,7 +328,7 @@ const AudioPlayer = ({
             <button
               className="play-btn-main"
               onClick={togglePlayback}
-              disabled={isLoading || !hasValidDuration}
+              disabled={isLoading || !canPlay}
               title={isPlaying ? "Pause" : "Play"}
             >
               {isLoading ? (
@@ -322,7 +341,7 @@ const AudioPlayer = ({
             <button
               className="skip-btn"
               onClick={() => skipTime(10)}
-              disabled={isLoading || !hasValidDuration}
+              disabled={isLoading || !canPlay}
               title="Skip forward 10s"
             >
               <FontAwesomeIcon icon={faForward} />
@@ -342,13 +361,15 @@ const AudioPlayer = ({
                 className="progress-fill-full" 
                 style={{ width: `${progressPercentage}%` }}
               />
-              <div 
-                className="progress-thumb" 
-                style={{ left: `${progressPercentage}%` }}
-              />
+              {duration > 0 && (
+                <div 
+                  className="progress-thumb" 
+                  style={{ left: `${progressPercentage}%` }}
+                />
+              )}
             </div>
             
-            <span className="time-duration">{formatTime(duration)}</span>
+            <span className="time-duration">{duration > 0 ? formatTime(duration) : '--:--'}</span>
           </div>
 
           {showControls && (
@@ -360,9 +381,11 @@ const AudioPlayer = ({
                     if (audioRef.current) {
                       if (isMuted) {
                         audioRef.current.volume = volume;
+                        audioRef.current.muted = false;
                         setIsMuted(false);
                       } else {
                         audioRef.current.volume = 0;
+                        audioRef.current.muted = true;
                         setIsMuted(true);
                       }
                     }
@@ -383,6 +406,7 @@ const AudioPlayer = ({
                     setVolume(newVolume);
                     if (audioRef.current) {
                       audioRef.current.volume = newVolume;
+                      audioRef.current.muted = newVolume === 0;
                     }
                     setIsMuted(newVolume === 0);
                   }}
@@ -417,10 +441,12 @@ const AudioPlayer = ({
                 onClick={() => {
                   if (audioRef.current) {
                     audioRef.current.currentTime = 0;
-                    audioRef.current.play().catch(() => {});
+                    if (!isPlaying) {
+                      audioRef.current.play().catch(() => {});
+                    }
                   }
                 }}
-                disabled={isLoading || !hasValidDuration}
+                disabled={isLoading || !canPlay}
                 title="Repeat"
               >
                 <FontAwesomeIcon icon={faRedo} />
