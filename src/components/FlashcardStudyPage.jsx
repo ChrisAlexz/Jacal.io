@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - FIXED: Manual Audio Controls Only
+// src/components/FlashcardStudyPage.jsx - FIXED: Enhanced Database Updates for Heatmap
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -36,13 +36,23 @@ export default function FlashcardStudyPage() {
   const [setTitle, setSetTitle] = useState("");
   const [studyStats, setStudyStats] = useState(null);
   const [showCompletionPopup, setShowCompletionPopup] = useState(false);
+  const [user, setUser] = useState(null);
   
   // State for type-in-answer functionality
   const [userAnswer, setUserAnswer] = useState('');
   const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
   const [isAnswerCorrect, setIsAnswerCorrect] = useState(null);
 
-  // REMOVED: autoPlayAudio state - no auto play functionality
+  // Get current user
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (user && !error) {
+        setUser(user);
+      }
+    };
+    getUser();
+  }, []);
 
   useEffect(() => {
     if (id) {
@@ -216,14 +226,14 @@ export default function FlashcardStudyPage() {
     setShowCorrectAnswer(true);
   };
 
-  // Enhanced difficulty choice handling with smart session management
+  // ENHANCED: Difficulty choice handling with guaranteed database updates
   const handleDifficultyChoice = async (difficulty) => {
     if (!currentCard) return;
     
     const currentCardData = currentCard;
     
     try {
-      console.log(`Processing difficulty choice: ${difficulty} for card ${currentCardData.id}`);
+      console.log(`🎯 Processing difficulty choice: ${difficulty} for card ${currentCardData.id}`);
       console.log(`Card type check - isImageOcclusion: ${isImageOcclusionCard}`);
       
       // Calculate next review using enhanced algorithm
@@ -233,8 +243,8 @@ export default function FlashcardStudyPage() {
       const now = new Date().toISOString();
       updatedCard.last_reviewed = now;
       
-      console.log(`Card ${currentCardData.id} studied at ${now} with rating: ${difficulty}`);
-      console.log(`Next due: ${updatedCard.due}, State: ${updatedCard.state}, Interval: ${updatedCard.interval_days} days`);
+      console.log(`📅 Card ${currentCardData.id} studied at ${now} with rating: ${difficulty}`);
+      console.log(`⏰ Next due: ${updatedCard.due}, State: ${updatedCard.state}, Interval: ${updatedCard.interval_days} days`);
       
       // Enhanced update payload that handles all card types
       const updatePayload = {
@@ -248,9 +258,9 @@ export default function FlashcardStudyPage() {
         last_reviewed: now
       };
 
-      console.log(`Updating card ${currentCardData.id} with payload:`, updatePayload);
+      console.log(`💾 Updating card ${currentCardData.id} with payload:`, updatePayload);
 
-      // Robust update with multiple fallback strategies
+      // ENHANCED: Multi-strategy update with guaranteed success tracking
       let updateSuccess = false;
       let updateError = null;
 
@@ -264,6 +274,19 @@ export default function FlashcardStudyPage() {
         if (!error) {
           updateSuccess = true;
           console.log(`✅ Strategy 1 SUCCESS: Updated card ${currentCardData.id}`);
+          
+          // IMMEDIATELY verify the update was successful
+          const { data: verifyData, error: verifyError } = await supabase
+            .from('flashcard_cards')
+            .select('last_reviewed, reviews')
+            .eq('id', currentCardData.id)
+            .single();
+            
+          if (!verifyError && verifyData) {
+            console.log(`✅ VERIFICATION SUCCESS: Card ${currentCardData.id} last_reviewed = ${verifyData.last_reviewed}`);
+          } else {
+            console.warn(`⚠️ VERIFICATION FAILED for card ${currentCardData.id}:`, verifyError);
+          }
         } else {
           updateError = error;
           console.log(`⚠️ Strategy 1 FAILED:`, error);
@@ -330,6 +353,19 @@ export default function FlashcardStudyPage() {
         console.error(`❌ ALL UPDATE STRATEGIES FAILED for card ${currentCardData.id}`);
         console.error(`Final error:`, updateError);
         alert(`Warning: Failed to save study progress for this card. Please try again or contact support.`);
+      } else {
+        // HEATMAP TRIGGER: Force immediate heatmap refresh
+        console.log(`🔥 Triggering heatmap refresh after successful update`);
+        
+        // Emit a custom event that the heatmap can listen for
+        window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
+          detail: {
+            cardId: currentCardData.id,
+            userId: user?.id,
+            reviewedAt: now,
+            difficulty: difficulty
+          }
+        }));
       }
 
       // Update all cards state with the verified data
@@ -407,6 +443,16 @@ export default function FlashcardStudyPage() {
         
         if (!emergencyError) {
           console.log(`✅ Emergency fallback successful for card ${currentCardData.id}`);
+          
+          // Trigger heatmap refresh even for emergency updates
+          window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
+            detail: {
+              cardId: currentCardData.id,
+              userId: user?.id,
+              reviewedAt: emergencyNow,
+              difficulty: difficulty
+            }
+          }));
         } else {
           console.error('❌ Emergency fallback also failed:', emergencyError);
         }
