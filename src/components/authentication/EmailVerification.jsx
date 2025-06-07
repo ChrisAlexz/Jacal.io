@@ -1,11 +1,8 @@
-// ===================================================================
-// FILE 3: components/authentication/EmailVerification.jsx
-// ===================================================================
-
+// components/authentication/EmailVerification.jsx - FIXED IMPORTS
 import React, { useEffect, useState, useContext } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../supabase';
-import { emailService } from '../../utils/emailService';
+import { emailService } from '../../api/emailService'; // FIXED: correct path
 import UserAuthContext from '../context/UserAuthContext';
 import { FaCheckCircle, FaExclamationTriangle, FaSpinner, FaEnvelope } from 'react-icons/fa';
 import '../../styles/Register.css';
@@ -176,8 +173,3 @@ export default function EmailVerification() {
     </div>
   );
 }
-
-// ===================================================================
-// FILE 4: src/App.js - Updated with new routes
-// ===================================================================
-

@@ -1,9 +1,9 @@
-// components/authentication/Register.jsx - CLEAN VERSION
+// components/authentication/Register.jsx - FIXED IMPORTS
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import UserAuthContext from '../context/UserAuthContext';
 import { supabase } from '../../supabase';
-import { emailService } from '../api/emailService';
+import { emailService } from '../../api/emailService'; // FIXED: correct path
 import { 
   FaEye, 
   FaEyeSlash, 
@@ -175,7 +175,7 @@ export default function Register() {
     }
   };
 
-  // Custom sign up with Gmail email verification
+  // Custom sign up with Resend email verification
   const handleCustomSignUp = async () => {
     try {
       console.log('🚀 Starting custom sign up process...');
@@ -228,7 +228,7 @@ export default function Register() {
       // Create confirmation URL
       const confirmationUrl = `${window.location.origin}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(formData.email)}`;
 
-      // Send custom confirmation email via Gmail
+      // Send custom confirmation email via Resend
       console.log('📧 Sending confirmation email...');
       await emailService.sendConfirmationEmail(
         formData.email,

@@ -1,4 +1,4 @@
-// server.js - Email server for Jacal using Resend
+// server.js - Enhanced with debug logging
 const express = require('express');
 const cors = require('cors');
 const { Resend } = require('resend');
@@ -8,7 +8,7 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // Initialize Resend with your API key
-const resend = new Resend(process.env.REACT_APP_RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Middleware
 app.use(cors({
@@ -23,17 +23,26 @@ app.get('/api/health', (req, res) => {
     status: 'OK', 
     service: 'Jacal Email Service', 
     timestamp: new Date().toISOString(),
-    resendConfigured: !!process.env.REACT_APP_RESEND_API_KEY
+    resendConfigured: !!process.env.RESEND_API_KEY,
+    fromEmail: process.env.FROM_EMAIL || 'not configured'
   });
 });
 
-// Send email endpoint
+// Send email endpoint with enhanced debugging
 app.post('/api/send-email', async (req, res) => {
   try {
     const { to, subject, html, type = 'confirmation' } = req.body;
 
+    console.log('📧 === EMAIL REQUEST DEBUG ===');
+    console.log('📧 To:', to);
+    console.log('📧 Subject:', subject);
+    console.log('📧 Type:', type);
+    console.log('📧 From Email Config:', process.env.FROM_EMAIL);
+    console.log('📧 From Name Config:', process.env.FROM_NAME);
+
     // Validation
     if (!to || !subject || !html) {
+      console.log('❌ Validation failed - missing fields');
       return res.status(400).json({ 
         error: 'Missing required fields: to, subject, html' 
       });
@@ -42,6 +51,7 @@ app.post('/api/send-email', async (req, res) => {
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(to)) {
+      console.log('❌ Invalid email format:', to);
       return res.status(400).json({ 
         error: 'Invalid email address' 
       });
@@ -50,31 +60,51 @@ app.post('/api/send-email', async (req, res) => {
     console.log(`📧 Sending ${type} email to: ${to}`);
     console.log(`📧 Subject: ${subject}`);
 
-    // Send email using Resend
-    const result = await resend.emails.send({
-      from: `${process.env.REACT_APP_FROM_NAME || 'Jacal'} <${process.env.REACT_APP_FROM_EMAIL || 'onboarding@resend.dev'}>`,
+    // Prepare email data
+    const emailData = {
+      from: 'Jacal Learning Platform <onboarding@resend.dev>',
       to: [to],
       subject: subject,
       html: html,
-      text: `Please enable HTML to view this email properly. Visit: ${process.env.REACT_APP_WEBSITE_URL || 'https://jacal.io'}`
-    });
+      text: `Please enable HTML to view this email properly. Visit: ${process.env.WEBSITE_URL || 'https://jacal.io'}`
+    };
+
+    console.log('📧 Email payload:', JSON.stringify(emailData, null, 2));
+
+    // Send email using Resend
+    console.log('📧 Calling Resend API...');
+    const result = await resend.emails.send(emailData);
+
+    console.log('📧 Resend API Response:', JSON.stringify(result, null, 2));
+
+    if (result.error) {
+      console.error('❌ Resend API returned error:', result.error);
+      return res.status(400).json({
+        error: 'Email service error',
+        details: result.error.message || result.error,
+        type: 'resend_error'
+      });
+    }
 
     console.log('✅ Email sent successfully:', {
-      id: result.data?.id,
+      id: result.data?.id || result.id,
       to: to,
       type: type
     });
 
     res.json({
       success: true,
-      messageId: result.data?.id,
+      messageId: result.data?.id || result.id,
       to: to,
       type: type,
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
-    console.error('❌ Error sending email:', error);
+    console.error('❌ FULL ERROR DETAILS:', error);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error stack:', error.stack);
     
     // Handle specific Resend errors
     if (error.name === 'ResendError') {
@@ -96,7 +126,7 @@ app.post('/api/send-email', async (req, res) => {
     // Generic error response
     res.status(500).json({
       error: 'Failed to send email',
-      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      details: error.message,
       type: 'server_error'
     });
   }
@@ -125,11 +155,13 @@ app.use((req, res) => {
 // Start server
 app.listen(port, () => {
   console.log(`🚀 Jacal Email Server running on port ${port}`);
-  console.log(`📧 Resend API configured: ${!!process.env.REACT_APP_RESEND_API_KEY ? '✅' : '❌'}`);
+  console.log(`📧 Resend API configured: ${!!process.env.RESEND_API_KEY ? '✅' : '❌'}`);
+  console.log(`📧 From Email: ${process.env.FROM_EMAIL || 'NOT SET'}`);
+  console.log(`📧 From Name: ${process.env.FROM_NAME || 'NOT SET'}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   
-  if (!process.env.REACT_APP_RESEND_API_KEY) {
-    console.warn('⚠️  REACT_APP_RESEND_API_KEY not found in environment');
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('⚠️  RESEND_API_KEY not found in environment');
   }
 });
 

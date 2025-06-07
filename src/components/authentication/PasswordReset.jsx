@@ -1,6 +1,6 @@
-// src/components/authentication/PasswordReset.jsx - PASSWORD RESET COMPONENT
+// src/components/authentication/PasswordReset.jsx - FIXED IMPORTS
 import React, { useState, useEffect } from 'react';
-import { emailService } from '../api/emailService';
+import { emailService } from '../../api/emailService'; // FIXED: correct path
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../supabase';
 import { 
