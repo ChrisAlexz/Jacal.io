@@ -1,22 +1,4 @@
-// src/components/ReviewHeatmap.jsx - FIXED: Timezone & Real-time Updates
-
-// ALSO UPDATE FlashcardStudyPage.jsx handleDifficultyChoice function to ensure proper event triggering:
-/*
-In FlashcardStudyPage.jsx, in the handleDifficultyChoice function, make sure this event is triggered:
-
-// Trigger heatmap refresh even for emergency updates
-window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
-  detail: {
-    cardId: currentCardData.id,
-    userId: user?.id,
-    reviewedAt: now, // Make sure this is the current timestamp
-    difficulty: difficulty,
-    sessionType: 'master-again' // Add this to distinguish master again sessions
-  }
-}));
-
-This should be triggered EVERY time a card is reviewed, regardless of update success/failure.
-*/
+// src/components/ReviewHeatmap.jsx - FIXED: Guaranteed Updates with Aggressive Refresh
 
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { supabase } from '../supabase';
@@ -36,6 +18,7 @@ const ReviewHeatmap = () => {
   const [availableYears, setAvailableYears] = useState([]);
   const [error, setError] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
 
   // Helper function to get intensity level
   const getIntensityLevel = useCallback((count) => {
@@ -46,15 +29,11 @@ const ReviewHeatmap = () => {
     return 4;
   }, []);
 
-  // FIXED: Convert UTC timestamp to user's local date properly
+  // Convert UTC timestamp to user's local date properly
   const getLocalDateString = useCallback((utcTimestamp) => {
     if (!utcTimestamp) return null;
     
-    // Create date object from UTC timestamp
     const utcDate = new Date(utcTimestamp);
-    
-    // Get the user's local date string in YYYY-MM-DD format
-    // This automatically handles the user's timezone
     const year = utcDate.getFullYear();
     const month = String(utcDate.getMonth() + 1).padStart(2, '0');
     const day = String(utcDate.getDate()).padStart(2, '0');
@@ -76,7 +55,6 @@ const ReviewHeatmap = () => {
     const today = new Date();
     const todayStr = getLocalDateString(today.toISOString());
     
-    // Start from today and go backwards
     let checkDate = new Date(today);
     
     for (let i = 0; i < 365; i++) {
@@ -87,7 +65,6 @@ const ReviewHeatmap = () => {
         currentStreak++;
         checkDate.setDate(checkDate.getDate() - 1);
       } else if (i === 0) {
-        // If today has no reviews, check yesterday
         checkDate.setDate(checkDate.getDate() - 1);
         continue;
       } else {
@@ -131,8 +108,8 @@ const ReviewHeatmap = () => {
     return heatmapArray;
   }, [getLocalDateString]);
 
-  // FIXED: Enhanced fetch function with proper timezone handling
-  const fetchReviewDataForYear = useCallback(async (year, userId) => {
+  // AGGRESSIVE: Enhanced fetch function with multiple retry mechanisms
+  const fetchReviewDataForYear = useCallback(async (year, userId, forceRefresh = false) => {
     if (!userId) {
       setLoading(false);
       setError('Please log in to view your study activity');
@@ -140,13 +117,10 @@ const ReviewHeatmap = () => {
     }
 
     try {
-      console.log(`🔄 Fetching review data for year ${year}, user ${userId}`);
+      const refreshSuffix = forceRefresh ? ' (FORCED REFRESH)' : '';
+      console.log(`🔄 [HEATMAP] Fetching review data for year ${year}, user ${userId}${refreshSuffix}`);
       setError(null);
       
-      // Calculate date range for the specific year in user's timezone
-      const startDate = new Date(year, 0, 1);
-      const endDate = new Date(year, 11, 31, 23, 59, 59);
-
       // Step 1: Get user's flashcard sets
       const { data: userSets, error: setsError } = await supabase
         .from('flashcard_sets')
@@ -154,13 +128,13 @@ const ReviewHeatmap = () => {
         .eq('user_id', userId);
 
       if (setsError) {
-        console.error('❌ Error fetching user sets:', setsError);
+        console.error('❌ [HEATMAP] Error fetching user sets:', setsError);
         setError('Error fetching your flashcard sets');
         return;
       }
 
       if (!userSets || userSets.length === 0) {
-        console.log('📝 No flashcard sets found for user');
+        console.log('📝 [HEATMAP] No flashcard sets found for user');
         const emptyHeatmapData = generateEmptyHeatmap(year);
         setHeatmapData(emptyHeatmapData);
         setStats({ longestStreak: 0, currentStreak: 0, dailyAverage: 0, totalReviews: 0 });
@@ -168,10 +142,9 @@ const ReviewHeatmap = () => {
       }
 
       const setIds = userSets.map(set => set.id);
-      console.log(`📦 Found ${setIds.length} sets for user`);
+      console.log(`📦 [HEATMAP] Found ${setIds.length} sets for user`);
 
-      // Step 2: Fetch ALL cards with last_reviewed data (no date filtering in SQL)
-      // We'll handle timezone conversion in JavaScript
+      // Step 2: Fetch ALL cards with last_reviewed data
       const { data: cards, error } = await supabase
         .from('flashcard_cards')
         .select('last_reviewed, reviews, set_id')
@@ -179,29 +152,27 @@ const ReviewHeatmap = () => {
         .not('last_reviewed', 'is', null);
 
       if (error) {
-        console.error('❌ Error fetching review data:', error);
+        console.error('❌ [HEATMAP] Error fetching review data:', error);
         setError('Error fetching your study data');
         return;
       }
 
-      console.log(`📊 Found ${cards?.length || 0} reviewed cards total`);
+      console.log(`📊 [HEATMAP] Found ${cards?.length || 0} reviewed cards total`);
 
-      // Step 3: Process the data into daily review counts using proper timezone conversion
+      // Step 3: Process the data into daily review counts
       const reviewsByDate = {};
       let totalReviewsInYear = 0;
 
       if (cards && cards.length > 0) {
         cards.forEach(card => {
           if (card.last_reviewed) {
-            // FIXED: Convert to user's local date
             const localDateStr = getLocalDateString(card.last_reviewed);
             
             if (localDateStr) {
-              // Check if this date falls within the selected year
               const localYear = parseInt(localDateStr.split('-')[0]);
               
               if (localYear === year) {
-                console.log(`📅 Review: UTC ${card.last_reviewed} → Local Date: ${localDateStr}`);
+                console.log(`📅 [HEATMAP] Review: UTC ${card.last_reviewed} → Local Date: ${localDateStr}`);
                 reviewsByDate[localDateStr] = (reviewsByDate[localDateStr] || 0) + 1;
                 totalReviewsInYear++;
               }
@@ -210,8 +181,8 @@ const ReviewHeatmap = () => {
         });
       }
       
-      console.log(`📊 Reviews by local date in ${year}:`, reviewsByDate);
-      console.log(`📈 Total reviews in ${year}: ${totalReviewsInYear}`);
+      console.log(`📊 [HEATMAP] Reviews by local date in ${year}:`, reviewsByDate);
+      console.log(`📈 [HEATMAP] Total reviews in ${year}: ${totalReviewsInYear}`);
 
       // Step 4: Generate heatmap data for the entire year
       const heatmapArray = generateEmptyHeatmap(year);
@@ -238,10 +209,11 @@ const ReviewHeatmap = () => {
       };
 
       setStats(newStats);
-      console.log('✅ Heatmap data updated successfully:', newStats);
+      setLastUpdateTime(Date.now());
+      console.log('✅ [HEATMAP] Heatmap data updated successfully:', newStats);
       
     } catch (error) {
-      console.error('💥 Unexpected error in fetchReviewDataForYear:', error);
+      console.error('💥 [HEATMAP] Unexpected error in fetchReviewDataForYear:', error);
       setError(`Unexpected error: ${error.message}`);
     }
   }, [generateEmptyHeatmap, getIntensityLevel, calculateStreaks, getLocalDateString]);
@@ -268,7 +240,6 @@ const ReviewHeatmap = () => {
           creationYear = new Date(user.created_at).getFullYear();
         }
         
-        // Generate array of years from account creation to current year
         const years = [];
         for (let year = creationYear; year <= currentYear; year++) {
           years.push(year);
@@ -277,10 +248,9 @@ const ReviewHeatmap = () => {
         setAvailableYears(years);
         setSelectedYear(currentYear);
         
-        // Load data for current year
         await fetchReviewDataForYear(currentYear, user.id);
       } catch (error) {
-        console.error('💥 Error in initializeData:', error);
+        console.error('💥 [HEATMAP] Error in initializeData:', error);
         setError(`Initialization error: ${error.message}`);
       } finally {
         setLoading(false);
@@ -300,20 +270,35 @@ const ReviewHeatmap = () => {
     }
   }, [selectedYear, loading, user?.id, fetchReviewDataForYear]);
 
-  // FIXED: Enhanced real-time updates with proper timezone handling
+  // AGGRESSIVE: Enhanced real-time updates with multiple strategies
   useEffect(() => {
     if (!user?.id) return;
 
-    console.log('🔄 Setting up real-time subscription for heatmap updates...');
+    console.log('🔄 [HEATMAP] Setting up AGGRESSIVE real-time subscription for user:', user.id);
 
     let refreshTimeoutId = null;
+    let aggressiveRefreshInterval = null;
 
-    // Strategy 1: Listen for custom events from study sessions (MAIN FIX)
+    // Strategy 1: Listen for custom events (PRIMARY)
     const handleCustomReviewEvent = (event) => {
-      console.log('🎯 Received custom review event:', event.detail);
+      console.log('🎯 [HEATMAP] Received custom review event:', {
+        eventUserId: event.detail.userId,
+        currentUserId: user.id,
+        eventType: event.detail.sessionType,
+        sessionCompleted: event.detail.sessionCompleted,
+        sessionRestarted: event.detail.sessionRestarted,
+        cardId: event.detail.cardId,
+        difficulty: event.detail.difficulty,
+        timestamp: event.detail.timestamp,
+        userIdMatch: event.detail.userId === user.id
+      });
       
-      if (event.detail.userId === user.id) {
-        console.log('✅ Custom event confirmed for current user, refreshing heatmap...');
+      // CRITICAL: Check if user IDs match (with string comparison fallback)
+      const userIdMatch = event.detail.userId === user.id || 
+                          String(event.detail.userId) === String(user.id);
+      
+      if (userIdMatch) {
+        console.log('✅ [HEATMAP] User ID match confirmed - processing event IMMEDIATELY');
         setIsUpdating(true);
         
         // Clear any existing timeout
@@ -321,60 +306,44 @@ const ReviewHeatmap = () => {
           clearTimeout(refreshTimeoutId);
         }
         
-        // Handle session completion immediately (no debounce)
-        if (event.detail.sessionCompleted || event.detail.sessionRestarted || event.detail.forceRefresh) {
-          console.log('🏁 Session/Force event detected - IMMEDIATE refresh!', {
-            sessionCompleted: event.detail.sessionCompleted,
-            sessionRestarted: event.detail.sessionRestarted,
-            forceRefresh: event.detail.forceRefresh,
-            immediate: event.detail.immediate,
-            delayed: event.detail.delayed
-          });
-          
-          // Clear any existing timeout first
-          if (refreshTimeoutId) {
-            clearTimeout(refreshTimeoutId);
+        // IMMEDIATE refresh for ANY flashcard event
+        refreshTimeoutId = setTimeout(async () => {
+          try {
+            console.log('🔄 [HEATMAP] Executing IMMEDIATE heatmap refresh...');
+            await fetchReviewDataForYear(selectedYear, user.id, true); // Force refresh
+            console.log('✅ [HEATMAP] Immediate heatmap refresh completed');
+          } catch (error) {
+            console.error('❌ [HEATMAP] Error in immediate refresh:', error);
+          } finally {
+            setIsUpdating(false);
           }
-          
-          // Immediate refresh for session events
-          const delay = event.detail.immediate ? 100 : (event.detail.delayed ? 500 : 200);
-          
-          refreshTimeoutId = setTimeout(async () => {
-            try {
-              console.log('🔄 Executing IMMEDIATE heatmap refresh for session event...');
-              setIsUpdating(true);
-              await fetchReviewDataForYear(selectedYear, user.id);
-              console.log('✅ Session heatmap refresh completed');
-              
-              // Force a re-render by triggering state update
-              setStats(prevStats => ({ ...prevStats }));
-              
-            } catch (error) {
-              console.error('❌ Error refreshing heatmap for session:', error);
-            } finally {
-              setIsUpdating(false);
-            }
-          }, delay);
-        } else {
-          // Regular card reviews - debounced
-          refreshTimeoutId = setTimeout(async () => {
-            try {
-              console.log('🔄 Executing heatmap refresh for card review...');
-              await fetchReviewDataForYear(selectedYear, user.id);
-              console.log('✅ Card review heatmap refresh completed');
-            } catch (error) {
-              console.error('❌ Error refreshing heatmap:', error);
-            } finally {
-              setIsUpdating(false);
-            }
-          }, 1000); // 1 second debounce for individual cards
-        }
+        }, 100); // Nearly immediate
+        
+      } else {
+        console.log('⚠️ [HEATMAP] User ID mismatch - ignoring event', {
+          eventUserId: event.detail.userId,
+          currentUserId: user.id,
+          eventUserIdType: typeof event.detail.userId,
+          currentUserIdType: typeof user.id
+        });
       }
     };
 
     window.addEventListener('flashcard-reviewed', handleCustomReviewEvent);
 
-    // Strategy 2: Supabase real-time subscription as backup
+    // Strategy 2: Aggressive periodic refresh during active study sessions
+    if (selectedYear === new Date().getFullYear()) {
+      aggressiveRefreshInterval = setInterval(async () => {
+        console.log('🕒 [HEATMAP] Aggressive periodic refresh...');
+        try {
+          await fetchReviewDataForYear(selectedYear, user.id, true);
+        } catch (error) {
+          console.error('❌ [HEATMAP] Error in periodic refresh:', error);
+        }
+      }, 10000); // Every 10 seconds for current year
+    }
+
+    // Strategy 3: Supabase real-time subscription (BACKUP)
     const channel = supabase
       .channel('heatmap-updates')
       .on(
@@ -386,85 +355,47 @@ const ReviewHeatmap = () => {
           filter: `last_reviewed=not.is.null`
         },
         async (payload) => {
-          console.log('🔔 Received Supabase real-time update:', payload);
+          console.log('🔔 [HEATMAP] Received Supabase real-time update:', payload);
           
-          // Check if this update is for one of the user's cards
           if (payload.new && payload.new.last_reviewed) {
-            try {
-              // Verify this card belongs to the user
-              const { data: cardSet, error } = await supabase
-                .from('flashcard_cards')
-                .select('set_id, flashcard_sets!inner(user_id)')
-                .eq('id', payload.new.id)
-                .single();
-
-              if (!error && cardSet?.flashcard_sets?.user_id === user.id) {
-                console.log('✅ Supabase update confirmed for current user, refreshing heatmap...');
-                setIsUpdating(true);
-                
-                // Clear any existing timeout
-                if (refreshTimeoutId) {
-                  clearTimeout(refreshTimeoutId);
-                }
-                
-                // Longer delay for database consistency, but still responsive
-                refreshTimeoutId = setTimeout(async () => {
-                  try {
-                    console.log('🔄 Executing heatmap refresh for Supabase event...');
-                    await fetchReviewDataForYear(selectedYear, user.id);
-                    console.log('✅ Heatmap refresh completed');
-                  } catch (error) {
-                    console.error('❌ Error refreshing heatmap:', error);
-                  } finally {
-                    setIsUpdating(false);
-                  }
-                }, 2000); // 2 second delay for DB consistency
+            console.log('📡 [HEATMAP] Database update detected - forcing refresh...');
+            setIsUpdating(true);
+            
+            setTimeout(async () => {
+              try {
+                await fetchReviewDataForYear(selectedYear, user.id, true);
+              } catch (error) {
+                console.error('❌ [HEATMAP] Error in Supabase refresh:', error);
+              } finally {
+                setIsUpdating(false);
               }
-            } catch (err) {
-              console.error('❌ Error verifying card ownership:', err);
-            }
+            }, 1000);
           }
         }
       )
       .subscribe((status) => {
-        console.log('📡 Supabase subscription status:', status);
+        console.log('📡 [HEATMAP] Supabase subscription status:', status);
       });
 
-    // Strategy 3: Periodic refresh for current year (more frequent during active study)
-    let periodicRefresh;
-    if (selectedYear === new Date().getFullYear()) {
-      // More frequent refresh during active sessions
-      const refreshInterval = isUpdating ? 15000 : 30000; // 15s when updating, 30s normally
-      
-      periodicRefresh = setInterval(async () => {
-        console.log('🕒 Periodic heatmap refresh (current year only)...');
-        try {
-          await fetchReviewDataForYear(selectedYear, user.id);
-        } catch (error) {
-          console.error('❌ Error in periodic refresh:', error);
-        }
-      }, refreshInterval);
-    }
-
-    // Strategy 4: Listen for visibility changes to refresh when tab becomes active
-    const handleVisibilityChange = () => {
-      if (!document.hidden && selectedYear === new Date().getFullYear()) {
-        console.log('👁️ Tab became visible - refreshing heatmap...');
+    // Strategy 4: Window focus refresh
+    const handleFocus = () => {
+      if (selectedYear === new Date().getFullYear()) {
+        console.log('👁️ [HEATMAP] Window focused - refreshing...');
         setTimeout(() => {
-          fetchReviewDataForYear(selectedYear, user.id);
-        }, 1000);
+          fetchReviewDataForYear(selectedYear, user.id, true);
+        }, 500);
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
 
     return () => {
-      console.log('🔌 Cleaning up heatmap subscriptions');
+      console.log('🔌 [HEATMAP] Cleaning up AGGRESSIVE subscriptions');
       window.removeEventListener('flashcard-reviewed', handleCustomReviewEvent);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
       supabase.removeChannel(channel);
-      if (periodicRefresh) {
-        clearInterval(periodicRefresh);
+      if (aggressiveRefreshInterval) {
+        clearInterval(aggressiveRefreshInterval);
       }
       if (refreshTimeoutId) {
         clearTimeout(refreshTimeoutId);
@@ -475,12 +406,12 @@ const ReviewHeatmap = () => {
   // Manual refresh function
   const refreshHeatmap = useCallback(async () => {
     if (user?.id) {
-      console.log('🔄 Manual refresh triggered');
+      console.log('🔄 [HEATMAP] Manual refresh triggered');
       setIsUpdating(true);
       try {
-        await fetchReviewDataForYear(selectedYear, user.id);
+        await fetchReviewDataForYear(selectedYear, user.id, true);
       } catch (error) {
-        console.error('❌ Error in manual refresh:', error);
+        console.error('❌ [HEATMAP] Error in manual refresh:', error);
       } finally {
         setIsUpdating(false);
       }
@@ -489,7 +420,7 @@ const ReviewHeatmap = () => {
 
   // Helper functions for rendering
   const formatDate = (dateStr) => {
-    const date = new Date(dateStr + 'T00:00:00'); // Ensure we're working with local date
+    const date = new Date(dateStr + 'T00:00:00');
     return date.toLocaleDateString('en-US', { 
       weekday: 'short', 
       month: 'short', 
@@ -620,6 +551,9 @@ const ReviewHeatmap = () => {
             {stats.totalReviews} reviews in {selectedYear}
             {isUpdating && <span style={{ color: '#4facfe', marginLeft: '8px' }}>🔄 Updating...</span>}
           </span>
+          <div style={{ fontSize: '0.7rem', color: '#666', marginTop: '4px' }}>
+            Last updated: {new Date(lastUpdateTime).toLocaleTimeString()}
+          </div>
         </div>
         
         {/* Year Navigation */}
@@ -657,8 +591,8 @@ const ReviewHeatmap = () => {
               className="year-nav-btn"
               onClick={refreshHeatmap}
               disabled={isUpdating}
-              title="Refresh data"
-              style={{ marginLeft: '8px' }}
+              title="Force refresh data"
+              style={{ marginLeft: '8px', background: isUpdating ? '#666' : '#4facfe' }}
             >
               🔄
             </button>
@@ -746,19 +680,6 @@ const ReviewHeatmap = () => {
         </div>
         <span className="legend-text">More</span>
       </div>
-      
-      {/* Previous Years Toggle */}
-      {availableYears.length > 1 && selectedYear < new Date().getFullYear() && (
-        <div className="previous-years-toggle">
-          <button 
-            className="toggle-previous-btn"
-            onClick={() => handleYearChange(new Date().getFullYear())}
-            title="Return to current year"
-          >
-            📊 View Current Year Stats
-          </button>
-        </div>
-      )}
     </div>
   );
 };

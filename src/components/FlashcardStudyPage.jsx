@@ -1,9 +1,10 @@
-// src/components/FlashcardStudyPage.jsx - COMPLETE VERSION WITH FIXED HEATMAP UPDATES
+// src/components/FlashcardStudyPage.jsx - FIXED: Master Again Heatmap Updates
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import AudioPlayer from "./AudioPlayer";
+import UserAuthContext from './context/UserAuthContext'; // ADDED: Import user context
 import { 
   calculateNextReview, 
   getDueCards, 
@@ -23,6 +24,7 @@ const getCardType = (card, deckType) => {
 export default function FlashcardStudyPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useContext(UserAuthContext); // FIXED: Get user from context
   
   // All cards from the deck
   const [allCards, setAllCards] = useState([]);
@@ -36,7 +38,6 @@ export default function FlashcardStudyPage() {
   const [setTitle, setSetTitle] = useState("");
   const [studyStats, setStudyStats] = useState(null);
   const [showCompletionPopup, setShowCompletionPopup] = useState(false);
-  const [user, setUser] = useState(null);
   
   // State for type-in-answer functionality
   const [userAnswer, setUserAnswer] = useState('');
@@ -45,17 +46,6 @@ export default function FlashcardStudyPage() {
 
   // Track if we're in a "Master Again" session
   const [isMasterAgainSession, setIsMasterAgainSession] = useState(false);
-
-  // Get current user
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (user && !error) {
-        setUser(user);
-      }
-    };
-    getUser();
-  }, []);
 
   useEffect(() => {
     if (id) {
@@ -100,10 +90,15 @@ export default function FlashcardStudyPage() {
       console.log(`Loaded ${cards.length} cards`);
       setAllCards(cards);
       
-      // Initialize session cards - get ALL cards for complete session
+      // FIXED: Initialize session cards - handle empty due cards
       const sessionDueCards = getDueCards(cards, DEFAULT_SETTINGS);
-      console.log(`${sessionDueCards.length} cards selected for COMPLETE study session (all cards must be Easy)`);
-      setSessionCards(sessionDueCards);
+      console.log(`${sessionDueCards.length} cards selected for study session`);
+      
+      // If no cards are due, but we have cards, show all cards for initial session
+      const initialSessionCards = sessionDueCards.length > 0 ? sessionDueCards : cards;
+      console.log(`Using ${initialSessionCards.length} cards for initial session`);
+      
+      setSessionCards(initialSessionCards);
       setCurrentIndex(0);
       
       // Calculate study statistics
@@ -115,36 +110,58 @@ export default function FlashcardStudyPage() {
     }
   };
 
-  // FIXED: Master Again Handler - Properly restart session with ALL cards AND track the original set ID
+  // FIXED: Master Again Handler with proper user ID and card loading
   const handleMasterAgain = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Master Again clicked - restarting session!');
+    console.log('🔥 Master Again clicked - restarting session with user:', user?.id);
     
-    // Trigger session restart event for analytics
-    console.log('🔥 Triggering master-again session start event');
+    // CRITICAL FIX: Use the actual user ID from context
+    const currentUserId = user?.id;
+    
+    if (!currentUserId) {
+      console.error('❌ No user ID available for Master Again session');
+      return;
+    }
+    
+    if (allCards.length === 0) {
+      console.error('❌ No cards available for Master Again session');
+      return;
+    }
+    
+    // Trigger session restart event for analytics with correct user ID
+    console.log('🔥 Triggering master-again session start event with user ID:', currentUserId);
     window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
       detail: {
         sessionRestarted: true,
         sessionType: 'master-again',
-        setId: id, // CRITICAL: Include the original set ID
+        setId: id,
         totalCards: allCards.length,
-        userId: user?.id,
+        userId: currentUserId, // FIXED: Use actual user ID
         reviewedAt: new Date().toISOString(),
         timestamp: Date.now()
       }
     }));
     
-    // CRITICAL FIX: Get ALL cards, not just due cards
-    // When "Master Again" is clicked, we want to study ALL cards regardless of their due status
-    console.log(`Restarting session with ALL ${allCards.length} cards`);
-    setSessionCards([...allCards]); // Use all cards, not filtered due cards
-    setIsMasterAgainSession(true); // CRITICAL: Mark this as a Master Again session
+    // CRITICAL FIX: Get ALL cards, bypass spaced repetition filtering for Master Again
+    console.log(`🔄 Restarting Master Again session with ALL ${allCards.length} cards (bypassing spaced repetition)`);
+    
+    // Reset all cards to ensure they appear in the session
+    const resetCards = allCards.map(card => ({
+      ...card,
+      // Don't modify the actual database values, just ensure they show up in session
+      _masterAgainSession: true
+    }));
+    
+    setSessionCards(resetCards); // Use ALL cards for Master Again
+    setIsMasterAgainSession(true); // Mark this as a Master Again session
     setCurrentIndex(0);
     setShowBack(false);
     setShowCorrectAnswer(false);
     setIsAnswerCorrect(null);
     setUserAnswer('');
+    
+    console.log(`✅ Master Again session initialized with ${resetCards.length} cards`);
   };
 
   // Calculate what the intervals would be for each button using enhanced preview
@@ -244,20 +261,21 @@ export default function FlashcardStudyPage() {
     setShowCorrectAnswer(true);
   };
 
-  // FIXED: Enhanced difficulty choice handling with guaranteed heatmap updates
+  // FIXED: Enhanced difficulty choice handling with proper user ID for heatmap updates
   const handleDifficultyChoice = async (difficulty) => {
-    if (!currentCard) return;
+    if (!currentCard || !user?.id) return;
     
     const currentCardData = currentCard;
     const now = new Date().toISOString();
+    const currentUserId = user.id; // Get user ID from context
     
-    console.log(`🎯 Processing ${difficulty} for card ${currentCardData.id} - Master Again: ${isMasterAgainSession}`);
+    console.log(`🎯 Processing ${difficulty} for card ${currentCardData.id} - Master Again: ${isMasterAgainSession} - User: ${currentUserId}`);
     
-    // IMMEDIATE heatmap notification with hardcoded user ID (your actual ID)
+    // FIXED: Immediate heatmap notification with actual user ID
     window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
       detail: {
         cardId: currentCardData.id,
-        userId: 'cbf496e1-a6b1-43d6-85be-5e95b18ceabb', // Your actual user ID
+        userId: currentUserId, // FIXED: Use actual user ID from context
         reviewedAt: now,
         difficulty: difficulty,
         sessionType: isMasterAgainSession ? 'master-again' : 'study',
@@ -322,12 +340,12 @@ export default function FlashcardStudyPage() {
         }
       }
 
-      // Trigger success/failure events
+      // FIXED: Trigger success/failure events with proper user ID
       if (updateSuccess) {
         window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
           detail: {
             cardId: currentCardData.id,
-            userId: 'cbf496e1-a6b1-43d6-85be-5e95b18ceabb',
+            userId: currentUserId, // FIXED: Use actual user ID
             reviewedAt: now,
             difficulty: difficulty,
             sessionType: isMasterAgainSession ? 'master-again' : 'study',
@@ -340,7 +358,7 @@ export default function FlashcardStudyPage() {
         window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
           detail: {
             cardId: currentCardData.id,
-            userId: 'cbf496e1-a6b1-43d6-85be-5e95b18ceabb',
+            userId: currentUserId, // FIXED: Use actual user ID
             reviewedAt: now,
             difficulty: difficulty,
             sessionType: isMasterAgainSession ? 'master-again' : 'study',
@@ -367,16 +385,16 @@ export default function FlashcardStudyPage() {
         const newSessionCards = sessionCards.filter((_, index) => index !== currentIndex);
         setSessionCards(newSessionCards);
         
-        // SESSION COMPLETION - Fire multiple events
+        // FIXED: SESSION COMPLETION - Fire multiple events with proper user ID
         if (newSessionCards.length === 0) {
-          console.log('🎉 SESSION COMPLETED! Firing completion events...');
+          console.log('🎉 SESSION COMPLETED! Firing completion events with user:', currentUserId);
           
           // Fire immediate completion event
           window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
             detail: {
               sessionCompleted: true,
               totalCardsStudied: allCards.length,
-              userId: 'cbf496e1-a6b1-43d6-85be-5e95b18ceabb',
+              userId: currentUserId, // FIXED: Use actual user ID
               reviewedAt: now,
               sessionType: isMasterAgainSession ? 'master-again' : 'study',
               setId: id,
@@ -391,7 +409,7 @@ export default function FlashcardStudyPage() {
               detail: {
                 sessionCompleted: true,
                 totalCardsStudied: allCards.length,
-                userId: 'cbf496e1-a6b1-43d6-85be-5e95b18ceabb',
+                userId: currentUserId, // FIXED: Use actual user ID
                 reviewedAt: now,
                 sessionType: isMasterAgainSession ? 'master-again' : 'study',
                 setId: id,
@@ -405,7 +423,7 @@ export default function FlashcardStudyPage() {
             window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
               detail: {
                 forceRefresh: true,
-                userId: 'cbf496e1-a6b1-43d6-85be-5e95b18ceabb',
+                userId: currentUserId, // FIXED: Use actual user ID
                 reviewedAt: now,
                 sessionType: isMasterAgainSession ? 'master-again' : 'study',
                 setId: id,
@@ -451,11 +469,11 @@ export default function FlashcardStudyPage() {
     } catch (error) {
       console.error('💥 Error in handleDifficultyChoice:', error);
       
-      // Emergency event trigger
+      // FIXED: Emergency event trigger with proper user ID
       window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
         detail: {
           cardId: currentCardData.id,
-          userId: 'cbf496e1-a6b1-43d6-85be-5e95b18ceabb',
+          userId: currentUserId, // FIXED: Use actual user ID
           reviewedAt: now,
           difficulty: difficulty,
           sessionType: isMasterAgainSession ? 'master-again' : 'study',
