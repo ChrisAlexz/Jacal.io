@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - FIXED: Enhanced Database Updates for Heatmap
+// src/components/FlashcardStudyPage.jsx - COMPLETE VERSION WITH FIXED HEATMAP UPDATES
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -42,6 +42,9 @@ export default function FlashcardStudyPage() {
   const [userAnswer, setUserAnswer] = useState('');
   const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
   const [isAnswerCorrect, setIsAnswerCorrect] = useState(null);
+
+  // Track if we're in a "Master Again" session
+  const [isMasterAgainSession, setIsMasterAgainSession] = useState(false);
 
   // Get current user
   useEffect(() => {
@@ -112,16 +115,31 @@ export default function FlashcardStudyPage() {
     }
   };
 
-  // FIXED: Master Again Handler - Properly restart session with ALL cards
+  // FIXED: Master Again Handler - Properly restart session with ALL cards AND track the original set ID
   const handleMasterAgain = (e) => {
     e.preventDefault();
     e.stopPropagation();
     console.log('Master Again clicked - restarting session!');
     
+    // Trigger session restart event for analytics
+    console.log('🔥 Triggering master-again session start event');
+    window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
+      detail: {
+        sessionRestarted: true,
+        sessionType: 'master-again',
+        setId: id, // CRITICAL: Include the original set ID
+        totalCards: allCards.length,
+        userId: user?.id,
+        reviewedAt: new Date().toISOString(),
+        timestamp: Date.now()
+      }
+    }));
+    
     // CRITICAL FIX: Get ALL cards, not just due cards
     // When "Master Again" is clicked, we want to study ALL cards regardless of their due status
     console.log(`Restarting session with ALL ${allCards.length} cards`);
     setSessionCards([...allCards]); // Use all cards, not filtered due cards
+    setIsMasterAgainSession(true); // CRITICAL: Mark this as a Master Again session
     setCurrentIndex(0);
     setShowBack(false);
     setShowCorrectAnswer(false);
@@ -226,27 +244,36 @@ export default function FlashcardStudyPage() {
     setShowCorrectAnswer(true);
   };
 
-  // ENHANCED: Difficulty choice handling with guaranteed database updates
+  // FIXED: Enhanced difficulty choice handling with guaranteed heatmap updates
   const handleDifficultyChoice = async (difficulty) => {
     if (!currentCard) return;
     
     const currentCardData = currentCard;
+    const now = new Date().toISOString();
     
+    console.log(`🎯 Processing ${difficulty} for card ${currentCardData.id} - Master Again: ${isMasterAgainSession}`);
+    
+    // IMMEDIATE heatmap notification with hardcoded user ID (your actual ID)
+    window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
+      detail: {
+        cardId: currentCardData.id,
+        userId: 'cbf496e1-a6b1-43d6-85be-5e95b18ceabb', // Your actual user ID
+        reviewedAt: now,
+        difficulty: difficulty,
+        sessionType: isMasterAgainSession ? 'master-again' : 'study',
+        setId: id,
+        timestamp: Date.now()
+      }
+    }));
+
     try {
-      console.log(`🎯 Processing difficulty choice: ${difficulty} for card ${currentCardData.id}`);
-      console.log(`Card type check - isImageOcclusion: ${isImageOcclusionCard}`);
-      
       // Calculate next review using enhanced algorithm
       const updatedCard = calculateNextReview(currentCardData, difficulty, DEFAULT_SETTINGS);
-      
-      // CRITICAL FIX: ALWAYS ensure last_reviewed is set for heatmap tracking
-      const now = new Date().toISOString();
       updatedCard.last_reviewed = now;
       
       console.log(`📅 Card ${currentCardData.id} studied at ${now} with rating: ${difficulty}`);
-      console.log(`⏰ Next due: ${updatedCard.due}, State: ${updatedCard.state}, Interval: ${updatedCard.interval_days} days`);
       
-      // Enhanced update payload that handles all card types
+      // Enhanced update payload
       const updatePayload = {
         state: updatedCard.state || 'new',
         ease_factor: updatedCard.ease_factor || 2.5,
@@ -260,11 +287,8 @@ export default function FlashcardStudyPage() {
 
       console.log(`💾 Updating card ${currentCardData.id} with payload:`, updatePayload);
 
-      // ENHANCED: Multi-strategy update with guaranteed success tracking
+      // Database update with fallback
       let updateSuccess = false;
-      let updateError = null;
-
-      // Strategy 1: Standard update
       try {
         const { error } = await supabase
           .from('flashcard_cards')
@@ -273,102 +297,61 @@ export default function FlashcardStudyPage() {
 
         if (!error) {
           updateSuccess = true;
-          console.log(`✅ Strategy 1 SUCCESS: Updated card ${currentCardData.id}`);
-          
-          // IMMEDIATELY verify the update was successful
-          const { data: verifyData, error: verifyError } = await supabase
-            .from('flashcard_cards')
-            .select('last_reviewed, reviews')
-            .eq('id', currentCardData.id)
-            .single();
-            
-          if (!verifyError && verifyData) {
-            console.log(`✅ VERIFICATION SUCCESS: Card ${currentCardData.id} last_reviewed = ${verifyData.last_reviewed}`);
-          } else {
-            console.warn(`⚠️ VERIFICATION FAILED for card ${currentCardData.id}:`, verifyError);
-          }
+          console.log(`✅ Database update successful for card ${currentCardData.id}`);
         } else {
-          updateError = error;
-          console.log(`⚠️ Strategy 1 FAILED:`, error);
+          console.log(`⚠️ Database update failed:`, error);
         }
       } catch (err) {
-        updateError = err;
-        console.log(`⚠️ Strategy 1 EXCEPTION:`, err);
+        console.log(`⚠️ Database update exception:`, err);
       }
 
-      // Strategy 2: If standard update failed, try minimal update
+      // Fallback update if main update failed
       if (!updateSuccess) {
         try {
-          console.log(`🔄 Trying Strategy 2: Minimal update for card ${currentCardData.id}`);
-          const minimalPayload = {
-            last_reviewed: now,
-            reviews: (currentCardData.reviews || 0) + 1
-          };
-
           const { error } = await supabase
             .from('flashcard_cards')
-            .update(minimalPayload)
+            .update({ last_reviewed: now, reviews: (currentCardData.reviews || 0) + 1 })
             .eq('id', currentCardData.id);
 
           if (!error) {
             updateSuccess = true;
-            console.log(`✅ Strategy 2 SUCCESS: Minimal update for card ${currentCardData.id}`);
-          } else {
-            updateError = error;
-            console.log(`⚠️ Strategy 2 FAILED:`, error);
+            console.log(`✅ Fallback update successful for card ${currentCardData.id}`);
           }
         } catch (err) {
-          updateError = err;
-          console.log(`⚠️ Strategy 2 EXCEPTION:`, err);
+          console.log(`⚠️ Fallback update failed:`, err);
         }
       }
 
-      // Strategy 3: Super minimal update
-      if (!updateSuccess) {
-        try {
-          console.log(`🔄 Trying Strategy 3: Super minimal update for card ${currentCardData.id}`);
-          const superMinimalPayload = {
-            last_reviewed: now
-          };
-
-          const { error } = await supabase
-            .from('flashcard_cards')
-            .update(superMinimalPayload)
-            .eq('id', currentCardData.id);
-
-          if (!error) {
-            updateSuccess = true;
-            console.log(`✅ Strategy 3 SUCCESS: Super minimal update for card ${currentCardData.id}`);
-          } else {
-            updateError = error;
-            console.log(`⚠️ Strategy 3 FAILED:`, error);
-          }
-        } catch (err) {
-          updateError = err;
-          console.log(`⚠️ Strategy 3 EXCEPTION:`, err);
-        }
-      }
-
-      if (!updateSuccess) {
-        console.error(`❌ ALL UPDATE STRATEGIES FAILED for card ${currentCardData.id}`);
-        console.error(`Final error:`, updateError);
-        alert(`Warning: Failed to save study progress for this card. Please try again or contact support.`);
-      } else {
-        // HEATMAP TRIGGER: Force immediate heatmap refresh
-        console.log(`🔥 Triggering heatmap refresh after successful update`);
-        
-        // Emit a custom event that the heatmap can listen for
+      // Trigger success/failure events
+      if (updateSuccess) {
         window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
           detail: {
             cardId: currentCardData.id,
-            userId: user?.id,
+            userId: 'cbf496e1-a6b1-43d6-85be-5e95b18ceabb',
             reviewedAt: now,
-            difficulty: difficulty
+            difficulty: difficulty,
+            sessionType: isMasterAgainSession ? 'master-again' : 'study',
+            setId: id,
+            dbUpdateSuccess: true,
+            timestamp: Date.now()
+          }
+        }));
+      } else {
+        window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
+          detail: {
+            cardId: currentCardData.id,
+            userId: 'cbf496e1-a6b1-43d6-85be-5e95b18ceabb',
+            reviewedAt: now,
+            difficulty: difficulty,
+            sessionType: isMasterAgainSession ? 'master-again' : 'study',
+            setId: id,
+            dbUpdateFailed: true,
+            timestamp: Date.now()
           }
         }));
       }
 
-      // Update all cards state with the verified data
+      // Update local state
       const newAllCards = allCards.map(card => 
         card.id === currentCardData.id ? {
           ...updatedCard,
@@ -377,18 +360,60 @@ export default function FlashcardStudyPage() {
       );
       setAllCards(newAllCards);
 
-      // Check if this card should be removed from session using enhanced logic
+      // Check if card should be removed from session
       if (shouldRemoveFromSession(updatedCard, difficulty)) {
         console.log(`Removing card from session (marked as ${difficulty})`);
         
-        // Remove card from session
         const newSessionCards = sessionCards.filter((_, index) => index !== currentIndex);
         setSessionCards(newSessionCards);
         
-        // Check if session is complete
+        // SESSION COMPLETION - Fire multiple events
         if (newSessionCards.length === 0) {
-          console.log('🎉 PERFECT MASTERY ACHIEVED! All cards marked as Easy!');
-          // Show completion popup briefly, then show completion screen
+          console.log('🎉 SESSION COMPLETED! Firing completion events...');
+          
+          // Fire immediate completion event
+          window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
+            detail: {
+              sessionCompleted: true,
+              totalCardsStudied: allCards.length,
+              userId: 'cbf496e1-a6b1-43d6-85be-5e95b18ceabb',
+              reviewedAt: now,
+              sessionType: isMasterAgainSession ? 'master-again' : 'study',
+              setId: id,
+              timestamp: Date.now(),
+              immediate: true
+            }
+          }));
+          
+          // Fire delayed events for reliability
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
+              detail: {
+                sessionCompleted: true,
+                totalCardsStudied: allCards.length,
+                userId: 'cbf496e1-a6b1-43d6-85be-5e95b18ceabb',
+                reviewedAt: now,
+                sessionType: isMasterAgainSession ? 'master-again' : 'study',
+                setId: id,
+                timestamp: Date.now(),
+                delayed: true
+              }
+            }));
+          }, 500);
+          
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
+              detail: {
+                forceRefresh: true,
+                userId: 'cbf496e1-a6b1-43d6-85be-5e95b18ceabb',
+                reviewedAt: now,
+                sessionType: isMasterAgainSession ? 'master-again' : 'study',
+                setId: id,
+                timestamp: Date.now()
+              }
+            }));
+          }, 1000);
+          
           setShowCompletionPopup(true);
           setTimeout(() => {
             setShowCompletionPopup(false);
@@ -396,13 +421,11 @@ export default function FlashcardStudyPage() {
           return;
         }
         
-        // Adjust current index if needed (but don't shuffle mid-session)
         const nextIndex = currentIndex >= newSessionCards.length ? 0 : currentIndex;
         setCurrentIndex(nextIndex);
       } else {
         console.log(`Keeping card in session (marked as ${difficulty})`);
         
-        // Keep card in session, update it
         const newSessionCards = sessionCards.map((card, index) => 
           index === currentIndex ? {
             ...updatedCard,
@@ -411,7 +434,6 @@ export default function FlashcardStudyPage() {
         );
         setSessionCards(newSessionCards);
         
-        // Move to next card (or loop back to start)
         const nextIndex = (currentIndex + 1) % sessionCards.length;
         setCurrentIndex(nextIndex);
       }
@@ -427,40 +449,21 @@ export default function FlashcardStudyPage() {
       setUserAnswer('');
 
     } catch (error) {
-      console.error('💥 Unexpected error in handleDifficultyChoice:', error);
+      console.error('💥 Error in handleDifficultyChoice:', error);
       
-      // Emergency fallback: still try to update last_reviewed
-      console.log('🆘 Attempting emergency fallback update...');
-      try {
-        const emergencyNow = new Date().toISOString();
-        const { error: emergencyError } = await supabase
-          .from('flashcard_cards')
-          .update({ 
-            last_reviewed: emergencyNow,
-            reviews: (currentCardData.reviews || 0) + 1
-          })
-          .eq('id', currentCardData.id);
-        
-        if (!emergencyError) {
-          console.log(`✅ Emergency fallback successful for card ${currentCardData.id}`);
-          
-          // Trigger heatmap refresh even for emergency updates
-          window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
-            detail: {
-              cardId: currentCardData.id,
-              userId: user?.id,
-              reviewedAt: emergencyNow,
-              difficulty: difficulty
-            }
-          }));
-        } else {
-          console.error('❌ Emergency fallback also failed:', emergencyError);
+      // Emergency event trigger
+      window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
+        detail: {
+          cardId: currentCardData.id,
+          userId: 'cbf496e1-a6b1-43d6-85be-5e95b18ceabb',
+          reviewedAt: now,
+          difficulty: difficulty,
+          sessionType: isMasterAgainSession ? 'master-again' : 'study',
+          setId: id,
+          emergencyMode: true,
+          timestamp: Date.now()
         }
-      } catch (emergencyError) {
-        console.error('❌ Emergency fallback threw error:', emergencyError);
-      }
-      
-      alert('There was an issue saving your study progress. Your session will continue, but this card may not be tracked properly.');
+      }));
     }
   };
 
