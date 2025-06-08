@@ -1,4 +1,4 @@
-// src/components/Flashcard.jsx - UPDATED WITH AUDIO SUPPORT
+// src/components/Flashcard.jsx - UPDATED WITH AUDIO SUPPORT AND FIXED EVENTS
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from '../supabase';
@@ -25,7 +25,7 @@ export default function Flashcard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // *** CRITICAL FIX: Enhanced useEffect with better error handling and logging ***
+  // CRITICAL FIX: Enhanced useEffect with better error handling and logging
   useEffect(() => {
     const loadData = async () => {
       if (id) {
@@ -121,7 +121,7 @@ export default function Flashcard() {
     }
   };
 
-  // *** ENHANCED: Better debounced title update ***
+  // ENHANCED: Better debounced title update
   useEffect(() => {
     const updateSetDetails = async () => {
       if (setId && title.trim()) {
@@ -235,6 +235,42 @@ export default function Flashcard() {
           console.log('🔄 Flashcards state updated');
           return newList;
         });
+
+        // CRITICAL FIX: Fire heatmap update event immediately after successful card creation
+        if (user?.id) {
+          const now = new Date().toISOString();
+          console.log('🎯 [CARD_CREATION] Firing heatmap update event for card creation');
+          
+          window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
+            detail: {
+              cardId: data[0].id,
+              userId: user.id,
+              reviewedAt: now,
+              difficulty: 'created', // Special flag for card creation
+              sessionType: 'card-creation',
+              setId: setId,
+              timestamp: Date.now(),
+              cardCreated: true
+            }
+          }));
+
+          // Fire backup event for reliability
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
+              detail: {
+                cardId: data[0].id,
+                userId: user.id,
+                reviewedAt: now,
+                difficulty: 'created',
+                sessionType: 'card-creation',
+                setId: setId,
+                timestamp: Date.now(),
+                cardCreated: true,
+                backup: true
+              }
+            }));
+          }, 200);
+        }
         
       } else {
         console.log('🆕 Creating new set and adding first card...');
@@ -293,6 +329,44 @@ export default function Flashcard() {
 
         console.log('✅ First card added successfully:', insertedCard);
         setFlashcards([insertedCard]);
+
+        // CRITICAL FIX: Fire heatmap update event for first card creation
+        if (user?.id) {
+          const now = new Date().toISOString();
+          console.log('🎯 [FIRST_CARD] Firing heatmap update event for first card creation');
+          
+          window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
+            detail: {
+              cardId: insertedCard.id,
+              userId: user.id,
+              reviewedAt: now,
+              difficulty: 'created',
+              sessionType: 'first-card-creation',
+              setId: newSetData.id,
+              timestamp: Date.now(),
+              cardCreated: true,
+              firstCard: true
+            }
+          }));
+
+          // Fire backup event
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
+              detail: {
+                cardId: insertedCard.id,
+                userId: user.id,
+                reviewedAt: now,
+                difficulty: 'created',
+                sessionType: 'first-card-creation',
+                setId: newSetData.id,
+                timestamp: Date.now(),
+                cardCreated: true,
+                firstCard: true,
+                backup: true
+              }
+            }));
+          }, 200);
+        }
         
         // Update URL to include the new set ID
         navigate(`/flashcards/${newSetData.id}`, { replace: true });
@@ -319,6 +393,25 @@ export default function Flashcard() {
 
       if (error) {
         console.error("Error updating flashcard:", error);
+      } else {
+        // CRITICAL FIX: Fire heatmap update event for card updates
+        if (user?.id) {
+          const now = new Date().toISOString();
+          console.log('🎯 [CARD_UPDATE] Firing heatmap update event for card update');
+          
+          window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
+            detail: {
+              cardId: cardId,
+              userId: user.id,
+              reviewedAt: now,
+              difficulty: 'updated',
+              sessionType: 'card-update',
+              setId: setId,
+              timestamp: Date.now(),
+              cardUpdated: true
+            }
+          }));
+        }
       }
     }
   };
@@ -333,13 +426,33 @@ export default function Flashcard() {
         .from('flashcard_cards')
         .delete()
         .eq('id', cardToDelete.id);
+      
       if (error) {
         console.error("Error deleting card:", error);
+      } else {
+        // CRITICAL FIX: Fire heatmap update event for card deletion
+        if (user?.id) {
+          const now = new Date().toISOString();
+          console.log('🎯 [CARD_DELETE] Firing heatmap update event for card deletion');
+          
+          window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
+            detail: {
+              cardId: cardToDelete.id,
+              userId: user.id,
+              reviewedAt: now,
+              difficulty: 'deleted',
+              sessionType: 'card-deletion',
+              setId: setId,
+              timestamp: Date.now(),
+              cardDeleted: true
+            }
+          }));
+        }
       }
     }
   };
 
-  // *** ENHANCED: Show loading and error states ***
+  // Show loading and error states
   if (loading) {
     return (
       <div className="flashcard-page">
@@ -377,49 +490,50 @@ export default function Flashcard() {
       </div>
     );
   }
-// Updated return statement for your Flashcard component
-return (
-  <div className="flashcard-page">
-    <div className="flashcard-container">
-      {/* Header Row with Title and Study Button */}
-      <div className="flashcard-header-row">
-        <FlashcardTitle title={title} setTitle={setTitle} />
+
+  // Updated return statement for your Flashcard component
+  return (
+    <div className="flashcard-page">
+      <div className="flashcard-container">
+        {/* Header Row with Title and Study Button */}
+        <div className="flashcard-header-row">
+          <FlashcardTitle title={title} setTitle={setTitle} />
+          
+          {/* Study Button - Only show if we have a set ID */}
+          {setId && (
+            <button
+              className="study-button"
+              onClick={() => navigate(`/study/${setId}`)}
+              disabled={loading}
+            >
+              Study
+            </button>
+          )}
+        </div>
+
+        {/* Flashcard Input Section */}
+        <FlashcardInput 
+          addFlashcard={addFlashcard} 
+          disabled={loading}
+          type={type} 
+          isPerCardMode={isPerCardMode}
+        />
         
-        {/* Study Button - Only show if we have a set ID */}
-        {setId && (
-          <button
-            className="study-button"
-            onClick={() => navigate(`/study/${setId}`)}
-            disabled={loading}
-          >
-            Study
-          </button>
+        {/* Flashcard List */}
+        <FlashcardList 
+          flashcards={flashcards} 
+          updateFlashcard={updateFlashcard} 
+          onDelete={handleDelete}
+        />
+        
+        {/* Success Popup */}
+        {showSuccess && (
+          <SuccessPopup 
+            message="Flashcard added successfully!" 
+            onClose={() => setShowSuccess(false)} 
+          />
         )}
       </div>
-
-      {/* Flashcard Input Section */}
-      <FlashcardInput 
-        addFlashcard={addFlashcard} 
-        disabled={loading}
-        type={type} 
-        isPerCardMode={isPerCardMode}
-      />
-      
-      {/* Flashcard List */}
-      <FlashcardList 
-        flashcards={flashcards} 
-        updateFlashcard={updateFlashcard} 
-        onDelete={handleDelete}
-      />
-      
-      {/* Success Popup */}
-      {showSuccess && (
-        <SuccessPopup 
-          message="Flashcard added successfully!" 
-          onClose={() => setShowSuccess(false)} 
-        />
-      )}
     </div>
-  </div>
-);
+  );
 }
