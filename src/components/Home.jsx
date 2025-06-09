@@ -216,10 +216,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Review Heatmap */}
-      <div className="heatmap-section">
-        <ReviewHeatmap />
-      </div>
+      
 
       {/* Recent Sets */}
       <div className="recent-section">
