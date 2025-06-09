@@ -1,8 +1,9 @@
-// src/components/Flashcard.jsx - UPDATED WITH AUDIO SUPPORT AND FIXED EVENTS
+// src/components/Flashcard.jsx - Updated with Heatmap Tracking
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
+import { trackReviewEvent } from '../utils/heatmapTracking';
 
 import FlashcardTitle from "./FlashcardTitle";
 import FlashcardInput from "./FlashcardInput";
@@ -25,7 +26,7 @@ export default function Flashcard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // CRITICAL FIX: Enhanced useEffect with better error handling and logging
+  // Enhanced useEffect with better error handling and logging
   useEffect(() => {
     const loadData = async () => {
       if (id) {
@@ -49,7 +50,7 @@ export default function Flashcard() {
     };
 
     loadData();
-  }, [id]); // Only depend on id
+  }, [id]);
 
   const fetchExistingSet = async (theId) => {
     console.log('📦 Fetching existing set with ID:', theId);
@@ -121,7 +122,7 @@ export default function Flashcard() {
     }
   };
 
-  // ENHANCED: Better debounced title update
+  // Enhanced debounced title update
   useEffect(() => {
     const updateSetDetails = async () => {
       if (setId && title.trim()) {
@@ -159,7 +160,7 @@ export default function Flashcard() {
 
     const finalCardType = cardType || type;
     
-    // ENHANCED VALIDATION: Better content checking including audio
+    // Enhanced validation: Better content checking including audio
     const cleanFront = (front || '').replace(/<[^>]*>/g, '').trim();
     const cleanBack = (back || '').replace(/<[^>]*>/g, '').trim();
     
@@ -203,7 +204,7 @@ export default function Flashcard() {
           card_type: finalCardType,
           front_audio_url: frontAudioUrl,
           back_audio_url: backAudioUrl,
-          user_id: user?.id || null // CRITICAL: Add user_id for better data integrity
+          user_id: user?.id || null
         };
         
         console.log('📋 Inserting card data:', cardData);
@@ -227,7 +228,7 @@ export default function Flashcard() {
 
         console.log('✅ Card added successfully:', data[0]);
         
-        // CRITICAL FIX: Force re-render by creating new array
+        // Update flashcards state
         setFlashcards(prev => {
           console.log('📊 Current flashcards count:', prev.length);
           const newList = [...prev, data[0]];
@@ -236,40 +237,10 @@ export default function Flashcard() {
           return newList;
         });
 
-        // CRITICAL FIX: Fire heatmap update event immediately after successful card creation
+        // Track card creation in heatmap
         if (user?.id) {
-          const now = new Date().toISOString();
-          console.log('🎯 [CARD_CREATION] Firing heatmap update event for card creation');
-          
-          window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
-            detail: {
-              cardId: data[0].id,
-              userId: user.id,
-              reviewedAt: now,
-              difficulty: 'created', // Special flag for card creation
-              sessionType: 'card-creation',
-              setId: setId,
-              timestamp: Date.now(),
-              cardCreated: true
-            }
-          }));
-
-          // Fire backup event for reliability
-          setTimeout(() => {
-            window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
-              detail: {
-                cardId: data[0].id,
-                userId: user.id,
-                reviewedAt: now,
-                difficulty: 'created',
-                sessionType: 'card-creation',
-                setId: setId,
-                timestamp: Date.now(),
-                cardCreated: true,
-                backup: true
-              }
-            }));
-          }, 200);
+          console.log('📊 Tracking card creation in heatmap');
+          await trackReviewEvent(user.id, data[0].id, 'card-creation');
         }
         
       } else {
@@ -283,7 +254,7 @@ export default function Flashcard() {
         const setData = { 
           title: title?.trim() || 'New Flashcard Set', 
           type: 'Mixed',
-          user_id: user.id // CRITICAL: Add user_id
+          user_id: user.id
         };
         
         console.log('📋 Creating set with data:', setData);
@@ -310,7 +281,7 @@ export default function Flashcard() {
           card_type: finalCardType,
           front_audio_url: frontAudioUrl,
           back_audio_url: backAudioUrl,
-          user_id: user.id // CRITICAL: Add user_id
+          user_id: user.id
         };
         
         console.log('📋 Inserting first card:', cardData);
@@ -330,42 +301,10 @@ export default function Flashcard() {
         console.log('✅ First card added successfully:', insertedCard);
         setFlashcards([insertedCard]);
 
-        // CRITICAL FIX: Fire heatmap update event for first card creation
+        // Track first card creation in heatmap
         if (user?.id) {
-          const now = new Date().toISOString();
-          console.log('🎯 [FIRST_CARD] Firing heatmap update event for first card creation');
-          
-          window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
-            detail: {
-              cardId: insertedCard.id,
-              userId: user.id,
-              reviewedAt: now,
-              difficulty: 'created',
-              sessionType: 'first-card-creation',
-              setId: newSetData.id,
-              timestamp: Date.now(),
-              cardCreated: true,
-              firstCard: true
-            }
-          }));
-
-          // Fire backup event
-          setTimeout(() => {
-            window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
-              detail: {
-                cardId: insertedCard.id,
-                userId: user.id,
-                reviewedAt: now,
-                difficulty: 'created',
-                sessionType: 'first-card-creation',
-                setId: newSetData.id,
-                timestamp: Date.now(),
-                cardCreated: true,
-                firstCard: true,
-                backup: true
-              }
-            }));
-          }, 200);
+          console.log('📊 Tracking first card creation in heatmap');
+          await trackReviewEvent(user.id, insertedCard.id, 'card-creation');
         }
         
         // Update URL to include the new set ID
@@ -394,23 +333,10 @@ export default function Flashcard() {
       if (error) {
         console.error("Error updating flashcard:", error);
       } else {
-        // CRITICAL FIX: Fire heatmap update event for card updates
+        // Track card update in heatmap
         if (user?.id) {
-          const now = new Date().toISOString();
-          console.log('🎯 [CARD_UPDATE] Firing heatmap update event for card update');
-          
-          window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
-            detail: {
-              cardId: cardId,
-              userId: user.id,
-              reviewedAt: now,
-              difficulty: 'updated',
-              sessionType: 'card-update',
-              setId: setId,
-              timestamp: Date.now(),
-              cardUpdated: true
-            }
-          }));
+          console.log('📊 Tracking card update in heatmap');
+          await trackReviewEvent(user.id, cardId, 'card-update');
         }
       }
     }
@@ -430,24 +356,11 @@ export default function Flashcard() {
       if (error) {
         console.error("Error deleting card:", error);
       } else {
-        // CRITICAL FIX: Fire heatmap update event for card deletion
-        if (user?.id) {
-          const now = new Date().toISOString();
-          console.log('🎯 [CARD_DELETE] Firing heatmap update event for card deletion');
-          
-          window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
-            detail: {
-              cardId: cardToDelete.id,
-              userId: user.id,
-              reviewedAt: now,
-              difficulty: 'deleted',
-              sessionType: 'card-deletion',
-              setId: setId,
-              timestamp: Date.now(),
-              cardDeleted: true
-            }
-          }));
-        }
+        // Optionally track card deletion (uncomment if desired)
+        // if (user?.id) {
+        //   console.log('📊 Tracking card deletion in heatmap');
+        //   await trackReviewEvent(user.id, cardToDelete.id, 'card-deletion');
+        // }
       }
     }
   };
@@ -491,7 +404,6 @@ export default function Flashcard() {
     );
   }
 
-  // Updated return statement for your Flashcard component
   return (
     <div className="flashcard-page">
       <div className="flashcard-container">

@@ -1,12 +1,12 @@
-// src/components/Home.jsx
+// src/components/Home.jsx - Updated with Heatmap
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import '../styles/Home.css';
-import '../styles/ReviewHeatmap.css';
+import '../styles/FlashcardHeatmap.css';
 import UserAuthContext from './context/UserAuthContext';
 import ClassDeckModal from './ClassDeckModal';
-import ReviewHeatmap from './ReviewHeatmap';
+import FlashcardHeatmap from './FlashcardHeatmap';
 import { MdFlashOn, MdFolderOpen, MdTrendingUp, MdViewList } from 'react-icons/md';
 
 export default function Home() {
@@ -54,10 +54,23 @@ export default function Home() {
         const totalSets = setsWithCounts.length;
         const totalCards = setsWithCounts.reduce((sum, set) => sum + (set.card_count || 0), 0);
         
+        // Get today's review count from review_sessions if available
+        const today = new Date().toISOString().split('T')[0];
+        const { data: todayReviews } = await supabase
+          .from('review_sessions')
+          .select('reviews_count')
+          .eq('user_id', user.id)
+          .gte('reviewed_at', today + 'T00:00:00.000Z')
+          .lte('reviewed_at', today + 'T23:59:59.999Z');
+        
+        const studiedToday = todayReviews 
+          ? todayReviews.reduce((sum, session) => sum + (session.reviews_count || 1), 0)
+          : Math.floor(totalCards * 0.1); // Fallback estimate
+        
         setStats({
           totalSets,
           totalCards,
-          studiedToday: Math.floor(totalCards * 0.1) // Mock data for now
+          studiedToday
         });
       }
     };
@@ -216,7 +229,10 @@ export default function Home() {
         </div>
       </div>
 
-      
+      {/* Heatmap Section */}
+      <div className="heatmap-section">
+        <FlashcardHeatmap />
+      </div>
 
       {/* Recent Sets */}
       <div className="recent-section">

@@ -1,0 +1,690 @@
+/* src/styles/FlashcardHeatmap.css */
+
+.heatmap-container {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  animation: slideInLeft 0.5s ease-out;
+  animation-fill-mode: both;
+}
+
+.heatmap-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.heatmap-container:hover {
+  border-color: #4facfe;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(79, 172, 254, 0.1);
+}
+
+.heatmap-container:hover::before {
+  opacity: 1;
+}
+
+/* Header */
+.heatmap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.heatmap-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.heatmap-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.total-reviews {
+  font-size: 0.9rem;
+  color: #aaa;
+  font-weight: 500;
+}
+
+/* Year Navigation */
+.year-navigation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.year-nav-btn {
+  background: rgba(79, 172, 254, 0.1);
+  border: 1px solid rgba(79, 172, 254, 0.3);
+  color: #4facfe;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.year-nav-btn:hover:not(:disabled) {
+  background: rgba(79, 172, 254, 0.2);
+  border-color: rgba(79, 172, 254, 0.5);
+  transform: scale(1.05);
+}
+
+.year-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.year-nav-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.3s;
+}
+
+.year-nav-btn:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.year-selector {
+  position: relative;
+}
+
+.year-select {
+  background: rgba(30, 30, 30, 0.8);
+  border: 1px solid #444;
+  color: white;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  min-width: 80px;
+  text-align: center;
+}
+
+.year-select:focus {
+  outline: none;
+  border-color: #4facfe;
+  box-shadow: 0 0 0 2px rgba(79, 172, 254, 0.2);
+}
+
+.year-select:hover {
+  border-color: #555;
+  background: rgba(30, 30, 30, 0.9);
+}
+
+.year-select option {
+  background: #1e1e1e;
+  color: white;
+}
+
+/* Loading */
+.heatmap-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #333;
+  border-top: 3px solid #4facfe;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.heatmap-loading p {
+  color: #aaa;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Grid Layout */
+.heatmap-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease;
+}
+
+.heatmap-grid.loading {
+  opacity: 0.5;
+}
+
+/* Month Labels Row */
+.month-labels {
+  position: relative;
+  height: 20px;
+  margin-bottom: 8px;
+  width: 100%;
+  max-width: 900px;
+  overflow: visible;
+}
+
+.month-label {
+  position: absolute;
+  font-size: 0.7rem;
+  color: #666;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: color 0.3s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.month-label:hover {
+  color: #4facfe;
+}
+
+/* Main grid container */
+.heatmap-main-grid {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: center;
+  max-width: 900px;
+  width: 100%;
+  overflow: visible;
+}
+
+/* Day Labels Column */
+.day-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 40px;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+
+.day-labels span {
+  font-size: 0.7rem;
+  color: #666;
+  font-weight: 500;
+  text-align: right;
+  height: 12px;
+  line-height: 12px;
+}
+
+/* Heatmap Weeks Container */
+.heatmap-weeks {
+  display: flex;
+  gap: 2px;
+  overflow: visible;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex: 1;
+  justify-content: flex-start;
+  padding-bottom: 2px;
+}
+
+.heatmap-weeks::-webkit-scrollbar {
+  display: none;
+}
+
+.heatmap-week {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 12px;
+}
+
+/* Heatmap Days */
+.heatmap-day {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 6px;
+  font-weight: bold;
+  color: transparent;
+}
+
+.heatmap-day.empty {
+  background: transparent;
+  cursor: default;
+}
+
+/* Intensity Levels */
+.heatmap-day.level-0 {
+  background: #2d2d2d;
+  border: 1px solid #3a3a3a;
+}
+
+.heatmap-day.level-1 {
+  background: #0e4429;
+  color: #fff;
+}
+
+.heatmap-day.level-2 {
+  background: #006d32;
+  color: #fff;
+}
+
+.heatmap-day.level-3 {
+  background: #26a641;
+  color: #fff;
+}
+
+.heatmap-day.level-4 {
+  background: #39d353;
+  color: #000;
+}
+
+.heatmap-day:not(.empty):hover {
+  transform: scale(1.2);
+  border: 2px solid #4facfe;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
+}
+
+/* Day Count */
+.day-count {
+  font-size: 5px;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.heatmap-day.level-4 .day-count {
+  opacity: 0.6;
+}
+
+/* Statistics */
+.heatmap-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-item {
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-2px);
+}
+
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #4facfe;
+  margin-bottom: 4px;
+  text-shadow: 0 0 10px rgba(79, 172, 254, 0.3);
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+/* Legend */
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0.8;
+  margin-bottom: 16px;
+}
+
+.legend-text {
+  font-size: 0.75rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.legend-squares {
+  display: flex;
+  gap: 2px;
+}
+
+.legend-square {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+.legend-square:hover {
+  transform: scale(1.2);
+}
+
+.legend-square.level-0 {
+  background: #2d2d2d;
+  border: 1px solid #3a3a3a;
+}
+
+.legend-square.level-1 {
+  background: #0e4429;
+}
+
+.legend-square.level-2 {
+  background: #006d32;
+}
+
+.legend-square.level-3 {
+  background: #26a641;
+}
+
+.legend-square.level-4 {
+  background: #39d353;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .heatmap-container {
+    padding: 20px 16px;
+  }
+  
+  .heatmap-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .heatmap-title-section {
+    align-self: stretch;
+  }
+  
+  .year-navigation {
+    align-self: center;
+  }
+  
+  .heatmap-header h3 {
+    font-size: 1rem;
+  }
+  
+  .total-reviews {
+    font-size: 0.8rem;
+  }
+  
+  .heatmap-grid {
+    align-items: center;
+  }
+  
+  .heatmap-main-grid {
+    gap: 6px;
+    max-width: 600px;
+  }
+  
+  .day-labels {
+    width: 30px;
+  }
+  
+  .month-label {
+    font-size: 0.6rem;
+  }
+  
+  .day-labels span {
+    font-size: 0.6rem;
+  }
+  
+  .heatmap-day {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .heatmap-stats {
+    padding: 12px;
+    gap: 8px;
+  }
+  
+  .stat-value {
+    font-size: 1.2rem;
+  }
+  
+  .stat-label {
+    font-size: 0.7rem;
+  }
+  
+  .legend-text {
+    font-size: 0.7rem;
+  }
+  
+  .legend-square {
+    width: 8px;
+    height: 8px;
+  }
+  
+  .year-nav-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+  
+  .year-select {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    min-width: 70px;
+  }
+}
+
+@media (max-width: 480px) {
+  .heatmap-container {
+    padding: 16px 12px;
+  }
+  
+  .heatmap-header h3 {
+    font-size: 0.95rem;
+  }
+  
+  .heatmap-grid {
+    align-items: center;
+  }
+  
+  .heatmap-main-grid {
+    gap: 4px;
+    max-width: 400px;
+  }
+  
+  .day-labels {
+    width: 25px;
+  }
+  
+  .month-label {
+    font-size: 0.55rem;
+  }
+  
+  .day-labels span {
+    font-size: 0.55rem;
+  }
+  
+  .heatmap-day {
+    width: 8px;
+    height: 8px;
+  }
+  
+  .heatmap-week {
+    min-width: 8px;
+    gap: 1px;
+  }
+  
+  .heatmap-weeks {
+    gap: 1px;
+  }
+  
+  .heatmap-stats {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 12px;
+  }
+  
+  .stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+  }
+  
+  .stat-value {
+    font-size: 1.1rem;
+    margin-bottom: 0;
+  }
+  
+  .stat-label {
+    font-size: 0.75rem;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+  
+  .year-navigation {
+    padding: 4px;
+    gap: 6px;
+  }
+  
+  .year-nav-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 0.8rem;
+  }
+  
+  .year-select {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    min-width: 60px;
+  }
+}
+
+/* Enhanced animations */
+@keyframes slideInLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Focus states for keyboard navigation */
+.year-nav-btn:focus,
+.year-select:focus {
+  outline: 2px solid #4facfe;
+  outline-offset: 2px;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .heatmap-day.level-0 {
+    background: #000;
+    border: 2px solid #666;
+  }
+  
+  .heatmap-day.level-1 {
+    background: #003300;
+    border: 1px solid #666;
+  }
+  
+  .heatmap-day.level-2 {
+    background: #006600;
+    border: 1px solid #666;
+  }
+  
+  .heatmap-day.level-3 {
+    background: #009900;
+    border: 1px solid #666;
+  }
+  
+  .heatmap-day.level-4 {
+    background: #00cc00;
+    border: 1px solid #000;
+  }
+  
+  .year-nav-btn {
+    border: 2px solid #4facfe;
+  }
+  
+  .year-select {
+    border: 2px solid #4facfe;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .heatmap-container,
+  .heatmap-day,
+  .stat-item,
+  .legend-square,
+  .year-nav-btn {
+    animation: none;
+    transition: none;
+  }
+  
+  .heatmap-container:hover,
+  .heatmap-day:hover,
+  .stat-item:hover,
+  .year-nav-btn:hover {
+    transform: none;
+  }
+  
+  .loading-spinner {
+    animation: none;
+  }
+}
