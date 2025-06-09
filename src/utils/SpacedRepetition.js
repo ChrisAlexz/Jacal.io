@@ -1,8 +1,8 @@
-// src/utils/SpacedRepetition.js - ENHANCED VERSION WITH PROPER CARD ORDERING
+// src/utils/SpacedRepetition.js - ENHANCED VERSION WITH IMMEDIATE RETRY
 
 /**
  * Enhanced Anki-style Spaced Repetition Algorithm
- * Now includes proper card ordering and prioritization
+ * Now includes immediate retry for "Again" cards and proper card ordering
  */
 
 // Card states in Anki
@@ -48,6 +48,22 @@ export const DEFAULT_SETTINGS = {
   shuffleCards: true
 };
 
+// ADDED: Immediate review settings for faster "Again" retry
+export const IMMEDIATE_REVIEW_SETTINGS = {
+  ...DEFAULT_SETTINGS,
+  
+  // Much shorter learning steps for immediate review
+  learningSteps: [1, 5], // 1 minute, then 5 minutes (instead of 1, 10)
+  relearningSteps: [1],  // 1 minute for relearning (instead of 10)
+  
+  // More forgiving graduation
+  graduatingInterval: 1,
+  easyInterval: 4,
+  
+  // Session behavior
+  keepFailedCardsInSession: true, // NEW: Keep "Again" cards in current session always
+};
+
 /**
  * Calculate the next review based on the button pressed
  * @param {Object} card - Current card data
@@ -88,6 +104,41 @@ export function calculateNextReview(card, rating, settings = DEFAULT_SETTINGS) {
     default:
       return updatedCard;
   }
+}
+
+/**
+ * ADDED: Enhanced calculateNextReview with immediate review option
+ */
+export function calculateNextReviewWithImmediate(card, rating, settings = IMMEDIATE_REVIEW_SETTINGS) {
+  const now = new Date();
+  const updatedCard = { ...card };
+  
+  // Initialize session tracking
+  if (!updatedCard.session_failures) updatedCard.session_failures = 0;
+  if (!updatedCard.session_reviews) updatedCard.session_reviews = 0;
+  
+  updatedCard.session_reviews++;
+  
+  // Track "Again" failures in current session
+  if (rating === 'again') {
+    updatedCard.session_failures++;
+  }
+  
+  // FIXED: For "Again" cards, schedule for very immediate review (next card)
+  if (rating === 'again') {
+    // Schedule for immediate review - just a few seconds
+    const immediateDelay = 5; // 5 seconds - just enough to show next card first
+    
+    updatedCard.due = addSeconds(now, immediateDelay).toISOString();
+    updatedCard.state = CARD_STATES.LEARNING; // Move to learning temporarily
+    updatedCard.step = 0;
+    
+    console.log(`🔄 Immediate retry scheduled for ${immediateDelay}s (will appear after next card)`);
+    return updatedCard;
+  }
+  
+  // For all other cases, use the original algorithm
+  return calculateNextReview(updatedCard, rating, settings);
 }
 
 /**
@@ -416,6 +467,38 @@ export function getDueCards(cards, settings = DEFAULT_SETTINGS) {
 }
 
 /**
+ * ADDED: Enhanced getDueCards that includes immediate retry cards
+ */
+export function getDueCardsWithImmediate(cards, settings = IMMEDIATE_REVIEW_SETTINGS) {
+  const now = new Date();
+  
+  // Get regular due cards
+  const regularDueCards = getDueCards(cards, settings);
+  
+  // Find cards scheduled for immediate retry
+  const immediateRetryCards = cards.filter(card => {
+    if (!card.due) return false;
+    
+    const dueDate = new Date(card.due);
+    const timeDiff = dueDate.getTime() - now.getTime();
+    
+    // Include cards due within the next 5 minutes (immediate retry window)
+    return timeDiff <= 5 * 60 * 1000 && timeDiff >= -30 * 1000; // -30s to +5min
+  });
+  
+  // Combine and deduplicate
+  const allDueCards = [...regularDueCards];
+  
+  immediateRetryCards.forEach(retryCard => {
+    if (!allDueCards.find(card => card.id === retryCard.id)) {
+      allDueCards.unshift(retryCard); // Add to front for immediate review
+    }
+  });
+  
+  return allDueCards;
+}
+
+/**
  * Interleave new cards with review cards for better study experience
  * @param {Array} reviewCards - Review/learning cards
  * @param {Array} newCards - New cards
@@ -468,14 +551,19 @@ function shuffleArray(array) {
 }
 
 /**
- * Check if a card should be removed from current session
- * Cards only graduate when marked as "Easy"
+ * UPDATED: Check if a card should be removed from current session
+ * Only "Easy" cards are removed now
  * @param {Object} card - Card object
  * @param {string} lastRating - The rating that was just applied
  * @returns {boolean} True if card should be removed from session
  */
-export function shouldRemoveFromSession(card, lastRating = null) {
-  // Only remove if the last rating was "Easy"
+export function shouldRemoveFromSession(card, lastRating = null, settings = IMMEDIATE_REVIEW_SETTINGS) {
+  // NEVER remove "Again" cards - they always stay in session
+  if (lastRating === 'again') {
+    return false; // Always keep in session for immediate retry
+  }
+  
+  // Only remove on "Easy" (original behavior)
   return lastRating === 'easy';
 }
 
@@ -614,6 +702,64 @@ export function getIntervalPreviews(card, settings = DEFAULT_SETTINGS) {
   return previews;
 }
 
+/**
+ * ADDED: Get interval previews that show immediate retry
+ */
+export function getIntervalPreviewsFixed(card, settings = IMMEDIATE_REVIEW_SETTINGS) {
+  const previews = {};
+  
+  ['again', 'hard', 'good', 'easy'].forEach(rating => {
+    try {
+      if (rating === 'again') {
+        // Show cycling retry timing based on failure count (resets every 3 failures)
+        const sessionFailures = card.session_failures || 0;
+        const cycledFailures = ((sessionFailures) % 3) + 1; // Cycles: 1, 2, 3, 1, 2, 3...
+        
+        if (cycledFailures === 1) {
+          previews[rating] = "Soon"; // 1st/4th/7th failure - appears after 1-2 cards
+        } else if (cycledFailures === 2) {
+          previews[rating] = "2-3"; // 2nd/5th/8th failure - appears after 2-3 cards
+        } else {
+          previews[rating] = "3-4"; // 3rd/6th/9th failure - appears after 3-4 cards
+        }
+      } else {
+        // Use original calculation for other buttons
+        const tempCard = calculateNextReview({ ...card }, rating, settings);
+        previews[rating] = formatInterval(tempCard.due);
+      }
+    } catch (error) {
+      console.error(`Error calculating interval for ${rating}:`, error);
+      const fallbacks = { again: "30s", hard: "10m", good: "1d", easy: "4d" };
+      previews[rating] = fallbacks[rating];
+    }
+  });
+  
+  return previews;
+}
+
+function formatInterval(dueString) {
+  if (!dueString) return "New";
+  
+  const now = new Date();
+  const dueDate = new Date(dueString);
+  const diffMs = dueDate.getTime() - now.getTime();
+  const diffSeconds = Math.round(diffMs / 1000);
+  
+  if (diffSeconds <= 60) return `${diffSeconds}s`;
+  
+  const diffMinutes = Math.round(diffMs / (1000 * 60));
+  if (diffMinutes < 60) return `${diffMinutes}m`;
+  
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h`;
+  
+  const diffDays = Math.round(diffMinutes / 1440);
+  if (diffDays < 365) return `${diffDays}d`;
+  
+  const diffYears = Math.round(diffDays / 365);
+  return `${diffYears}y`;
+}
+
 // Helper functions
 function addMinutes(date, minutes) {
   return new Date(date.getTime() + minutes * 60000);
@@ -623,16 +769,25 @@ function addDays(date, days) {
   return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
+// ADDED: Helper function to add seconds to a date
+function addSeconds(date, seconds) {
+  return new Date(date.getTime() + seconds * 1000);
+}
+
 const SpacedRepetitionUtils = {
   calculateNextReview,
+  calculateNextReviewWithImmediate,
   getDueCards,
+  getDueCardsWithImmediate,
   getStudyStats,
   getIntervalPreviews,
+  getIntervalPreviewsFixed,
   shouldRemoveFromSession,
   shuffleArray,
   interleaveCards,
   CARD_STATES,
-  DEFAULT_SETTINGS
+  DEFAULT_SETTINGS,
+  IMMEDIATE_REVIEW_SETTINGS
 };
 
 export default SpacedRepetitionUtils;

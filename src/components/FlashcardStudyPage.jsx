@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - Updated with Heatmap Tracking
+// src/components/FlashcardStudyPage.jsx - Updated with Immediate "Again" Retry
 import React, { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
@@ -11,8 +11,17 @@ import {
   getStudyStats, 
   getIntervalPreviews,
   shouldRemoveFromSession,
-  DEFAULT_SETTINGS 
+  DEFAULT_SETTINGS,
+  CARD_STATES
 } from "../utils/SpacedRepetition";
+
+// ADDED: Import immediate retry functionality
+import { 
+  IMMEDIATE_REVIEW_SETTINGS,
+  calculateNextReviewWithImmediate,
+  getIntervalPreviewsFixed
+} from "../utils/SpacedRepetition";
+
 import "../styles/FlashcardStudyPage.css";
 
 // Key function to determine card type - prioritizes individual card type over deck type
@@ -89,8 +98,8 @@ export default function FlashcardStudyPage() {
       console.log(`Loaded ${cards.length} cards`);
       setAllCards(cards);
       
-      // Initialize session cards
-      const sessionDueCards = getDueCards(cards, DEFAULT_SETTINGS);
+      // Initialize session cards using immediate retry settings
+      const sessionDueCards = getDueCards(cards, IMMEDIATE_REVIEW_SETTINGS);
       console.log(`${sessionDueCards.length} cards selected for study session`);
       
       // If no cards are due, but we have cards, show all cards for initial session
@@ -135,7 +144,9 @@ export default function FlashcardStudyPage() {
     
     const resetCards = allCards.map(card => ({
       ...card,
-      _masterAgainSession: true
+      _masterAgainSession: true,
+      session_failures: 0, // Reset session failure count
+      session_reviews: 0   // Reset session review count
     }));
     
     setSessionCards(resetCards);
@@ -149,14 +160,14 @@ export default function FlashcardStudyPage() {
     console.log(`✅ Master Again session initialized with ${resetCards.length} cards`);
   };
 
-  // Calculate what the intervals would be for each button using enhanced preview
+  // UPDATED: Calculate interval previews using fixed function
   const getIntervalPreviewsForCard = () => {
     if (sessionCards.length === 0 || currentIndex >= sessionCards.length || !sessionCards[currentIndex]) {
-      return { again: "1m", hard: "10m", good: "1d", easy: "4d" };
+      return { again: "30s", hard: "10m", good: "1d", easy: "4d" };
     }
 
     const currentCard = sessionCards[currentIndex];
-    return getIntervalPreviews(currentCard, DEFAULT_SETTINGS);
+    return getIntervalPreviewsFixed(currentCard, IMMEDIATE_REVIEW_SETTINGS);
   };
 
   // Show loading only if we truly have no cards
@@ -246,7 +257,7 @@ export default function FlashcardStudyPage() {
     setShowCorrectAnswer(true);
   };
 
-  // Enhanced difficulty choice handling with heatmap tracking
+  // REPLACED: Enhanced difficulty choice handling with immediate retry
   const handleDifficultyChoice = async (difficulty) => {
     if (!currentCard || !user?.id) return;
     
@@ -278,8 +289,8 @@ export default function FlashcardStudyPage() {
 
       console.log(`✅ BASIC UPDATE SUCCESS for card ${currentCardData.id}`);
 
-      // Now try the advanced spaced repetition update
-      const updatedCard = calculateNextReview(currentCardData, difficulty, DEFAULT_SETTINGS);
+      // UPDATED: Use immediate retry calculation
+      const updatedCard = calculateNextReviewWithImmediate(currentCardData, difficulty, IMMEDIATE_REVIEW_SETTINGS);
       updatedCard.last_reviewed = now;
       
       const advancedUpdate = {
@@ -290,7 +301,9 @@ export default function FlashcardStudyPage() {
         reviews: updatedCard.reviews || 1,
         lapses: updatedCard.lapses || 0,
         due: updatedCard.due,
-        last_reviewed: now
+        last_reviewed: now,
+        session_failures: updatedCard.session_failures || 0,
+        session_reviews: updatedCard.session_reviews || 0
       };
 
       console.log(`🧠 ADVANCED UPDATE for card ${currentCardData.id}:`, advancedUpdate);
@@ -323,9 +336,39 @@ export default function FlashcardStudyPage() {
       );
       setAllCards(newAllCards);
 
-      // Session management logic
-      if (shouldRemoveFromSession(finalUpdatedCard, difficulty)) {
-        console.log(`Removing card from session (marked as ${difficulty})`);
+      // UPDATED: Session management with immediate retry logic
+      if (difficulty === 'again') {
+        // Keep the card in session but move it a few positions back for spaced retry
+        const newSessionCards = [...sessionCards];
+        
+        // Calculate how far back to move the card (3-6 positions based on failures)
+        const failures = finalUpdatedCard.session_failures || 1;
+        const moveBackPositions = Math.min(3 + failures, 6); // 4, 5, 6, 6, 6...
+        const moveToPosition = Math.min(
+          currentIndex + moveBackPositions, 
+          newSessionCards.length - 1
+        );
+        
+        // Update the card in the session
+        newSessionCards[currentIndex] = finalUpdatedCard;
+        
+        // Move it to later position for spaced retry (only if session is long enough)
+        if (moveToPosition !== currentIndex && newSessionCards.length > moveBackPositions) {
+          const [cardToMove] = newSessionCards.splice(currentIndex, 1);
+          newSessionCards.splice(moveToPosition, 0, cardToMove);
+        }
+        
+        setSessionCards(newSessionCards);
+        
+        // Stay on current index (next card will appear)
+        const nextIndex = currentIndex >= newSessionCards.length ? 0 : currentIndex;
+        setCurrentIndex(nextIndex);
+        
+        console.log(`🔄 Card moved to position ${moveToPosition} for retry (failure #${failures})`);
+        
+      } else if (difficulty === 'easy') {
+        // Remove card from session (only "Easy" removes cards)
+        console.log(`✅ Removing card from session (${difficulty})`);
         
         const newSessionCards = sessionCards.filter((_, index) => index !== currentIndex);
         setSessionCards(newSessionCards);
@@ -339,8 +382,10 @@ export default function FlashcardStudyPage() {
         
         const nextIndex = currentIndex >= newSessionCards.length ? 0 : currentIndex;
         setCurrentIndex(nextIndex);
+        
       } else {
-        console.log(`Keeping card in session (marked as ${difficulty})`);
+        // Keep card in session, move to next (Hard, Good)
+        console.log(`➡️ Moving to next card (${difficulty})`);
         
         const newSessionCards = sessionCards.map((card, index) => 
           index === currentIndex ? finalUpdatedCard : card
