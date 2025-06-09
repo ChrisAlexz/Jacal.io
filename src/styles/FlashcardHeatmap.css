@@ -296,55 +296,66 @@
   font-size: 6px;
   font-weight: bold;
   color: transparent;
+  /* CRITICAL: Force background color to show */
+  background-color: #2d2d2d !important;
+  border: 1px solid #3a3a3a !important;
 }
 
+
 .heatmap-day.empty {
-  background: transparent;
+  background: transparent !important;
   cursor: default;
+  border: none !important;
 }
 
 /* Intensity Levels */
 .heatmap-day.level-0 {
-  background: #2d2d2d;
-  border: 1px solid #3a3a3a;
+  background-color: #2d2d2d !important;
+  border: 1px solid #3a3a3a !important;
 }
 
 .heatmap-day.level-1 {
-  background: #0e4429;
-  color: #fff;
+  background-color: #0e4429 !important;
+  border: 1px solid #0e4429 !important;
+  color: #fff !important;
 }
 
 .heatmap-day.level-2 {
-  background: #006d32;
-  color: #fff;
+  background-color: #006d32 !important;
+  border: 1px solid #006d32 !important;
+  color: #fff !important;
 }
 
 .heatmap-day.level-3 {
-  background: #26a641;
-  color: #fff;
+  background-color: #26a641 !important;
+  border: 1px solid #26a641 !important;
+  color: #fff !important;
 }
 
 .heatmap-day.level-4 {
-  background: #39d353;
-  color: #000;
+  background-color: #39d353 !important;
+  border: 1px solid #39d353 !important;
+  color: #000 !important;
+}
+heatmap-day:not(.empty):hover {
+  transform: scale(1.2) !important;
+  border: 2px solid #4facfe !important;
+  z-index: 10 !important;
+  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3) !important;
 }
 
-.heatmap-day:not(.empty):hover {
-  transform: scale(1.2);
-  border: 2px solid #4facfe;
-  z-index: 10;
-  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
-}
-
-/* Day Count */
+/* FIXED: Day count visibility */
 .day-count {
-  font-size: 5px;
-  font-weight: 700;
-  opacity: 0.8;
+  font-size: 5px !important;
+  font-weight: 700 !important;
+  opacity: 0.8 !important;
+  position: relative !important;
+  z-index: 1 !important;
 }
 
 .heatmap-day.level-4 .day-count {
-  opacity: 0.6;
+  opacity: 0.6 !important;
+  color: #000 !important;
 }
 
 /* Statistics */
@@ -416,26 +427,25 @@
 }
 
 .legend-square.level-0 {
-  background: #2d2d2d;
-  border: 1px solid #3a3a3a;
+  background-color: #2d2d2d !important;
+  border: 1px solid #3a3a3a !important;
 }
 
 .legend-square.level-1 {
-  background: #0e4429;
+  background-color: #0e4429 !important;
 }
 
 .legend-square.level-2 {
-  background: #006d32;
+  background-color: #006d32 !important;
 }
 
 .legend-square.level-3 {
-  background: #26a641;
+  background-color: #26a641 !important;
 }
 
 .legend-square.level-4 {
-  background: #39d353;
+  background-color: #39d353 !important;
 }
-
 /* Responsive Design */
 @media (max-width: 768px) {
   .heatmap-container {
@@ -687,4 +697,16 @@
   .loading-spinner {
     animation: none;
   }
+}
+.heatmap-day[data-count]:after {
+  content: attr(data-count);
+  position: absolute;
+  top: -15px;
+  left: 0;
+  font-size: 8px;
+  color: red;
+  background: white;
+  padding: 1px 2px;
+  border-radius: 2px;
+  display: none; /* Remove this line to show debug info */
 }

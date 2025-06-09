@@ -1,4 +1,5 @@
-// src/components/FlashcardHeatmap.jsx
+
+// src/components/FlashcardHeatmap.jsx - FIXED COLOR DISPLAY VERSION
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
@@ -14,6 +15,34 @@ const FlashcardHeatmap = () => {
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [availableYears, setAvailableYears] = useState([]);
+
+  // Get background color for intensity level
+  const getBackgroundColor = (level) => {
+    switch (level) {
+      case 1: return '#0e4429';
+      case 2: return '#006d32';
+      case 3: return '#26a641';
+      case 4: return '#39d353';
+      default: return '#2d2d2d';
+    }
+  };
+
+  // Get the proper style object for a day cell with !important to override CSS
+  const getDayStyle = (day) => {
+    if (!day || day.level === 0) {
+      return {
+        backgroundColor: '#2d2d2d !important',
+        border: '1px solid #3a3a3a !important'
+      };
+    }
+    
+    const bgColor = getBackgroundColor(day.level);
+    return {
+      backgroundColor: `${bgColor} !important`,
+      border: `1px solid ${bgColor} !important`,
+      color: day.level === 4 ? '#000 !important' : '#fff !important'
+    };
+  };
 
   // Generate dates for the entire year
   const generateYearDates = useCallback((year) => {
@@ -80,11 +109,15 @@ const FlashcardHeatmap = () => {
     return { current: currentStreak, longest: longestStreak };
   }, []);
 
-  // Fetch review data for the year
-  const fetchReviewData = useCallback(async () => {
+  // Fetch review data with automatic refresh
+  const fetchReviewData = useCallback(async (forceRefresh = false) => {
     if (!user?.id) {
       setLoading(false);
       return;
+    }
+
+    if (forceRefresh) {
+      console.log('🔄 Force refreshing heatmap data...');
     }
 
     try {
@@ -94,19 +127,21 @@ const FlashcardHeatmap = () => {
       const startDate = new Date(selectedYear, 0, 1).toISOString();
       const endDate = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
 
+      console.log('📊 Fetching review data for:', { userId: user.id, year: selectedYear });
+
       // Query review sessions for the year
       const { data: reviewData, error } = await supabase
         .from('review_sessions')
         .select('reviewed_at, reviews_count')
         .eq('user_id', user.id)
         .gte('reviewed_at', startDate)
-        .lte('reviewed_at', endDate);
+        .lte('reviewed_at', endDate)
+        .order('reviewed_at', { ascending: true });
 
-      if (error && error.code !== '42P01') {
-        console.error('Error fetching review data:', error);
-        // If table doesn't exist, continue with empty data
-        if (error.code === '42P01') {
-          console.log('Review sessions table not found, showing empty heatmap');
+      if (error) {
+        console.error('❌ Error fetching review data:', error);
+        if (error.code !== '42P01') {
+          console.error('Database error:', error);
         }
       }
 
@@ -117,12 +152,18 @@ const FlashcardHeatmap = () => {
       const reviewsByDate = {};
       let totalReviews = 0;
 
-      if (reviewData) {
+      if (reviewData && reviewData.length > 0) {
+        console.log(`✅ Found ${reviewData.length} review sessions`);
+        
         reviewData.forEach(session => {
           const date = session.reviewed_at.split('T')[0];
           reviewsByDate[date] = (reviewsByDate[date] || 0) + (session.reviews_count || 1);
           totalReviews += (session.reviews_count || 1);
         });
+        
+        console.log('📈 Reviews by date:', reviewsByDate);
+      } else {
+        console.log('⚠️ No review data found');
       }
 
       // Apply review counts to dates
@@ -132,6 +173,12 @@ const FlashcardHeatmap = () => {
         level: getIntensityLevel(reviewsByDate[day.date] || 0)
       }));
 
+      console.log('🎨 Sample heatmap data:', heatmapDataWithCounts.slice(0, 10));
+      console.log('📅 Today:', new Date().toISOString().split('T')[0]);
+      const todayData = heatmapDataWithCounts.find(d => d.date === new Date().toISOString().split('T')[0]);
+      console.log('📅 Today\'s data:', todayData);
+
+      console.log('🎨 Setting heatmap data with', totalReviews, 'total reviews');
       setHeatmapData(heatmapDataWithCounts);
 
       // Calculate statistics
@@ -142,8 +189,14 @@ const FlashcardHeatmap = () => {
         totalReviews
       });
 
+      console.log('📊 Updated stats:', { 
+        longestStreak: streaks.longest, 
+        currentStreak: streaks.current, 
+        totalReviews 
+      });
+
     } catch (error) {
-      console.error('Error fetching review data:', error);
+      console.error('💥 Error fetching review data:', error);
     } finally {
       setLoading(false);
     }
@@ -167,30 +220,49 @@ const FlashcardHeatmap = () => {
     setAvailableYears(years);
   }, [user]);
 
-  // Set up event listeners for review tracking
+  // Set up event listeners for real-time updates
   useEffect(() => {
     if (!user?.id) return;
 
+    console.log('🔔 Setting up heatmap event listeners...');
+
     const handleReviewEvent = (event) => {
       console.log('🔔 Heatmap received review event:', event.detail);
-      // Refresh heatmap data when reviews happen
+      
+      // Force refresh the data immediately
       setTimeout(() => {
-        fetchReviewData();
-      }, 500); // Small delay to ensure database is updated
+        console.log('🔄 Auto-refreshing heatmap after review...');
+        fetchReviewData(true);
+      }, 100);
+    };
+
+    const handleForceRefresh = (event) => {
+      console.log('🔄 Force refresh requested');
+      fetchReviewData(true);
     };
 
     // Listen for custom review events
     window.addEventListener('flashcard-reviewed', handleReviewEvent);
+    window.addEventListener('heatmap-force-refresh', handleForceRefresh);
 
     return () => {
+      console.log('🔕 Removing heatmap event listeners');
       window.removeEventListener('flashcard-reviewed', handleReviewEvent);
+      window.removeEventListener('heatmap-force-refresh', handleForceRefresh);
     };
   }, [user?.id, fetchReviewData]);
 
-  // Load data on mount and user change
+  // Load data on mount and user/year change
   useEffect(() => {
+    console.log('🚀 Initial heatmap data load...');
     fetchReviewData();
   }, [fetchReviewData]);
+
+  // Manual refresh function
+  const handleManualRefresh = () => {
+    console.log('👆 Manual refresh clicked');
+    fetchReviewData(true);
+  };
 
   // Format date for tooltip
   const formatDate = (dateStr) => {
@@ -209,7 +281,6 @@ const FlashcardHeatmap = () => {
     
     if (days.length === 0) return weeks;
     
-    // Start with the actual first day of the year, not padding
     let startIndex = 0;
     const firstDate = new Date(days[0].date);
     const dayOfWeek = firstDate.getDay();
@@ -239,7 +310,7 @@ const FlashcardHeatmap = () => {
     return weeks;
   };
 
-  // Generate month labels with better logic for proper year display
+  // Generate month labels
   const generateMonthLabels = (weeks) => {
     const monthLabels = [];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
@@ -248,7 +319,6 @@ const FlashcardHeatmap = () => {
     let currentMonthInYear = -1;
     
     weeks.forEach((week, weekIndex) => {
-      // Find the first actual day (not null) in this week
       const firstRealDay = week.find(day => day !== null);
       
       if (firstRealDay) {
@@ -256,12 +326,8 @@ const FlashcardHeatmap = () => {
         const monthOfYear = date.getMonth();
         const year = date.getFullYear();
         
-        // Only show months that belong to our selected year
         if (year === selectedYear) {
-          // Show month label if this is a new month we haven't seen
           if (monthOfYear !== currentMonthInYear) {
-            // Additional check: make sure this is actually near the beginning of the month
-            // or that enough weeks have passed since the last label
             const dayOfMonth = date.getDate();
             const lastLabelWeek = monthLabels.length > 0 ? monthLabels[monthLabels.length - 1].weekIndex : -5;
             
@@ -280,7 +346,6 @@ const FlashcardHeatmap = () => {
       }
     });
     
-    console.log('Generated month labels for year', selectedYear, ':', monthLabels);
     return monthLabels;
   };
 
@@ -290,13 +355,27 @@ const FlashcardHeatmap = () => {
 
   if (loading) {
     return (
-      <div className="heatmap-container">
-        <div className="heatmap-header">
-          <h3>📊 Study Activity</h3>
+      <div style={{ 
+        background: '#1e1e1e',
+        border: '1px solid #333',
+        borderRadius: '16px',
+        padding: '24px',
+        color: 'white'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', margin: '0', color: 'white' }}>📊 Study Activity</h3>
         </div>
-        <div className="heatmap-loading">
-          <div className="loading-spinner"></div>
-          <p>Loading your study data...</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }}>
+          <div style={{ 
+            width: '30px',
+            height: '30px',
+            border: '3px solid #333',
+            borderTop: '3px solid #4facfe',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            marginBottom: '16px'
+          }}></div>
+          <p style={{ color: '#aaa', margin: '0', fontSize: '0.9rem' }}>Loading your study data...</p>
         </div>
       </div>
     );
@@ -306,65 +385,132 @@ const FlashcardHeatmap = () => {
   const monthLabels = generateMonthLabels(weeks);
 
   return (
-    <div className="heatmap-container">
-      <div className="heatmap-header">
-        <div className="heatmap-title-section">
-          <h3>📊 Study Activity</h3>
-          <span className="total-reviews">
+    <div style={{ 
+      background: '#1e1e1e',
+      border: '1px solid #333',
+      borderRadius: '16px',
+      padding: '24px',
+      color: 'white',
+      transition: 'all 0.3s ease',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', margin: '0', color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>📊 Study Activity</h3>
+          <span style={{ fontSize: '0.9rem', color: '#aaa', fontWeight: '500' }}>
             {stats.totalReviews} reviews in {selectedYear}
           </span>
         </div>
         
-        {availableYears.length > 1 && (
-          <div className="year-navigation">
-            <button 
-              className="year-nav-btn"
-              onClick={() => setSelectedYear(selectedYear - 1)}
-              disabled={selectedYear <= Math.min(...availableYears)}
-              title="Previous year"
-            >
-              ←
-            </button>
-            <div className="year-selector">
-              <select 
-                value={selectedYear} 
-                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="year-select"
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(0, 0, 0, 0.3)', borderRadius: '12px', padding: '6px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          {availableYears.length > 1 && (
+            <>
+              <button 
+                onClick={() => setSelectedYear(selectedYear - 1)}
+                disabled={selectedYear <= Math.min(...availableYears)}
+                title="Previous year"
+                style={{
+                  background: 'rgba(79, 172, 254, 0.1)',
+                  border: '1px solid rgba(79, 172, 254, 0.3)',
+                  color: '#4facfe',
+                  borderRadius: '8px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  fontWeight: '600'
+                }}
               >
-                {availableYears.map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-            </div>
-            <button 
-              className="year-nav-btn"
-              onClick={() => setSelectedYear(selectedYear + 1)}
-              disabled={selectedYear >= Math.max(...availableYears)}
-              title="Next year"
-            >
-              →
-            </button>
-            <button 
-              className="year-nav-btn"
-              onClick={fetchReviewData}
-              title="Refresh data"
-            >
-              🔄
-            </button>
-          </div>
-        )}
+                ←
+              </button>
+              <div>
+                <select 
+                  value={selectedYear} 
+                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                  style={{
+                    background: 'rgba(30, 30, 30, 0.8)',
+                    border: '1px solid #444',
+                    color: 'white',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    minWidth: '80px',
+                    textAlign: 'center'
+                  }}
+                >
+                  {availableYears.map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+              <button 
+                onClick={() => setSelectedYear(selectedYear + 1)}
+                disabled={selectedYear >= Math.max(...availableYears)}
+                title="Next year"
+                style={{
+                  background: 'rgba(79, 172, 254, 0.1)',
+                  border: '1px solid rgba(79, 172, 254, 0.3)',
+                  color: '#4facfe',
+                  borderRadius: '8px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  fontWeight: '600'
+                }}
+              >
+                →
+              </button>
+            </>
+          )}
+          <button 
+            onClick={handleManualRefresh}
+            title="Refresh data"
+            style={{
+              background: 'rgba(79, 172, 254, 0.1)',
+              border: '1px solid rgba(79, 172, 254, 0.3)',
+              color: '#4facfe',
+              borderRadius: '8px',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: '600'
+            }}
+          >
+            🔄
+          </button>
+        </div>
       </div>
       
-      <div className="heatmap-grid">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px', alignItems: 'center', justifyContent: 'center' }}>
         {/* Month labels */}
-        <div className="month-labels">
+        <div style={{ position: 'relative', height: '20px', marginBottom: '8px', width: '100%', maxWidth: '900px' }}>
           {monthLabels.map((label, index) => (
             <span 
               key={index}
-              className="month-label"
               style={{
                 position: 'absolute',
-                left: `${label.weekIndex * 14 + 40}px`
+                left: `${label.weekIndex * 14 + 40}px`,
+                fontSize: '0.7rem',
+                color: '#666',
+                fontWeight: '500',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                whiteSpace: 'nowrap',
+                userSelect: 'none'
               }}
             >
               {label.name}
@@ -373,29 +519,55 @@ const FlashcardHeatmap = () => {
         </div>
         
         {/* Main grid with day labels and weeks */}
-        <div className="heatmap-main-grid">
-          <div className="day-labels">
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', justifyContent: 'center', maxWidth: '900px', width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: '40px', paddingTop: '2px', flexShrink: 0 }}>
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <span key={day}>{day}</span>
+              <span key={day} style={{ fontSize: '0.7rem', color: '#666', fontWeight: '500', textAlign: 'right', height: '12px', lineHeight: '12px' }}>{day}</span>
             ))}
           </div>
           
-          <div className="heatmap-weeks">
+          <div style={{ display: 'flex', gap: '2px', flex: 1, justifyContent: 'flex-start', paddingBottom: '2px' }}>
             {weeks.map((week, weekIndex) => (
-              <div key={weekIndex} className="heatmap-week">
+              <div key={weekIndex} style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '12px' }}>
                 {week.map((day, dayIndex) => (
                   <div
                     key={`${weekIndex}-${dayIndex}`}
-                    className={`heatmap-day ${day ? `level-${day.level}` : 'empty'}`}
+                    data-count={day?.count || 0}
+                    data-level={day?.level || 0}
+                    data-date={day?.date || ''}
+                    style={{
+                      width: '12px',
+                      height: '12px',
+                      borderRadius: '2px',
+                      cursor: day ? 'pointer' : 'default',
+                      position: 'relative',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '6px',
+                      fontWeight: 'bold',
+                      backgroundColor: day ? getBackgroundColor(day.level) : 'transparent',
+                      border: day ? `1px solid ${getBackgroundColor(day.level)}` : 'none',
+                      color: day?.level === 4 ? '#000' : '#fff'
+                    }}
                     title={day ? 
                       (day.count === 0 ? 
                         `No reviews on ${formatDate(day.date)}` : 
-                        `${day.count} review${day.count !== 1 ? 's' : ''} on ${formatDate(day.date)}`
+                        `${day.count} review${day.count !== 1 ? 's' : ''} on ${formatDate(day.date)} (Level: ${day.level})`
                       ) : ''
                     }
                   >
                     {day && day.count > 0 && day.count < 100 && (
-                      <span className="day-count">{day.count}</span>
+                      <span style={{ 
+                        fontSize: '5px', 
+                        fontWeight: '700', 
+                        opacity: '0.8',
+                        position: 'relative',
+                        zIndex: 1,
+                        color: day.level === 4 ? '#000' : '#fff'
+                      }}>
+                        {day.count}
+                      </span>
                     )}
                   </div>
                 ))}
@@ -406,34 +578,43 @@ const FlashcardHeatmap = () => {
       </div>
       
       {/* Statistics */}
-      <div className="heatmap-stats">
-        <div className="stat-item">
-          <div className="stat-value">{stats.longestStreak}</div>
-          <div className="stat-label">Longest Streak</div>
+      <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: '16px', padding: '16px', background: 'rgba(0, 0, 0, 0.2)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#4facfe', marginBottom: '4px', textShadow: '0 0 10px rgba(79, 172, 254, 0.3)' }}>{stats.longestStreak}</div>
+          <div style={{ fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>Longest Streak</div>
         </div>
-        <div className="stat-item">
-          <div className="stat-value">{stats.currentStreak}</div>
-          <div className="stat-label">
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#4facfe', marginBottom: '4px', textShadow: '0 0 10px rgba(79, 172, 254, 0.3)' }}>{stats.currentStreak}</div>
+          <div style={{ fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>
             {selectedYear === new Date().getFullYear() ? 'Current Streak' : 'Final Streak'}
           </div>
         </div>
-        <div className="stat-item">
-          <div className="stat-value">
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#4facfe', marginBottom: '4px', textShadow: '0 0 10px rgba(79, 172, 254, 0.3)' }}>
             {Math.round((stats.totalReviews / 365) * 10) / 10}
           </div>
-          <div className="stat-label">Daily Average</div>
+          <div style={{ fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>Daily Average</div>
         </div>
       </div>
       
       {/* Legend */}
-      <div className="heatmap-legend">
-        <span className="legend-text">Less</span>
-        <div className="legend-squares">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: '0.8', marginBottom: '16px' }}>
+        <span style={{ fontSize: '0.75rem', color: '#666', fontWeight: '500' }}>Less</span>
+        <div style={{ display: 'flex', gap: '2px' }}>
           {[0, 1, 2, 3, 4].map(level => (
-            <div key={level} className={`legend-square level-${level}`} />
+            <div 
+              key={level} 
+              style={{
+                width: '10px',
+                height: '10px',
+                borderRadius: '2px',
+                backgroundColor: getBackgroundColor(level),
+                border: `1px solid ${level > 0 ? getBackgroundColor(level) : '#3a3a3a'}`
+              }}
+            />
           ))}
         </div>
-        <span className="legend-text">More</span>
+        <span style={{ fontSize: '0.75rem', color: '#666', fontWeight: '500' }}>More</span>
       </div>
     </div>
   );
