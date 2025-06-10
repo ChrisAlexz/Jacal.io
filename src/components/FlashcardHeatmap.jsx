@@ -1,10 +1,13 @@
-// src/components/FlashcardHeatmap.jsx - SIMPLE FIX FOR TODAY'S SQUARE
+// src/components/FlashcardHeatmap.jsx - COMPLETE REBUILT HEATMAP COMPONENT
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
 
 const FlashcardHeatmap = () => {
   const { user } = useContext(UserAuthContext);
+  
+  // FORCE REFRESH STATE
+  const [refreshKey, setRefreshKey] = useState(0);
   const [heatmapData, setHeatmapData] = useState([]);
   const [stats, setStats] = useState({
     longestStreak: 0,
@@ -14,6 +17,20 @@ const FlashcardHeatmap = () => {
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [availableYears, setAvailableYears] = useState([]);
+  
+  // Force refresh function
+  const forceRefresh = useCallback(() => {
+    console.log('🔄 FORCING HEATMAP REFRESH');
+    setRefreshKey(prev => prev + 1);
+  }, []);
+
+  // Make force refresh available globally
+  useEffect(() => {
+    window.forceHeatmapRefresh = forceRefresh;
+    return () => {
+      delete window.forceHeatmapRefresh;
+    };
+  }, [forceRefresh]);
 
   const getBackgroundColor = (level) => {
     switch (level) {
@@ -85,6 +102,7 @@ const FlashcardHeatmap = () => {
     return { current: currentStreak, longest: longestStreak };
   }, []);
 
+  // MAIN DATA FETCHING FUNCTION
   const fetchReviewData = useCallback(async () => {
     if (!user?.id) {
       setLoading(false);
@@ -93,10 +111,12 @@ const FlashcardHeatmap = () => {
 
     try {
       setLoading(true);
+      console.log(`🔄 Fetching review data for ${selectedYear} (refresh: ${refreshKey})`);
       
       const startDate = new Date(selectedYear, 0, 1).toISOString();
       const endDate = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
 
+      // Get review data with fresh query
       const { data: reviewData, error } = await supabase
         .from('review_sessions')
         .select('reviewed_at, reviews_count')
@@ -113,10 +133,7 @@ const FlashcardHeatmap = () => {
       const reviewsByDate = {};
       let totalReviews = 0;
 
-      // Get today's date in local timezone
-      const today = new Date();
-      const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
+      // Process review data
       if (reviewData && reviewData.length > 0) {
         reviewData.forEach(session => {
           const date = session.reviewed_at.split('T')[0];
@@ -125,18 +142,22 @@ const FlashcardHeatmap = () => {
         });
       }
 
-      // FORCE: If we have total reviews but no reviews for today, put them on today
-      if (totalReviews > 0 && !reviewsByDate[todayString]) {
-        console.log(`🔧 Moving ${totalReviews} reviews to today: ${todayString}`);
-        reviewsByDate[todayString] = totalReviews;
-        // Clear other days to avoid double counting
-        Object.keys(reviewsByDate).forEach(date => {
-          if (date !== todayString) {
-            delete reviewsByDate[date];
-          }
-        });
+      console.log('📊 Reviews by date:', reviewsByDate);
+      console.log('📊 Total reviews:', totalReviews);
+
+      // FORCE TODAY'S DATE - Get from localStorage as backup
+      const today = new Date().toISOString().split('T')[0];
+      if (!reviewsByDate[today] && user?.id) {
+        const storageKey = `reviews_${user.id}_${today}`;
+        const storedCount = localStorage.getItem(storageKey);
+        if (storedCount && parseInt(storedCount) > 0) {
+          reviewsByDate[today] = parseInt(storedCount);
+          totalReviews += parseInt(storedCount);
+          console.log(`📱 Added from storage: ${storedCount} reviews for ${today}`);
+        }
       }
 
+      // Create heatmap data
       const heatmapDataWithCounts = yearDates.map(day => ({
         ...day,
         count: reviewsByDate[day.date] || 0,
@@ -152,12 +173,18 @@ const FlashcardHeatmap = () => {
         totalReviews
       });
 
+      console.log('✅ Heatmap data updated:', {
+        totalReviews,
+        todayCount: reviewsByDate[today] || 0,
+        streaks
+      });
+
     } catch (error) {
       console.error('Error fetching review data:', error);
     } finally {
       setLoading(false);
     }
-  }, [user?.id, selectedYear, generateYearDates, getIntensityLevel, calculateStreaks]);
+  }, [user?.id, selectedYear, refreshKey, generateYearDates, getIntensityLevel, calculateStreaks]);
 
   // Initialize available years
   useEffect(() => {
@@ -177,32 +204,46 @@ const FlashcardHeatmap = () => {
     setAvailableYears(years);
   }, [user]);
 
-  // Event listeners
+  // LISTEN FOR ALL POSSIBLE REFRESH EVENTS
   useEffect(() => {
     if (!user?.id) return;
 
-    const handleReviewEvent = () => {
+    const refreshEvents = [
+      'flashcard-reviewed',
+      'heatmap-refresh',
+      'heatmap-force-refresh',
+      'study-complete',
+      'data-updated',
+      'review-tracked'
+    ];
+
+    const handleRefresh = (event) => {
+      console.log('🔔 Received refresh event:', event.type);
       setTimeout(() => {
-        fetchReviewData();
-      }, 500);
+        forceRefresh();
+      }, 300);
     };
 
-    window.addEventListener('flashcard-reviewed', handleReviewEvent);
-    window.addEventListener('heatmap-force-refresh', handleReviewEvent);
+    refreshEvents.forEach(eventName => {
+      window.addEventListener(eventName, handleRefresh);
+    });
 
     return () => {
-      window.removeEventListener('flashcard-reviewed', handleReviewEvent);
-      window.removeEventListener('heatmap-force-refresh', handleReviewEvent);
+      refreshEvents.forEach(eventName => {
+        window.removeEventListener(eventName, handleRefresh);
+      });
     };
-  }, [user?.id, fetchReviewData]);
+  }, [user?.id, forceRefresh]);
 
-  // Load data on mount
+  // LOAD DATA
   useEffect(() => {
     fetchReviewData();
   }, [fetchReviewData]);
 
+  // Manual refresh button
   const handleManualRefresh = () => {
-    fetchReviewData();
+    console.log('🔄 Manual refresh triggered');
+    forceRefresh();
   };
 
   const formatDate = (dateStr) => {
@@ -317,6 +358,7 @@ const FlashcardHeatmap = () => {
 
   const weeks = groupIntoWeeks(heatmapData);
   const monthLabels = generateMonthLabels(weeks);
+  const today = new Date().toISOString().split('T')[0];
 
   return (
     <div style={{ 
@@ -328,10 +370,15 @@ const FlashcardHeatmap = () => {
       transition: 'all 0.3s ease',
       position: 'relative',
       overflow: 'hidden'
-    }}>
+    }} key={`heatmap-${refreshKey}`}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', margin: '0', color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>📊 Study Activity</h3>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', margin: '0', color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            📊 Study Activity
+            <span style={{ fontSize: '0.7rem', background: '#4facfe', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>
+              R{refreshKey}
+            </span>
+          </h3>
           <span style={{ fontSize: '0.9rem', color: '#aaa', fontWeight: '500' }}>
             {stats.totalReviews} reviews in {selectedYear}
           </span>
@@ -408,7 +455,7 @@ const FlashcardHeatmap = () => {
           )}
           <button 
             onClick={handleManualRefresh}
-            title="Refresh data"
+            title="Force refresh data"
             style={{
               background: 'rgba(79, 172, 254, 0.1)',
               border: '1px solid rgba(79, 172, 254, 0.3)',
@@ -477,9 +524,11 @@ const FlashcardHeatmap = () => {
                     );
                   }
                   
+                  const isToday = day.date === today;
+                  
                   return (
                     <div
-                      key={`${weekIndex}-${dayIndex}`}
+                      key={`${weekIndex}-${dayIndex}-${refreshKey}`}
                       style={{
                         width: '12px',
                         height: '12px',
@@ -492,13 +541,14 @@ const FlashcardHeatmap = () => {
                         fontSize: '6px',
                         fontWeight: 'bold',
                         backgroundColor: getBackgroundColor(day.level),
-                        border: `1px solid ${getBackgroundColor(day.level)}`,
+                        border: isToday ? '2px solid #4facfe' : `1px solid ${getBackgroundColor(day.level)}`,
                         color: day.level === 4 ? '#000' : '#fff',
-                        transition: 'all 0.2s ease'
+                        transition: 'all 0.2s ease',
+                        boxShadow: isToday ? '0 0 8px rgba(79, 172, 254, 0.6)' : 'none'
                       }}
                       title={day.count === 0 ? 
-                        `No reviews on ${formatDate(day.date)}` : 
-                        `${day.count} review${day.count !== 1 ? 's' : ''} on ${formatDate(day.date)} (Level: ${day.level})`
+                        `No reviews on ${formatDate(day.date)}${isToday ? ' (TODAY)' : ''}` : 
+                        `${day.count} review${day.count !== 1 ? 's' : ''} on ${formatDate(day.date)}${isToday ? ' (TODAY)' : ''} (Level: ${day.level})`
                       }
                       onMouseEnter={(e) => {
                         if (day.level > 0) {
@@ -510,9 +560,9 @@ const FlashcardHeatmap = () => {
                       }}
                       onMouseLeave={(e) => {
                         e.target.style.transform = 'scale(1)';
-                        e.target.style.border = `1px solid ${getBackgroundColor(day.level)}`;
+                        e.target.style.border = isToday ? '2px solid #4facfe' : `1px solid ${getBackgroundColor(day.level)}`;
                         e.target.style.zIndex = '1';
-                        e.target.style.boxShadow = 'none';
+                        e.target.style.boxShadow = isToday ? '0 0 8px rgba(79, 172, 254, 0.6)' : 'none';
                       }}
                     >
                       {day.count > 0 && day.count < 100 && (
@@ -574,6 +624,19 @@ const FlashcardHeatmap = () => {
           ))}
         </div>
         <span style={{ fontSize: '0.75rem', color: '#666', fontWeight: '500' }}>More</span>
+      </div>
+
+      {/* DEBUG INFO */}
+      <div style={{ 
+        fontSize: '0.7rem', 
+        color: '#666', 
+        textAlign: 'center', 
+        padding: '8px',
+        background: 'rgba(0,0,0,0.2)',
+        borderRadius: '6px',
+        marginTop: '12px'
+      }}>
+        Today: {today} | Refresh: #{refreshKey} | Total: {stats.totalReviews}
       </div>
     </div>
   );

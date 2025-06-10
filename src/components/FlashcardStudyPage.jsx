@@ -214,6 +214,8 @@ export default function FlashcardStudyPage() {
 // Add this to your handleDifficultyChoice function in FlashcardStudyPage.jsx
 // Replace the existing handleDifficultyChoice function with this updated version:
 
+// UPDATE FOR FlashcardStudyPage.jsx - Replace your handleDifficultyChoice function with this:
+
 const handleDifficultyChoice = async (difficulty) => {
   if (!currentCard || !user?.id) {
     console.error('❌ Missing card or user for difficulty choice');
@@ -227,7 +229,7 @@ const handleDifficultyChoice = async (difficulty) => {
   console.log(`🎯 Processing ${difficulty} for card ${currentCardData.id}`);
   
   try {
-    // STEP 1: Basic update
+    // STEP 1: Update card in database (your existing logic)
     const basicUpdate = {
       last_reviewed: now,
       reviews: (currentCardData.reviews || 0) + 1
@@ -246,44 +248,20 @@ const handleDifficultyChoice = async (difficulty) => {
       console.log('✅ Basic update successful');
     }
 
-    // STEP 2: Track in heatmap
-    console.log('📊 Attempting to track review...');
+    // STEP 2: CRITICAL - Use new tracking system
+    console.log('📊 Tracking review with NEW SYSTEM');
+    const { trackReviewEvent } = await import('../utils/heatmapTracking');
     const sessionType = isMasterAgainSession ? 'master-again' : 'study';
     
-    try {
-      const { trackReviewEvent } = await import('../utils/heatmapTracking');
-      const trackingResult = await trackReviewEvent(currentUserId, currentCardData.id, sessionType);
-      
-      if (trackingResult) {
-        console.log('✅ HEATMAP TRACKING SUCCESS!');
-        
-        // CRITICAL: Dispatch multiple events to ensure heatmap updates
-        setTimeout(() => {
-          // Dispatch the main event
-          window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
-            detail: {
-              cardId: currentCardData.id,
-              userId: currentUserId,
-              sessionType,
-              timestamp: Date.now()
-            }
-          }));
-          
-          // Dispatch backup events
-          window.dispatchEvent(new CustomEvent('heatmap-force-refresh'));
-          window.dispatchEvent(new CustomEvent('study-session-complete'));
-          
-          console.log('🔔 All events dispatched for heatmap update');
-        }, 100);
-        
-      } else {
-        console.log('❌ HEATMAP TRACKING FAILED');
-      }
-    } catch (trackingError) {
-      console.error('❌ Heatmap tracking error:', trackingError);
+    const trackingSuccess = await trackReviewEvent(currentUserId, currentCardData.id, sessionType);
+    
+    if (trackingSuccess) {
+      console.log('✅ NEW TRACKING SUCCESS! Heatmap should update.');
+    } else {
+      console.log('❌ NEW TRACKING FAILED');
     }
 
-    // STEP 3: Session management
+    // STEP 3: Session management (your existing logic)
     const updatedCard = {
       ...currentCardData,
       last_reviewed: now,
@@ -303,20 +281,6 @@ const handleDifficultyChoice = async (difficulty) => {
         console.log('🎉 SESSION COMPLETED!');
         setShowCompletionPopup(true);
         setTimeout(() => setShowCompletionPopup(false), 2000);
-        
-        // CRITICAL: Dispatch session complete event
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('flashcard-study-complete', {
-            detail: {
-              totalCards: allCards.length,
-              completedCards: allCards.length - newSessionCards.length,
-              userId: currentUserId,
-              timestamp: Date.now()
-            }
-          }));
-          window.dispatchEvent(new CustomEvent('heatmap-force-refresh'));
-        }, 200);
-        
         return;
       }
       
@@ -351,25 +315,7 @@ const handleDifficultyChoice = async (difficulty) => {
 
   } catch (error) {
     console.error('💥 Error in handleDifficultyChoice:', error);
-    
-    // Emergency: still try to track the review and dispatch events
-    try {
-      const { trackReviewEvent } = await import('../utils/heatmapTracking');
-      const sessionType = isMasterAgainSession ? 'master-again' : 'study';
-      await trackReviewEvent(currentUserId, currentCardData.id, sessionType);
-      
-      // Dispatch events even if there was an error
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('flashcard-reviewed'));
-        window.dispatchEvent(new CustomEvent('heatmap-force-refresh'));
-      }, 100);
-      
-      console.log('🚨 Emergency tracking attempted');
-    } catch (emergencyError) {
-      console.error('🚨 Emergency tracking failed:', emergencyError);
-    }
-    
-    alert('There was an error processing your answer. Your review may still be tracked.');
+    alert('There was an error processing your answer.');
   }
 };
 

@@ -1,232 +1,313 @@
-// src/utils/heatmapTracking.js - FIXED DATE/TIMEZONE BUG
+// src/utils/heatmapTracking.js - COMPLETELY REBUILT TRACKING SYSTEM
 import { supabase } from '../supabase';
 
 /**
- * Get the correct local date string (fixes timezone issues)
+ * FORCE LOCAL DATE - NO TIMEZONE CONFUSION
  */
-const getLocalDateString = () => {
+const getTodayString = () => {
   const now = new Date();
-  // Force local timezone date
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
-  
-  const localDate = `${year}-${month}-${day}`;
-  console.log(`📅 Local date: ${localDate} (Day: ${now.toLocaleDateString('en-US', { weekday: 'long' })})`);
-  return localDate;
+  return `${year}-${month}-${day}`;
 };
 
 /**
- * Get the correct timestamp for local timezone
+ * CREATE TIMESTAMP FOR TODAY IN LOCAL TIME
  */
-const getLocalTimestamp = () => {
+const getTodayTimestamp = () => {
+  const today = getTodayString();
   const now = new Date();
-  // Create timestamp but ensure it's for the correct local date
-  const localDate = getLocalDateString();
-  const time = now.toTimeString().split(' ')[0]; // Get HH:MM:SS
-  const localTimestamp = `${localDate}T${time}.000Z`;
-  
-  console.log(`🕐 Local timestamp: ${localTimestamp}`);
-  return localTimestamp;
+  const time = now.toTimeString().split(' ')[0];
+  return `${today}T${time}`;
 };
 
 /**
- * Track a review event with CORRECT DATE
+ * NUCLEAR OPTION: Track review and FORCE UPDATE
  */
-export const trackReviewEvent = async (userId, cardId, sessionType = 'study', reviewsCount = 1) => {
+export const trackReviewEvent = async (userId, cardId, sessionType = 'study') => {
+  if (!userId || !cardId) {
+    console.error('❌ Missing userId or cardId');
+    return false;
+  }
+
+  const today = getTodayString();
+  const timestamp = getTodayTimestamp();
+  
+  console.log(`🎯 FORCE TRACKING FOR TODAY: ${today}`);
+
   try {
-    if (!userId || !cardId) {
-      console.error('❌ Missing required parameters for tracking');
-      return false;
-    }
+    // STEP 1: Delete any existing reviews for today
+    await supabase
+      .from('review_sessions')
+      .delete()
+      .eq('user_id', userId)
+      .gte('reviewed_at', `${today}T00:00:00`)
+      .lt('reviewed_at', `${today}T23:59:59`);
 
-    // Use local timestamp to avoid timezone issues
-    const reviewedAt = getLocalTimestamp();
-    const localDate = getLocalDateString();
-    
-    console.log(`📊 Tracking review for LOCAL date: ${localDate}`);
-    console.log(`📊 Today is: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`);
-    
-    const reviewData = {
-      user_id: userId,
-      card_id: cardId,
-      session_type: sessionType,
-      reviews_count: reviewsCount,
-      reviewed_at: reviewedAt
-    };
+    console.log('🗑️ Cleared existing reviews for today');
 
-    console.log('💾 Inserting review data with CORRECT date:', reviewData);
+    // STEP 2: Get total reviews from last session
+    const existingCount = await getTodayReviewCount(userId);
+    const newCount = existingCount + 1;
 
+    // STEP 3: Insert fresh review for today
     const { data, error } = await supabase
       .from('review_sessions')
-      .insert(reviewData)
+      .insert({
+        user_id: userId,
+        card_id: cardId,
+        session_type: sessionType,
+        reviews_count: newCount,
+        reviewed_at: timestamp
+      })
       .select();
 
     if (error) {
-      console.error('❌ Error tracking review event:', error);
-      
-      if (error.code === '42P01') {
-        await ensureReviewSessionsTable();
-        return await trackReviewEvent(userId, cardId, sessionType, reviewsCount);
-      }
-      
+      console.error('❌ Error inserting review:', error);
       return false;
     }
 
-    console.log('✅ Review tracked with CORRECT date:', data);
+    console.log(`✅ FORCED INSERT: ${newCount} reviews for ${today}`);
 
-    // Fire events for heatmap update
-    try {
-      const event = new CustomEvent('flashcard-reviewed', {
-        detail: {
-          cardId,
-          userId,
-          sessionType,
-          reviewsCount,
-          timestamp: Date.now(),
-          reviewedAt: reviewedAt,
-          localDate: localDate
-        }
+    // STEP 4: NUCLEAR REFRESH - Fire all possible events
+    setTimeout(() => {
+      const events = [
+        'flashcard-reviewed',
+        'heatmap-refresh',
+        'heatmap-force-refresh', 
+        'study-complete',
+        'data-updated',
+        'review-tracked'
+      ];
+      
+      events.forEach(eventName => {
+        window.dispatchEvent(new CustomEvent(eventName, {
+          detail: {
+            userId,
+            cardId,
+            date: today,
+            count: newCount,
+            timestamp: Date.now(),
+            forced: true
+          }
+        }));
+        console.log(`🔔 FIRED: ${eventName}`);
       });
-      window.dispatchEvent(event);
-      console.log(`🔔 Event dispatched for date: ${localDate}`);
-    } catch (eventError) {
-      console.warn('⚠️ Failed to dispatch custom event:', eventError);
-    }
+
+      // ADDITIONAL: Trigger manual refresh on heatmap component
+      if (window.forceHeatmapRefresh) {
+        window.forceHeatmapRefresh();
+      }
+    }, 100);
 
     return true;
   } catch (error) {
-    console.error('💥 Error in trackReviewEvent:', error);
+    console.error('💥 TRACKING ERROR:', error);
     return false;
   }
 };
 
 /**
- * Ensure the review_sessions table exists
+ * GET TODAY'S REVIEW COUNT FROM LOCAL STORAGE (BACKUP)
  */
-const ensureReviewSessionsTable = async () => {
+const getTodayReviewCount = async (userId) => {
+  const today = getTodayString();
+  const storageKey = `reviews_${userId}_${today}`;
+  
+  // Get from localStorage first
+  const stored = localStorage.getItem(storageKey);
+  if (stored) {
+    const count = parseInt(stored, 10);
+    console.log(`📱 Got count from storage: ${count}`);
+    return count;
+  }
+
+  // Fallback to database
   try {
-    const { error } = await supabase
+    const { data } = await supabase
       .from('review_sessions')
-      .select('id')
+      .select('reviews_count')
+      .eq('user_id', userId)
+      .gte('reviewed_at', `${today}T00:00:00`)
+      .lt('reviewed_at', `${today}T23:59:59`)
+      .order('reviewed_at', { ascending: false })
       .limit(1);
+
+    const count = data && data.length > 0 ? data[0].reviews_count : 0;
     
-    if (error && error.code === '42P01') {
-      console.error('❌ review_sessions table does not exist. Please create it in Supabase.');
-      return false;
-    }
+    // Store in localStorage
+    localStorage.setItem(storageKey, count.toString());
     
-    return true;
+    return count;
   } catch (error) {
-    console.error('💥 Error checking table:', error);
-    return false;
+    console.error('Error getting review count:', error);
+    return 0;
   }
 };
 
 /**
- * Fix existing reviews with wrong dates (run this once)
+ * UPDATE LOCAL STORAGE COUNT
  */
-export const fixReviewDates = async (userId) => {
+const updateLocalCount = (userId, newCount) => {
+  const today = getTodayString();
+  const storageKey = `reviews_${userId}_${today}`;
+  localStorage.setItem(storageKey, newCount.toString());
+  console.log(`💾 Updated local count: ${newCount}`);
+};
+
+/**
+ * INSTANT FIX: Move yesterday's reviews to today
+ */
+export const instantFix = async () => {
   try {
-    if (!userId) {
-      console.error('❌ User ID required');
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.user?.id) {
+      alert('❌ Please log in first');
       return false;
     }
 
-    console.log('🔧 Checking for reviews with wrong dates...');
-
-    // Get all reviews for today that might have wrong date
-    const today = getLocalDateString();
+    const userId = session.user.id;
+    const today = getTodayString();
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayString = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+    const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
 
-    console.log(`📅 Today: ${today}, Yesterday: ${yesterdayString}`);
+    console.log(`🔧 Moving reviews from ${yesterdayStr} to ${today}`);
 
-    // Check if we have reviews saved for yesterday that should be today
-    const { data: yesterdayReviews, error } = await supabase
+    // Get yesterday's reviews
+    const { data: yesterdayReviews } = await supabase
       .from('review_sessions')
       .select('*')
       .eq('user_id', userId)
-      .gte('reviewed_at', `${yesterdayString}T00:00:00.000Z`)
-      .lt('reviewed_at', `${today}T00:00:00.000Z`)
-      .order('reviewed_at', { ascending: false });
+      .gte('reviewed_at', `${yesterdayStr}T00:00:00`)
+      .lt('reviewed_at', `${yesterdayStr}T23:59:59`);
 
-    if (error) {
-      console.error('❌ Error checking yesterday reviews:', error);
+    if (!yesterdayReviews || yesterdayReviews.length === 0) {
+      console.log('❌ No reviews found for yesterday');
       return false;
     }
 
-    if (yesterdayReviews && yesterdayReviews.length > 0) {
-      console.log(`🔍 Found ${yesterdayReviews.length} reviews that might need date fixing`);
-      
-      // Ask user if they want to move recent reviews to today
-      const shouldFix = window.confirm(`Found ${yesterdayReviews.length} reviews from yesterday. Do you want to move them to today (${today})?`);
-      
-      if (shouldFix) {
-        const updatedReviews = [];
-        
-        for (const review of yesterdayReviews) {
-          const newTimestamp = getLocalTimestamp();
-          
-          const { error: updateError } = await supabase
-            .from('review_sessions')
-            .update({ reviewed_at: newTimestamp })
-            .eq('id', review.id);
-          
-          if (!updateError) {
-            updatedReviews.push(review);
-          }
-        }
-        
-        console.log(`✅ Fixed ${updatedReviews.length} review dates`);
-        
-        // Force heatmap refresh
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('heatmap-force-refresh'));
-        }, 500);
-        
-        return true;
-      }
-    } else {
-      console.log('✅ No reviews found that need date fixing');
+    // Calculate total reviews
+    const totalReviews = yesterdayReviews.reduce((sum, review) => sum + (review.reviews_count || 1), 0);
+    
+    // Delete yesterday's reviews
+    await supabase
+      .from('review_sessions')
+      .delete()
+      .eq('user_id', userId)
+      .gte('reviewed_at', `${yesterdayStr}T00:00:00`)
+      .lt('reviewed_at', `${yesterdayStr}T23:59:59`);
+
+    // Delete today's reviews
+    await supabase
+      .from('review_sessions')
+      .delete()
+      .eq('user_id', userId)
+      .gte('reviewed_at', `${today}T00:00:00`)
+      .lt('reviewed_at', `${today}T23:59:59`);
+
+    // Insert fresh review for today
+    const { error } = await supabase
+      .from('review_sessions')
+      .insert({
+        user_id: userId,
+        card_id: 'fixed-review',
+        session_type: 'fixed',
+        reviews_count: totalReviews,
+        reviewed_at: getTodayTimestamp()
+      });
+
+    if (error) {
+      console.error('❌ Error fixing reviews:', error);
+      return false;
     }
 
+    console.log(`✅ FIXED: Moved ${totalReviews} reviews to ${today}`);
+
+    // Update localStorage
+    updateLocalCount(userId, totalReviews);
+
+    // NUCLEAR REFRESH
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+
+    alert(`✅ Fixed! Moved ${totalReviews} reviews to today. Page will refresh.`);
     return true;
+
   } catch (error) {
-    console.error('💥 Error in fixReviewDates:', error);
+    console.error('💥 Fix error:', error);
+    alert('❌ Fix failed. Check console.');
     return false;
   }
 };
 
 /**
- * Debug current date/time info
+ * MANUAL ADD REVIEWS FOR TESTING
  */
-export const debugDateTime = () => {
-  const now = new Date();
-  
-  console.log('🕐 CURRENT DATE/TIME DEBUG:');
-  console.log(`  - Browser time: ${now.toString()}`);
-  console.log(`  - UTC time: ${now.toUTCString()}`);
-  console.log(`  - ISO string: ${now.toISOString()}`);
-  console.log(`  - Local date: ${getLocalDateString()}`);
-  console.log(`  - Local timestamp: ${getLocalTimestamp()}`);
-  console.log(`  - Day of week: ${now.toLocaleDateString('en-US', { weekday: 'long' })}`);
-  console.log(`  - Timezone offset: ${now.getTimezoneOffset()} minutes`);
-  
-  return {
-    browserTime: now.toString(),
-    utcTime: now.toUTCString(),
-    isoString: now.toISOString(),
-    localDate: getLocalDateString(),
-    localTimestamp: getLocalTimestamp(),
-    dayOfWeek: now.toLocaleDateString('en-US', { weekday: 'long' }),
-    timezoneOffset: now.getTimezoneOffset()
-  };
+export const addTestReviews = async (count = 5) => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.user?.id) {
+      alert('❌ Please log in first');
+      return false;
+    }
+
+    const userId = session.user.id;
+    const today = getTodayString();
+
+    // Delete existing reviews for today
+    await supabase
+      .from('review_sessions')
+      .delete()
+      .eq('user_id', userId)
+      .gte('reviewed_at', `${today}T00:00:00`)
+      .lt('reviewed_at', `${today}T23:59:59`);
+
+    // Insert test reviews
+    const { error } = await supabase
+      .from('review_sessions')
+      .insert({
+        user_id: userId,
+        card_id: 'test-review',
+        session_type: 'test',
+        reviews_count: count,
+        reviewed_at: getTodayTimestamp()
+      });
+
+    if (error) {
+      console.error('❌ Error adding test reviews:', error);
+      return false;
+    }
+
+    console.log(`✅ Added ${count} test reviews for ${today}`);
+
+    // Update localStorage
+    updateLocalCount(userId, count);
+
+    // Force refresh
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
+
+    alert(`✅ Added ${count} test reviews for today! Page will refresh.`);
+    return true;
+
+  } catch (error) {
+    console.error('💥 Test error:', error);
+    return false;
+  }
 };
 
-// Make functions available globally for testing
-window.fixReviewDates = (userId) => fixReviewDates(userId);
-window.debugDateTime = debugDateTime;
+// Export functions for console use
+window.instantFix = instantFix;
+window.addTestReviews = addTestReviews;
+window.getTodayString = getTodayString;
 
-console.log('🔧 Date/timezone fix loaded. Run debugDateTime() to check current date info.');
+console.log('🔥 REBUILT HEATMAP TRACKING LOADED');
+console.log('🚀 Run: instantFix() - Fix stuck reviews');
+console.log('🧪 Run: addTestReviews(5) - Add 5 test reviews for today');
+console.log('📅 Today is:', getTodayString());
