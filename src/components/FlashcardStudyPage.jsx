@@ -211,6 +211,9 @@ export default function FlashcardStudyPage() {
 // Replace your handleDifficultyChoice function with this simplified version
 // This handles the database column issues and ensures tracking works
 
+// Add this to your handleDifficultyChoice function in FlashcardStudyPage.jsx
+// Replace the existing handleDifficultyChoice function with this updated version:
+
 const handleDifficultyChoice = async (difficulty) => {
   if (!currentCard || !user?.id) {
     console.error('❌ Missing card or user for difficulty choice');
@@ -224,7 +227,7 @@ const handleDifficultyChoice = async (difficulty) => {
   console.log(`🎯 Processing ${difficulty} for card ${currentCardData.id}`);
   
   try {
-    // STEP 1: Simple basic update (only essential fields)
+    // STEP 1: Basic update
     const basicUpdate = {
       last_reviewed: now,
       reviews: (currentCardData.reviews || 0) + 1
@@ -239,23 +242,40 @@ const handleDifficultyChoice = async (difficulty) => {
 
     if (basicError) {
       console.error('❌ Basic update failed:', basicError);
-      // Continue anyway - don't let this stop the session
     } else {
       console.log('✅ Basic update successful');
     }
 
-    // STEP 2: Track in heatmap (THIS IS THE CRITICAL PART)
+    // STEP 2: Track in heatmap
     console.log('📊 Attempting to track review...');
     const sessionType = isMasterAgainSession ? 'master-again' : 'study';
     
     try {
-      // Import the function dynamically to avoid import issues
       const { trackReviewEvent } = await import('../utils/heatmapTracking');
-      
       const trackingResult = await trackReviewEvent(currentUserId, currentCardData.id, sessionType);
       
       if (trackingResult) {
         console.log('✅ HEATMAP TRACKING SUCCESS!');
+        
+        // CRITICAL: Dispatch multiple events to ensure heatmap updates
+        setTimeout(() => {
+          // Dispatch the main event
+          window.dispatchEvent(new CustomEvent('flashcard-reviewed', {
+            detail: {
+              cardId: currentCardData.id,
+              userId: currentUserId,
+              sessionType,
+              timestamp: Date.now()
+            }
+          }));
+          
+          // Dispatch backup events
+          window.dispatchEvent(new CustomEvent('heatmap-force-refresh'));
+          window.dispatchEvent(new CustomEvent('study-session-complete'));
+          
+          console.log('🔔 All events dispatched for heatmap update');
+        }, 100);
+        
       } else {
         console.log('❌ HEATMAP TRACKING FAILED');
       }
@@ -263,7 +283,7 @@ const handleDifficultyChoice = async (difficulty) => {
       console.error('❌ Heatmap tracking error:', trackingError);
     }
 
-    // STEP 3: Update local state and manage session
+    // STEP 3: Session management
     const updatedCard = {
       ...currentCardData,
       last_reviewed: now,
@@ -275,9 +295,7 @@ const handleDifficultyChoice = async (difficulty) => {
     );
     setAllCards(newAllCards);
 
-    // Session management (simplified)
     if (difficulty === 'easy') {
-      // Remove card from session
       const newSessionCards = sessionCards.filter((_, index) => index !== currentIndex);
       setSessionCards(newSessionCards);
       
@@ -285,6 +303,20 @@ const handleDifficultyChoice = async (difficulty) => {
         console.log('🎉 SESSION COMPLETED!');
         setShowCompletionPopup(true);
         setTimeout(() => setShowCompletionPopup(false), 2000);
+        
+        // CRITICAL: Dispatch session complete event
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('flashcard-study-complete', {
+            detail: {
+              totalCards: allCards.length,
+              completedCards: allCards.length - newSessionCards.length,
+              userId: currentUserId,
+              timestamp: Date.now()
+            }
+          }));
+          window.dispatchEvent(new CustomEvent('heatmap-force-refresh'));
+        }, 200);
+        
         return;
       }
       
@@ -292,7 +324,6 @@ const handleDifficultyChoice = async (difficulty) => {
       setCurrentIndex(nextIndex);
       
     } else if (difficulty === 'again') {
-      // Keep card in session, move it back a few positions
       const newSessionCards = [...sessionCards];
       const moveToPosition = Math.min(currentIndex + 3, newSessionCards.length - 1);
       
@@ -306,7 +337,6 @@ const handleDifficultyChoice = async (difficulty) => {
       setCurrentIndex(nextIndex);
       
     } else {
-      // Hard, Good - move to next card
       const nextIndex = (currentIndex + 1) % sessionCards.length;
       setCurrentIndex(nextIndex);
     }
@@ -322,11 +352,18 @@ const handleDifficultyChoice = async (difficulty) => {
   } catch (error) {
     console.error('💥 Error in handleDifficultyChoice:', error);
     
-    // Emergency: still try to track the review
+    // Emergency: still try to track the review and dispatch events
     try {
       const { trackReviewEvent } = await import('../utils/heatmapTracking');
       const sessionType = isMasterAgainSession ? 'master-again' : 'study';
       await trackReviewEvent(currentUserId, currentCardData.id, sessionType);
+      
+      // Dispatch events even if there was an error
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('flashcard-reviewed'));
+        window.dispatchEvent(new CustomEvent('heatmap-force-refresh'));
+      }, 100);
+      
       console.log('🚨 Emergency tracking attempted');
     } catch (emergencyError) {
       console.error('🚨 Emergency tracking failed:', emergencyError);

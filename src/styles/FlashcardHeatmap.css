@@ -1,4 +1,4 @@
-/* src/styles/FlashcardHeatmap.css */
+/* src/styles/FlashcardHeatmap.css - UPDATED WITH CONFLICT RESOLUTION */
 
 .heatmap-container {
   background: #1e1e1e;
@@ -282,7 +282,7 @@
   min-width: 12px;
 }
 
-/* Heatmap Days */
+/* CRITICAL: Heatmap Days - REMOVED CONFLICTING BACKGROUND STYLES */
 .heatmap-day {
   width: 12px;
   height: 12px;
@@ -295,12 +295,9 @@
   justify-content: center;
   font-size: 6px;
   font-weight: bold;
-  color: transparent;
-  /* CRITICAL: Force background color to show */
-  background-color: #2d2d2d !important;
-  border: 1px solid #3a3a3a !important;
+  /* REMOVED: Conflicting background and border styles */
+  /* These will be set by JavaScript */
 }
-
 
 .heatmap-day.empty {
   background: transparent !important;
@@ -308,54 +305,23 @@
   border: none !important;
 }
 
-/* Intensity Levels */
-.heatmap-day.level-0 {
-  background-color: #2d2d2d !important;
-  border: 1px solid #3a3a3a !important;
-}
+/* REMOVED: All level-specific styles that were causing conflicts */
+/* JavaScript will handle the styling */
 
-.heatmap-day.level-1 {
-  background-color: #0e4429 !important;
-  border: 1px solid #0e4429 !important;
-  color: #fff !important;
-}
-
-.heatmap-day.level-2 {
-  background-color: #006d32 !important;
-  border: 1px solid #006d32 !important;
-  color: #fff !important;
-}
-
-.heatmap-day.level-3 {
-  background-color: #26a641 !important;
-  border: 1px solid #26a641 !important;
-  color: #fff !important;
-}
-
-.heatmap-day.level-4 {
-  background-color: #39d353 !important;
-  border: 1px solid #39d353 !important;
-  color: #000 !important;
-}
-heatmap-day:not(.empty):hover {
+.heatmap-day:not(.empty):hover {
   transform: scale(1.2) !important;
   border: 2px solid #4facfe !important;
   z-index: 10 !important;
   box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3) !important;
 }
 
-/* FIXED: Day count visibility */
+/* Day count visibility */
 .day-count {
   font-size: 5px !important;
   font-weight: 700 !important;
   opacity: 0.8 !important;
   position: relative !important;
   z-index: 1 !important;
-}
-
-.heatmap-day.level-4 .day-count {
-  opacity: 0.6 !important;
-  color: #000 !important;
 }
 
 /* Statistics */
@@ -426,6 +392,7 @@ heatmap-day:not(.empty):hover {
   transform: scale(1.2);
 }
 
+/* Legend square colors - these are safe because they're not on the main grid */
 .legend-square.level-0 {
   background-color: #2d2d2d !important;
   border: 1px solid #3a3a3a !important;
@@ -446,6 +413,43 @@ heatmap-day:not(.empty):hover {
 .legend-square.level-4 {
   background-color: #39d353 !important;
 }
+
+/* ADD: NEW CRITICAL HEATMAP DAY STYLES WITH HIGHEST SPECIFICITY */
+/* These will work with the JavaScript color application */
+div[data-date][data-level] {
+  background-color: #2d2d2d !important;
+  border: 1px solid #3a3a3a !important;
+}
+
+div[data-date][data-level="1"] {
+  background-color: #0e4429 !important;
+  border: 1px solid #0e4429 !important;
+  color: #fff !important;
+}
+
+div[data-date][data-level="2"] {
+  background-color: #006d32 !important;
+  border: 1px solid #006d32 !important;
+  color: #fff !important;
+}
+
+div[data-date][data-level="3"] {
+  background-color: #26a641 !important;
+  border: 1px solid #26a641 !important;
+  color: #fff !important;
+}
+
+div[data-date][data-level="4"] {
+  background-color: #39d353 !important;
+  border: 1px solid #39d353 !important;
+  color: #000 !important;
+}
+
+div[data-date][data-level="4"] span {
+  color: #000 !important;
+  opacity: 0.6 !important;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .heatmap-container {
@@ -642,29 +646,29 @@ heatmap-day:not(.empty):hover {
 
 /* High contrast mode */
 @media (prefers-contrast: high) {
-  .heatmap-day.level-0 {
-    background: #000;
-    border: 2px solid #666;
+  div[data-date][data-level="0"] {
+    background: #000 !important;
+    border: 2px solid #666 !important;
   }
   
-  .heatmap-day.level-1 {
-    background: #003300;
-    border: 1px solid #666;
+  div[data-date][data-level="1"] {
+    background: #003300 !important;
+    border: 1px solid #666 !important;
   }
   
-  .heatmap-day.level-2 {
-    background: #006600;
-    border: 1px solid #666;
+  div[data-date][data-level="2"] {
+    background: #006600 !important;
+    border: 1px solid #666 !important;
   }
   
-  .heatmap-day.level-3 {
-    background: #009900;
-    border: 1px solid #666;
+  div[data-date][data-level="3"] {
+    background: #009900 !important;
+    border: 1px solid #666 !important;
   }
   
-  .heatmap-day.level-4 {
-    background: #00cc00;
-    border: 1px solid #000;
+  div[data-date][data-level="4"] {
+    background: #00cc00 !important;
+    border: 1px solid #000 !important;
   }
   
   .year-nav-btn {
@@ -697,16 +701,4 @@ heatmap-day:not(.empty):hover {
   .loading-spinner {
     animation: none;
   }
-}
-.heatmap-day[data-count]:after {
-  content: attr(data-count);
-  position: absolute;
-  top: -15px;
-  left: 0;
-  font-size: 8px;
-  color: red;
-  background: white;
-  padding: 1px 2px;
-  border-radius: 2px;
-  display: none; /* Remove this line to show debug info */
 }

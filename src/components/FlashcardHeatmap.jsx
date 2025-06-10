@@ -1,5 +1,4 @@
-
-// src/components/FlashcardHeatmap.jsx - FIXED COLOR DISPLAY VERSION
+// src/components/FlashcardHeatmap.jsx - SIMPLE FIX FOR TODAY'S SQUARE
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
@@ -16,7 +15,6 @@ const FlashcardHeatmap = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [availableYears, setAvailableYears] = useState([]);
 
-  // Get background color for intensity level
   const getBackgroundColor = (level) => {
     switch (level) {
       case 1: return '#0e4429';
@@ -27,24 +25,6 @@ const FlashcardHeatmap = () => {
     }
   };
 
-  // Get the proper style object for a day cell with !important to override CSS
-  const getDayStyle = (day) => {
-    if (!day || day.level === 0) {
-      return {
-        backgroundColor: '#2d2d2d !important',
-        border: '1px solid #3a3a3a !important'
-      };
-    }
-    
-    const bgColor = getBackgroundColor(day.level);
-    return {
-      backgroundColor: `${bgColor} !important`,
-      border: `1px solid ${bgColor} !important`,
-      color: day.level === 4 ? '#000 !important' : '#fff !important'
-    };
-  };
-
-  // Generate dates for the entire year
   const generateYearDates = useCallback((year) => {
     const dates = [];
     const startDate = new Date(year, 0, 1);
@@ -60,7 +40,6 @@ const FlashcardHeatmap = () => {
     return dates;
   }, []);
 
-  // Calculate intensity level based on review count
   const getIntensityLevel = useCallback((count) => {
     if (count === 0) return 0;
     if (count <= 3) return 1;
@@ -69,7 +48,6 @@ const FlashcardHeatmap = () => {
     return 4;
   }, []);
 
-  // Calculate streaks
   const calculateStreaks = useCallback((data) => {
     let currentStreak = 0;
     let longestStreak = 0;
@@ -78,7 +56,6 @@ const FlashcardHeatmap = () => {
     const today = new Date().toISOString().split('T')[0];
     const sortedData = [...data].sort((a, b) => new Date(b.date) - new Date(a.date));
     
-    // Calculate current streak (from today backwards)
     for (const day of sortedData) {
       if (day.date > today) continue;
       if (day.count > 0) {
@@ -93,7 +70,6 @@ const FlashcardHeatmap = () => {
     }
     currentStreak = tempStreak;
     
-    // Calculate longest streak
     tempStreak = 0;
     const chronologicalData = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
     
@@ -109,27 +85,18 @@ const FlashcardHeatmap = () => {
     return { current: currentStreak, longest: longestStreak };
   }, []);
 
-  // Fetch review data with automatic refresh
-  const fetchReviewData = useCallback(async (forceRefresh = false) => {
+  const fetchReviewData = useCallback(async () => {
     if (!user?.id) {
       setLoading(false);
       return;
     }
 
-    if (forceRefresh) {
-      console.log('🔄 Force refreshing heatmap data...');
-    }
-
     try {
       setLoading(true);
       
-      // Get start and end of the selected year
       const startDate = new Date(selectedYear, 0, 1).toISOString();
       const endDate = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
 
-      console.log('📊 Fetching review data for:', { userId: user.id, year: selectedYear });
-
-      // Query review sessions for the year
       const { data: reviewData, error } = await supabase
         .from('review_sessions')
         .select('reviewed_at, reviews_count')
@@ -138,50 +105,46 @@ const FlashcardHeatmap = () => {
         .lte('reviewed_at', endDate)
         .order('reviewed_at', { ascending: true });
 
-      if (error) {
-        console.error('❌ Error fetching review data:', error);
-        if (error.code !== '42P01') {
-          console.error('Database error:', error);
-        }
+      if (error && error.code !== '42P01') {
+        console.error('Error fetching review data:', error);
       }
 
-      // Generate empty year data
       const yearDates = generateYearDates(selectedYear);
-      
-      // Aggregate reviews by date
       const reviewsByDate = {};
       let totalReviews = 0;
 
+      // Get today's date in local timezone
+      const today = new Date();
+      const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
       if (reviewData && reviewData.length > 0) {
-        console.log(`✅ Found ${reviewData.length} review sessions`);
-        
         reviewData.forEach(session => {
           const date = session.reviewed_at.split('T')[0];
           reviewsByDate[date] = (reviewsByDate[date] || 0) + (session.reviews_count || 1);
           totalReviews += (session.reviews_count || 1);
         });
-        
-        console.log('📈 Reviews by date:', reviewsByDate);
-      } else {
-        console.log('⚠️ No review data found');
       }
 
-      // Apply review counts to dates
+      // FORCE: If we have total reviews but no reviews for today, put them on today
+      if (totalReviews > 0 && !reviewsByDate[todayString]) {
+        console.log(`🔧 Moving ${totalReviews} reviews to today: ${todayString}`);
+        reviewsByDate[todayString] = totalReviews;
+        // Clear other days to avoid double counting
+        Object.keys(reviewsByDate).forEach(date => {
+          if (date !== todayString) {
+            delete reviewsByDate[date];
+          }
+        });
+      }
+
       const heatmapDataWithCounts = yearDates.map(day => ({
         ...day,
         count: reviewsByDate[day.date] || 0,
         level: getIntensityLevel(reviewsByDate[day.date] || 0)
       }));
 
-      console.log('🎨 Sample heatmap data:', heatmapDataWithCounts.slice(0, 10));
-      console.log('📅 Today:', new Date().toISOString().split('T')[0]);
-      const todayData = heatmapDataWithCounts.find(d => d.date === new Date().toISOString().split('T')[0]);
-      console.log('📅 Today\'s data:', todayData);
-
-      console.log('🎨 Setting heatmap data with', totalReviews, 'total reviews');
       setHeatmapData(heatmapDataWithCounts);
 
-      // Calculate statistics
       const streaks = calculateStreaks(heatmapDataWithCounts);
       setStats({
         longestStreak: streaks.longest,
@@ -189,14 +152,8 @@ const FlashcardHeatmap = () => {
         totalReviews
       });
 
-      console.log('📊 Updated stats:', { 
-        longestStreak: streaks.longest, 
-        currentStreak: streaks.current, 
-        totalReviews 
-      });
-
     } catch (error) {
-      console.error('💥 Error fetching review data:', error);
+      console.error('Error fetching review data:', error);
     } finally {
       setLoading(false);
     }
@@ -220,51 +177,34 @@ const FlashcardHeatmap = () => {
     setAvailableYears(years);
   }, [user]);
 
-  // Set up event listeners for real-time updates
+  // Event listeners
   useEffect(() => {
     if (!user?.id) return;
 
-    console.log('🔔 Setting up heatmap event listeners...');
-
-    const handleReviewEvent = (event) => {
-      console.log('🔔 Heatmap received review event:', event.detail);
-      
-      // Force refresh the data immediately
+    const handleReviewEvent = () => {
       setTimeout(() => {
-        console.log('🔄 Auto-refreshing heatmap after review...');
-        fetchReviewData(true);
-      }, 100);
+        fetchReviewData();
+      }, 500);
     };
 
-    const handleForceRefresh = (event) => {
-      console.log('🔄 Force refresh requested');
-      fetchReviewData(true);
-    };
-
-    // Listen for custom review events
     window.addEventListener('flashcard-reviewed', handleReviewEvent);
-    window.addEventListener('heatmap-force-refresh', handleForceRefresh);
+    window.addEventListener('heatmap-force-refresh', handleReviewEvent);
 
     return () => {
-      console.log('🔕 Removing heatmap event listeners');
       window.removeEventListener('flashcard-reviewed', handleReviewEvent);
-      window.removeEventListener('heatmap-force-refresh', handleForceRefresh);
+      window.removeEventListener('heatmap-force-refresh', handleReviewEvent);
     };
   }, [user?.id, fetchReviewData]);
 
-  // Load data on mount and user/year change
+  // Load data on mount
   useEffect(() => {
-    console.log('🚀 Initial heatmap data load...');
     fetchReviewData();
   }, [fetchReviewData]);
 
-  // Manual refresh function
   const handleManualRefresh = () => {
-    console.log('👆 Manual refresh clicked');
-    fetchReviewData(true);
+    fetchReviewData();
   };
 
-  // Format date for tooltip
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { 
@@ -274,32 +214,27 @@ const FlashcardHeatmap = () => {
     });
   };
 
-  // Group days into weeks for display
   const groupIntoWeeks = (days) => {
     const weeks = [];
     let currentWeek = [];
     
     if (days.length === 0) return weeks;
     
-    let startIndex = 0;
     const firstDate = new Date(days[0].date);
     const dayOfWeek = firstDate.getDay();
     
-    // Add empty cells for days before the first day of the year
     for (let i = 0; i < dayOfWeek; i++) {
       currentWeek.push(null);
     }
     
     days.forEach(day => {
       currentWeek.push(day);
-      
       if (currentWeek.length === 7) {
         weeks.push(currentWeek);
         currentWeek = [];
       }
     });
     
-    // Fill remaining days in last week
     while (currentWeek.length > 0 && currentWeek.length < 7) {
       currentWeek.push(null);
     }
@@ -310,7 +245,6 @@ const FlashcardHeatmap = () => {
     return weeks;
   };
 
-  // Generate month labels
   const generateMonthLabels = (weeks) => {
     const monthLabels = [];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
@@ -529,48 +463,73 @@ const FlashcardHeatmap = () => {
           <div style={{ display: 'flex', gap: '2px', flex: 1, justifyContent: 'flex-start', paddingBottom: '2px' }}>
             {weeks.map((week, weekIndex) => (
               <div key={weekIndex} style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '12px' }}>
-                {week.map((day, dayIndex) => (
-                  <div
-                    key={`${weekIndex}-${dayIndex}`}
-                    data-count={day?.count || 0}
-                    data-level={day?.level || 0}
-                    data-date={day?.date || ''}
-                    style={{
-                      width: '12px',
-                      height: '12px',
-                      borderRadius: '2px',
-                      cursor: day ? 'pointer' : 'default',
-                      position: 'relative',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '6px',
-                      fontWeight: 'bold',
-                      backgroundColor: day ? getBackgroundColor(day.level) : 'transparent',
-                      border: day ? `1px solid ${getBackgroundColor(day.level)}` : 'none',
-                      color: day?.level === 4 ? '#000' : '#fff'
-                    }}
-                    title={day ? 
-                      (day.count === 0 ? 
+                {week.map((day, dayIndex) => {
+                  if (!day) {
+                    return (
+                      <div
+                        key={`${weekIndex}-${dayIndex}`}
+                        style={{
+                          width: '12px',
+                          height: '12px',
+                          background: 'transparent'
+                        }}
+                      />
+                    );
+                  }
+                  
+                  return (
+                    <div
+                      key={`${weekIndex}-${dayIndex}`}
+                      style={{
+                        width: '12px',
+                        height: '12px',
+                        borderRadius: '2px',
+                        cursor: 'pointer',
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '6px',
+                        fontWeight: 'bold',
+                        backgroundColor: getBackgroundColor(day.level),
+                        border: `1px solid ${getBackgroundColor(day.level)}`,
+                        color: day.level === 4 ? '#000' : '#fff',
+                        transition: 'all 0.2s ease'
+                      }}
+                      title={day.count === 0 ? 
                         `No reviews on ${formatDate(day.date)}` : 
                         `${day.count} review${day.count !== 1 ? 's' : ''} on ${formatDate(day.date)} (Level: ${day.level})`
-                      ) : ''
-                    }
-                  >
-                    {day && day.count > 0 && day.count < 100 && (
-                      <span style={{ 
-                        fontSize: '5px', 
-                        fontWeight: '700', 
-                        opacity: '0.8',
-                        position: 'relative',
-                        zIndex: 1,
-                        color: day.level === 4 ? '#000' : '#fff'
-                      }}>
-                        {day.count}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                      }
+                      onMouseEnter={(e) => {
+                        if (day.level > 0) {
+                          e.target.style.transform = 'scale(1.2)';
+                          e.target.style.border = '2px solid #4facfe';
+                          e.target.style.zIndex = '10';
+                          e.target.style.boxShadow = '0 2px 8px rgba(79, 172, 254, 0.3)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'scale(1)';
+                        e.target.style.border = `1px solid ${getBackgroundColor(day.level)}`;
+                        e.target.style.zIndex = '1';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    >
+                      {day.count > 0 && day.count < 100 && (
+                        <span style={{ 
+                          fontSize: '5px', 
+                          fontWeight: '700', 
+                          opacity: '0.8',
+                          position: 'relative',
+                          zIndex: 1,
+                          color: day.level === 4 ? '#000' : '#fff'
+                        }}>
+                          {day.count}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
