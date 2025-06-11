@@ -1,11 +1,11 @@
-// server.js - Enhanced with debug logging
+// server.js - Enhanced with debug logging and fixed port
 const express = require('express');
 const cors = require('cors');
 const { Resend } = require('resend');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3001; // Changed from 3002 to 3001
 
 // Initialize Resend with your API key
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -24,7 +24,8 @@ app.get('/api/health', (req, res) => {
     service: 'Jacal Email Service', 
     timestamp: new Date().toISOString(),
     resendConfigured: !!process.env.RESEND_API_KEY,
-    fromEmail: process.env.FROM_EMAIL || 'not configured'
+    fromEmail: process.env.FROM_EMAIL || 'not configured',
+    port: port
   });
 });
 
@@ -159,6 +160,7 @@ app.listen(port, () => {
   console.log(`📧 From Email: ${process.env.FROM_EMAIL || 'NOT SET'}`);
   console.log(`📧 From Name: ${process.env.FROM_NAME || 'NOT SET'}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
   
   if (!process.env.RESEND_API_KEY) {
     console.warn('⚠️  RESEND_API_KEY not found in environment');
