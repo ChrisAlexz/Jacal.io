@@ -1,142 +1,157 @@
 // src/components/Home.jsx - Updated with Heatmap
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
-import '../styles/Home.css';
-import '../styles/FlashcardHeatmap.css';
 import UserAuthContext from './context/UserAuthContext';
-import ClassDeckModal from './ClassDeckModal';
-import FlashcardHeatmap from './FlashcardHeatmap';
-import { MdFlashOn, MdFolderOpen, MdTrendingUp, MdViewList } from 'react-icons/md';
+import FlashcardHeatmap from './FlashcardHeatmap'; // ADD THIS IMPORT
+import '../styles/Home.css';
 
 export default function Home() {
   const navigate = useNavigate();
-  const [recentSets, setRecentSets] = useState([]);
   const { user } = useContext(UserAuthContext);
-  const [showModal, setShowModal] = useState(false);
+  
   const [stats, setStats] = useState({
     totalSets: 0,
     totalCards: 0,
     studiedToday: 0
   });
+  const [recentSets, setRecentSets] = useState([]);
+  const [lastStudiedSet, setLastStudiedSet] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!user) return;
+  // Get greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
 
-      // Fetch recent sets
+  // Fetch user statistics and sets - FIXED VERSION
+  const fetchStats = async () => {
+    if (!user?.id) return;
+
+    try {
+      // Get your cards first (we know these exist - 73 cards)
+      const { data: yourCards, error: cardsError } = await supabase
+        .from('flashcard_cards')
+        .select('set_id, user_id')
+        .eq('user_id', user.id);
+
+      if (cardsError || !yourCards || yourCards.length === 0) {
+        setStats({ totalSets: 0, totalCards: 0, studiedToday: 0 });
+        return;
+      }
+
+      // Get unique set_ids from your cards
+      const setIds = [...new Set(yourCards.map(card => card.set_id))];
+
+      // Get sets by these set_ids (regardless of user_id on sets table)
       const { data: setsData, error: setsError } = await supabase
         .from('flashcard_sets')
         .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(6);
+        .in('id', setIds)
+        .order('updated_at', { ascending: false });
 
-      if (!setsError && setsData) {
-        // Get card counts for each set
-        const setsWithCounts = await Promise.all(
-          setsData.map(async (set) => {
-            const { count } = await supabase
-              .from('flashcard_cards')
-              .select('*', { count: 'exact', head: true })
-              .eq('set_id', set.id);
-            
-            return {
-              ...set,
-              card_count: count || 0
-            };
-          })
-        );
-
-        setRecentSets(setsWithCounts);
-
-        // Calculate stats
-        const totalSets = setsWithCounts.length;
-        const totalCards = setsWithCounts.reduce((sum, set) => sum + (set.card_count || 0), 0);
-        
-        // Get today's review count from review_sessions if available
-        const today = new Date().toISOString().split('T')[0];
-        const { data: todayReviews } = await supabase
-          .from('review_sessions')
-          .select('reviews_count')
-          .eq('user_id', user.id)
-          .gte('reviewed_at', today + 'T00:00:00.000Z')
-          .lte('reviewed_at', today + 'T23:59:59.999Z');
-        
-        const studiedToday = todayReviews 
-          ? todayReviews.reduce((sum, session) => sum + (session.reviews_count || 1), 0)
-          : Math.floor(totalCards * 0.1); // Fallback estimate
-        
-        setStats({
-          totalSets,
-          totalCards,
-          studiedToday
-        });
+      if (setsError || !setsData) {
+        setStats({ totalSets: 0, totalCards: yourCards.length, studiedToday: 0 });
+        return;
       }
+
+      // Get card counts for each set
+      const setsWithCounts = await Promise.all(
+        setsData.map(async (set) => {
+          const { count } = await supabase
+            .from('flashcard_cards')
+            .select('*', { count: 'exact', head: true })
+            .eq('set_id', set.id);
+
+          return {
+            ...set,
+            card_count: count || 0
+          };
+        })
+      );
+
+      // Update stats
+      setStats({
+        totalSets: setsData.length,
+        totalCards: yourCards.length,
+        studiedToday: 0
+      });
+
+      // Set recent sets (show all sets, user can see what they have)
+      const recentSetsData = setsWithCounts
+        .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+        .slice(0, 6);
+
+      setRecentSets(recentSetsData);
+      
+      // Set last studied (most recently updated set with cards)
+      const setsWithCards = setsWithCounts.filter(set => set.card_count > 0);
+      if (setsWithCards.length > 0) {
+        setLastStudiedSet(setsWithCards[0]);
+      }
+
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      setStats({ totalSets: 0, totalCards: 0, studiedToday: 0 });
+    }
+  };
+
+  // Fetch recent sets and find last studied
+  const fetchRecentSets = async () => {
+    // This is now handled in fetchStats() to avoid duplicate calls
+    return;
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await fetchStats(); // This now handles both stats and recent sets
+      setLoading(false);
     };
 
-    fetchData();
+    if (user) {
+      loadData();
+    } else {
+      setLoading(false);
+    }
   }, [user]);
 
-  const getWelcomeName = () => {
-    if (!user) return "Welcome Back!";
-    const name = user.user_metadata?.name || user.email?.split('@')[0] || 'there';
-    return `Welcome back, ${name}!`;
-  };
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
-    return "Good evening";
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const handleModalClose = () => {
-    setShowModal(false);
-  };
-
-  const handleSetCreated = (deckId) => {
-    // Refresh data after creating new set
-    window.location.reload();
-  };
-
+  // If user is not logged in, show hero section
   if (!user) {
     return (
       <div className="home-container">
         <div className="hero-section">
           <div className="hero-content">
             <div className="hero-icon">🧠</div>
-            <h1 className="hero-title">Master Any Subject</h1>
+            <h1 className="hero-title">Master Any Subject with Intelligent Flashcards</h1>
             <p className="hero-subtitle">
-              Create, study, and master flashcards with our intelligent learning system. 
-              Built for students, professionals, and lifelong learners.
+              Create, study, and master flashcards with spaced repetition. 
+              Track your progress and build lasting knowledge.
             </p>
+            
             <div className="hero-features">
               <div className="feature-item">
                 <span className="feature-icon">⚡</span>
                 <span>Smart Spaced Repetition</span>
               </div>
               <div className="feature-item">
-                <span className="feature-icon">🎨</span>
-                <span>Rich Text Formatting</span>
+                <span className="feature-icon">📊</span>
+                <span>Progress Tracking</span>
               </div>
               <div className="feature-item">
-                <span className="feature-icon">📱</span>
-                <span>Study Anywhere</span>
+                <span className="feature-icon">🎯</span>
+                <span>Focused Learning</span>
               </div>
             </div>
+
             <button 
-              className="cta-button"
+              className="cta-button" 
               onClick={() => navigate('/register')}
             >
-              Get Started Free
+              Start Learning Today
             </button>
           </div>
         </div>
@@ -144,22 +159,28 @@ export default function Home() {
     );
   }
 
+  // If user is logged in, show dashboard
   return (
     <div className="home-container">
-      {/* Hero Section */}
+      {/* Welcome Section */}
       <div className="welcome-section">
         <div className="welcome-content">
           <div className="greeting-text">
             <span className="greeting-time">{getGreeting()}</span>
-            <h1 className="welcome-title">{getWelcomeName()}</h1>
-            <p className="welcome-subtitle">Ready to continue your learning journey?</p>
+            <h1 className="welcome-title">
+              Welcome back, {user.user_metadata?.name || user.email?.split('@')[0] || 'Learner'}!
+            </h1>
+            <p className="welcome-subtitle">
+              Ready to continue your learning journey?
+            </p>
           </div>
+          
           <button 
             className="primary-cta"
-            onClick={() => setShowModal(true)}
+            onClick={() => navigate('/set')}
           >
-            <span className="cta-icon">+</span>
-            Create New Set
+            <span className="cta-icon">📚</span>
+            View My Sets
           </button>
         </div>
       </div>
@@ -171,18 +192,20 @@ export default function Home() {
             <div className="stat-icon sets-icon">📚</div>
             <div className="stat-content">
               <div className="stat-number">{stats.totalSets}</div>
-              <div className="stat-label">Total Sets</div>
+              <div className="stat-label">Flashcard Sets</div>
             </div>
           </div>
+          
           <div className="stat-card">
-            <div className="stat-icon cards-icon"><MdViewList /></div>
+            <div className="stat-icon cards-icon">🃏</div>
             <div className="stat-content">
               <div className="stat-number">{stats.totalCards}</div>
               <div className="stat-label">Total Cards</div>
             </div>
           </div>
+          
           <div className="stat-card">
-            <div className="stat-icon study-icon"><MdTrendingUp /></div>
+            <div className="stat-icon study-icon">⚡</div>
             <div className="stat-content">
               <div className="stat-number">{stats.studiedToday}</div>
               <div className="stat-label">Studied Today</div>
@@ -197,58 +220,110 @@ export default function Home() {
         <div className="actions-grid">
           <button 
             className="action-card"
-            onClick={() => setShowModal(true)}
+            onClick={() => navigate('/flashcards')}
           >
             <div className="action-icon create-icon">➕</div>
             <div className="action-content">
-              <h3>Create Set</h3>
-              <p>Start a new flashcard collection</p>
+              <h3>Create New Set</h3>
+              <p>Start building a new flashcard collection</p>
             </div>
           </button>
+          
           <button 
             className="action-card"
             onClick={() => navigate('/set')}
           >
-            <div className="action-icon browse-icon"><MdFolderOpen /></div>
+            <div className="action-icon browse-icon">👁️</div>
             <div className="action-content">
               <h3>Browse Sets</h3>
-              <p>View and manage all your sets</p>
+              <p>View and manage your flashcard sets</p>
             </div>
           </button>
+
           <button 
             className="action-card"
-            onClick={() => recentSets.length > 0 && navigate(`/study/${recentSets[0].id}`)}
-            disabled={recentSets.length === 0}
+            onClick={() => {
+              if (lastStudiedSet) {
+                navigate(`/study/${lastStudiedSet.id}`);
+              } else {
+                navigate('/set');
+              }
+            }}
+            disabled={!lastStudiedSet}
           >
-            <div className="action-icon study-icon"><MdFlashOn /></div>
+            <div className="action-icon study-icon">⚡</div>
             <div className="action-content">
               <h3>Quick Study</h3>
-              <p>Jump into your latest set</p>
+              <p>
+                {lastStudiedSet 
+                  ? `Continue studying "${lastStudiedSet.title}"` 
+                  : 'No sets available to study'
+                }
+              </p>
             </div>
           </button>
         </div>
       </div>
 
-      {/* Heatmap Section */}
-      <div className="heatmap-section">
-        <FlashcardHeatmap />
-      </div>
+      {/* HEATMAP - Moved to after Quick Actions */}
+      {user && <FlashcardHeatmap />}
 
       {/* Recent Sets */}
       <div className="recent-section">
         <div className="section-header">
           <h2 className="section-title">Recent Sets</h2>
-          {recentSets.length > 3 && (
-            <button 
-              className="view-all-btn"
-              onClick={() => navigate('/set')}
-            >
-              View All
-            </button>
-          )}
+          <button 
+            className="view-all-btn"
+            onClick={() => navigate('/set')}
+          >
+            View All
+          </button>
         </div>
 
-        {recentSets.length === 0 ? (
+        {loading ? (
+          <div className="loading-sets">
+            <div className="loading-spinner"></div>
+            <p>Loading your sets...</p>
+          </div>
+        ) : recentSets.length > 0 ? (
+          <div className="sets-grid">
+            {recentSets.map((set) => (
+              <div 
+                key={set.id} 
+                className="set-card"
+                onClick={() => navigate(`/flashcards/${set.id}`)}
+              >
+                <div className="set-card-header">
+                  <span className="set-card-icon">📝</span>
+                  <button 
+                    className="menu-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/study/${set.id}`);
+                    }}
+                  >
+                    Study
+                  </button>
+                </div>
+                
+                <div className="set-card-content">
+                  <h3 className="set-card-title">{set.title}</h3>
+                  <div className="set-card-meta">
+                    <span>{set.card_count || 0} cards</span>
+                    <span>Updated {new Date(set.updated_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                
+                <div className="set-card-footer">
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{ width: '60%' }}></div>
+                  </div>
+                  <span className="progress-text">60% studied</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
           <div className="empty-state">
             <div className="empty-illustration">
               <div className="empty-icon">📚</div>
@@ -260,65 +335,17 @@ export default function Home() {
             </div>
             <div className="empty-content">
               <h3>No flashcard sets yet</h3>
-              <p>Create your first set to start learning and see it here</p>
+              <p>Create your first set to start your learning journey</p>
               <button 
                 className="empty-action-btn"
-                onClick={() => setShowModal(true)}
+                onClick={() => navigate('/flashcards')}
               >
                 Create Your First Set
               </button>
             </div>
           </div>
-        ) : (
-          <div className="sets-grid">
-            {recentSets.map((set) => (
-              <div 
-                key={set.id}
-                className="set-card"
-                onClick={() => navigate(`/flashcards/${set.id}`)}
-              >
-                <div className="set-card-header">
-                  <div className="set-card-icon">📝</div>
-                  <div className="set-card-menu">
-                    <button 
-                      className="menu-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/study/${set.id}`);
-                      }}
-                    >
-                      Study
-                    </button>
-                  </div>
-                </div>
-                <div className="set-card-content">
-                  <h3 className="set-card-title">{set.title}</h3>
-                  <div className="set-card-meta">
-                    <span className="card-count">{set.card_count} cards</span>
-                    <span className="created-date">{formatDate(set.created_at)}</span>
-                  </div>
-                </div>
-                <div className="set-card-footer">
-                  <div className="progress-bar">
-                    <div 
-                      className="progress-fill" 
-                      style={{ width: `${Math.min(100, (set.card_count || 0) * 10)}%` }}
-                    ></div>
-                  </div>
-                  <span className="progress-text">Ready to study</span>
-                </div>
-              </div>
-            ))}
-          </div>
         )}
       </div>
-
-      {showModal && (
-        <ClassDeckModal 
-          onClose={handleModalClose} 
-          onSuccess={handleSetCreated}
-        />
-      )}
     </div>
   );
 }

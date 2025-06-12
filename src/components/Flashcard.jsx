@@ -3,7 +3,6 @@ import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
-import { trackReviewEvent } from '../utils/heatmapTracking';
 
 import FlashcardTitle from "./FlashcardTitle";
 import FlashcardInput from "./FlashcardInput";
@@ -238,10 +237,7 @@ export default function Flashcard() {
         });
 
         // Track card creation in heatmap
-        if (user?.id) {
-          console.log('📊 Tracking card creation in heatmap');
-          await trackReviewEvent(user.id, data[0].id, 'card-creation');
-        }
+
         
       } else {
         console.log('🆕 Creating new set and adding first card...');
@@ -301,11 +297,7 @@ export default function Flashcard() {
         console.log('✅ First card added successfully:', insertedCard);
         setFlashcards([insertedCard]);
 
-        // Track first card creation in heatmap
-        if (user?.id) {
-          console.log('📊 Tracking first card creation in heatmap');
-          await trackReviewEvent(user.id, insertedCard.id, 'card-creation');
-        }
+
         
         // Update URL to include the new set ID
         navigate(`/flashcards/${newSetData.id}`, { replace: true });
@@ -332,13 +324,7 @@ export default function Flashcard() {
 
       if (error) {
         console.error("Error updating flashcard:", error);
-      } else {
-        // Track card update in heatmap
-        if (user?.id) {
-          console.log('📊 Tracking card update in heatmap');
-          await trackReviewEvent(user.id, cardId, 'card-update');
-        }
-      }
+      } 
     }
   };
 

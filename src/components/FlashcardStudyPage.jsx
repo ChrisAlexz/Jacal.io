@@ -1,10 +1,10 @@
-// src/components/FlashcardStudyPage.jsx - FIXED WITH PROPER TRACKING
+// src/components/FlashcardStudyPage.jsx - FIXED WITH PROPER HEATMAP TRACKING
 import React, { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import AudioPlayer from "./AudioPlayer";
 import UserAuthContext from './context/UserAuthContext';
-import { trackReviewEvent } from '../utils/heatmapTracking';
+import { trackReview, trackStudySession } from '../utils/heatmapTracking';
 import { 
   calculateNextReview, 
   getDueCards, 
@@ -41,6 +41,7 @@ export default function FlashcardStudyPage() {
   const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
   const [isAnswerCorrect, setIsAnswerCorrect] = useState(null);
   const [isMasterAgainSession, setIsMasterAgainSession] = useState(false);
+  const [sessionReviewCount, setSessionReviewCount] = useState(0);
 
   useEffect(() => {
     if (id) {
@@ -115,6 +116,7 @@ export default function FlashcardStudyPage() {
     setShowCorrectAnswer(false);
     setIsAnswerCorrect(null);
     setUserAnswer('');
+    setSessionReviewCount(0);
   };
 
   const getIntervalPreviewsForCard = () => {
@@ -207,117 +209,112 @@ export default function FlashcardStudyPage() {
     setShowCorrectAnswer(true);
   };
 
-  // FIXED: Enhanced difficulty choice handling with proper tracking
-// Replace your handleDifficultyChoice function with this simplified version
-// This handles the database column issues and ensures tracking works
-
-// Add this to your handleDifficultyChoice function in FlashcardStudyPage.jsx
-// Replace the existing handleDifficultyChoice function with this updated version:
-
-// UPDATE FOR FlashcardStudyPage.jsx - Replace your handleDifficultyChoice function with this:
-
-const handleDifficultyChoice = async (difficulty) => {
-  if (!currentCard || !user?.id) {
-    console.error('❌ Missing card or user for difficulty choice');
-    return;
-  }
-  
-  const currentCardData = currentCard;
-  const now = new Date().toISOString();
-  const currentUserId = user.id;
-  
-  console.log(`🎯 Processing ${difficulty} for card ${currentCardData.id}`);
-  
-  try {
-    // STEP 1: Update card in database (your existing logic)
-    const basicUpdate = {
-      last_reviewed: now,
-      reviews: (currentCardData.reviews || 0) + 1
-    };
-
-    console.log('💾 Updating card with:', basicUpdate);
-
-    const { error: basicError } = await supabase
-      .from('flashcard_cards')
-      .update(basicUpdate)
-      .eq('id', currentCardData.id);
-
-    if (basicError) {
-      console.error('❌ Basic update failed:', basicError);
-    } else {
-      console.log('✅ Basic update successful');
+  // FIXED: Enhanced difficulty choice handling with proper heatmap tracking
+  const handleDifficultyChoice = async (difficulty) => {
+    if (!currentCard || !user?.id) {
+      console.error('❌ Missing card or user for difficulty choice');
+      return;
     }
-
-    // STEP 2: CRITICAL - Use new tracking system
-    console.log('📊 Tracking review with NEW SYSTEM');
-    const { trackReviewEvent } = await import('../utils/heatmapTracking');
-    const sessionType = isMasterAgainSession ? 'master-again' : 'study';
     
-    const trackingSuccess = await trackReviewEvent(currentUserId, currentCardData.id, sessionType);
+    const currentCardData = currentCard;
+    const now = new Date().toISOString();
+    const currentUserId = user.id;
     
-    if (trackingSuccess) {
-      console.log('✅ NEW TRACKING SUCCESS! Heatmap should update.');
-    } else {
-      console.log('❌ NEW TRACKING FAILED');
-    }
+    console.log(`🎯 Processing ${difficulty} for card ${currentCardData.id}`);
+    
+    try {
+      // STEP 1: Update card in database
+      const basicUpdate = {
+        last_reviewed: now,
+        reviews: (currentCardData.reviews || 0) + 1
+      };
 
-    // STEP 3: Session management (your existing logic)
-    const updatedCard = {
-      ...currentCardData,
-      last_reviewed: now,
-      reviews: (currentCardData.reviews || 0) + 1
-    };
+      console.log('💾 Updating card with:', basicUpdate);
 
-    const newAllCards = allCards.map(card => 
-      card.id === currentCardData.id ? updatedCard : card
-    );
-    setAllCards(newAllCards);
+      const { error: basicError } = await supabase
+        .from('flashcard_cards')
+        .update(basicUpdate)
+        .eq('id', currentCardData.id);
 
-    if (difficulty === 'easy') {
-      const newSessionCards = sessionCards.filter((_, index) => index !== currentIndex);
-      setSessionCards(newSessionCards);
-      
-      if (newSessionCards.length === 0) {
-        console.log('🎉 SESSION COMPLETED!');
-        setShowCompletionPopup(true);
-        setTimeout(() => setShowCompletionPopup(false), 2000);
-        return;
+      if (basicError) {
+        console.error('❌ Basic update failed:', basicError);
+      } else {
+        console.log('✅ Basic update successful');
+        
+        // STEP 2: CRITICAL - Track in heatmap (ONLY ONCE per card review)
+        console.log('📊 Tracking single review in heatmap');
+        try {
+          const trackingSuccess = await trackReview(currentUserId, isMasterAgainSession);
+          if (trackingSuccess) {
+            console.log('✅ Heatmap tracking successful');
+            setSessionReviewCount(prev => prev + 1);
+          } else {
+            console.log('❌ Heatmap tracking failed');
+          }
+        } catch (trackingError) {
+          console.error('💥 Heatmap tracking error:', trackingError);
+        }
       }
-      
-      const nextIndex = currentIndex >= newSessionCards.length ? 0 : currentIndex;
-      setCurrentIndex(nextIndex);
-      
-    } else if (difficulty === 'again') {
-      const newSessionCards = [...sessionCards];
-      const moveToPosition = Math.min(currentIndex + 3, newSessionCards.length - 1);
-      
-      if (moveToPosition !== currentIndex && newSessionCards.length > 3) {
-        const [cardToMove] = newSessionCards.splice(currentIndex, 1);
-        newSessionCards.splice(moveToPosition, 0, cardToMove);
+
+      // STEP 3: Session management
+      const updatedCard = {
+        ...currentCardData,
+        last_reviewed: now,
+        reviews: (currentCardData.reviews || 0) + 1
+      };
+
+      const newAllCards = allCards.map(card => 
+        card.id === currentCardData.id ? updatedCard : card
+      );
+      setAllCards(newAllCards);
+
+      if (difficulty === 'easy') {
+        const newSessionCards = sessionCards.filter((_, index) => index !== currentIndex);
+        setSessionCards(newSessionCards);
+        
+        if (newSessionCards.length === 0) {
+          console.log('🎉 SESSION COMPLETED!');
+          setShowCompletionPopup(true);
+          setTimeout(() => setShowCompletionPopup(false), 2000);
+          
+          // DON'T track session completion here since we already tracked individual reviews
+          return;
+        }
+        
+        const nextIndex = currentIndex >= newSessionCards.length ? 0 : currentIndex;
+        setCurrentIndex(nextIndex);
+        
+      } else if (difficulty === 'again') {
+        const newSessionCards = [...sessionCards];
+        const moveToPosition = Math.min(currentIndex + 3, newSessionCards.length - 1);
+        
+        if (moveToPosition !== currentIndex && newSessionCards.length > 3) {
+          const [cardToMove] = newSessionCards.splice(currentIndex, 1);
+          newSessionCards.splice(moveToPosition, 0, cardToMove);
+        }
+        
+        setSessionCards(newSessionCards);
+        const nextIndex = currentIndex >= newSessionCards.length ? 0 : currentIndex;
+        setCurrentIndex(nextIndex);
+        
+      } else {
+        const nextIndex = (currentIndex + 1) % sessionCards.length;
+        setCurrentIndex(nextIndex);
       }
-      
-      setSessionCards(newSessionCards);
-      const nextIndex = currentIndex >= newSessionCards.length ? 0 : currentIndex;
-      setCurrentIndex(nextIndex);
-      
-    } else {
-      const nextIndex = (currentIndex + 1) % sessionCards.length;
-      setCurrentIndex(nextIndex);
+
+      // Reset UI state
+      setShowBack(false);
+      setShowCorrectAnswer(false);
+      setIsAnswerCorrect(null);
+      setUserAnswer('');
+
+      console.log('✅ Session management completed');
+
+    } catch (error) {
+      console.error('💥 Error in handleDifficultyChoice:', error);
+      alert('There was an error processing your answer.');
     }
-
-    // Reset UI state
-    setShowBack(false);
-    setShowCorrectAnswer(false);
-    setIsAnswerCorrect(null);
-    setUserAnswer('');
-
-    console.log('✅ Session management completed');
-
-  } catch (error) {
-    console.error('💥 Error in handleDifficultyChoice:', error);
-    alert('There was an error processing your answer.');
-  }
-};
+  };
 
   const processClozeText = (text, isRevealed, activeClozeDeletion = 1) => {
     if (currentCardType !== "Cloze") return text;
@@ -373,6 +370,9 @@ const handleDifficultyChoice = async (difficulty) => {
                 • {studyStats.new} new • {studyStats.learning} learning • {studyStats.review} review
               </span>
             )}
+            <span className="session-reviews">
+              • {sessionReviewCount} reviews this session
+            </span>
           </div>
         </div>
         

@@ -1,336 +1,366 @@
-// src/components/FlashcardHeatmap.jsx - NUCLEAR VERSION THAT FORCES UPDATES
+// src/components/FlashcardHeatmap.jsx - Working Heatmap Component
 import React, { useState, useEffect, useContext, useCallback } from 'react';
-import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
+import { 
+  getYearReviewStats, 
+  getTotalReviewCount, 
+  calculateStreaks, 
+  getTodayLocalDate 
+} from '../utils/heatmapTracking';
+import '../styles/FlashcardHeatmap.css';
 
-const FlashcardHeatmap = () => {
+const FlashcardHeatmap = ({ className = '' }) => {
   const { user } = useContext(UserAuthContext);
   
-  // FORCE UPDATE STATE
-  const [forceUpdate, setForceUpdate] = useState(0);
   const [heatmapData, setHeatmapData] = useState([]);
   const [stats, setStats] = useState({
-    longestStreak: 0,
     currentStreak: 0,
-    totalReviews: 0
+    longestStreak: 0,
+    totalReviews: 0,
+    todayReviews: 0
   });
-  const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Get today in YYYY-MM-DD format
-  const getToday = () => {
-    const now = new Date();
-    return now.getFullYear() + '-' + 
-           String(now.getMonth() + 1).padStart(2, '0') + '-' + 
-           String(now.getDate()).padStart(2, '0');
-  };
+  // Generate years for selection (current year and past 5 years)
+  const availableYears = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
-  // NUCLEAR REFRESH - FORCES COMPLETE RELOAD
-  const nuclearRefresh = useCallback(() => {
-    console.log('🚀 NUCLEAR REFRESH TRIGGERED');
-    setForceUpdate(prev => prev + 1);
-  }, []);
-
-  // FETCH DATA - SIMPLIFIED AND DIRECT
-  const fetchData = useCallback(async () => {
+  /**
+   * Fetch and process heatmap data
+   */
+  const fetchHeatmapData = useCallback(async () => {
     if (!user?.id) {
       setLoading(false);
       return;
     }
 
-    console.log('📊 Fetching heatmap data...');
     setLoading(true);
+    setError(null);
 
     try {
-      // Get all review sessions for this year
-      const { data: reviewData, error } = await supabase
-        .from('review_sessions')
-        .select('reviewed_at, reviews_count')
-        .eq('user_id', user.id)
-        .gte('reviewed_at', `${selectedYear}-01-01`)
-        .lte('reviewed_at', `${selectedYear}-12-31`)
-        .order('reviewed_at', { ascending: true });
+      console.log(`📊 Fetching heatmap data for ${selectedYear}`);
+      
+      // Get review stats for the selected year
+      const [reviewStats, totalReviews] = await Promise.all([
+        getYearReviewStats(user.id, selectedYear),
+        getTotalReviewCount(user.id)
+      ]);
 
-      if (error) {
-        console.error('❌ Database error:', error);
-        setLoading(false);
-        return;
-      }
+      console.log(`📈 Found ${reviewStats.length} days with reviews`);
 
-      console.log('📊 Raw data:', reviewData);
+      // Create a map for faster lookups
+      const reviewMap = new Map();
+      reviewStats.forEach(stat => {
+        reviewMap.set(stat.review_date, stat);
+      });
 
-      // Create year dates
-      const yearDates = [];
+      // Generate all dates for the year
+      const yearData = [];
       const startDate = new Date(selectedYear, 0, 1);
       const endDate = new Date(selectedYear, 11, 31);
       
       for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-        const dateStr = d.getFullYear() + '-' + 
-                       String(d.getMonth() + 1).padStart(2, '0') + '-' + 
-                       String(d.getDate()).padStart(2, '0');
-        yearDates.push({
-          date: dateStr,
-          count: 0,
-          level: 0
-        });
-      }
-
-      // Process review data
-      const reviewsByDate = {};
-      let totalReviews = 0;
-
-      if (reviewData && reviewData.length > 0) {
-        reviewData.forEach(session => {
-          const dateStr = session.reviewed_at.split('T')[0];
-          const count = session.reviews_count || 1;
-          
-          if (!reviewsByDate[dateStr]) {
-            reviewsByDate[dateStr] = 0;
-          }
-          reviewsByDate[dateStr] = Math.max(reviewsByDate[dateStr], count);
-          totalReviews += count;
-        });
-      }
-
-      console.log('📊 Reviews by date:', reviewsByDate);
-      console.log('📊 Total:', totalReviews);
-
-      // Apply counts to dates and calculate levels
-      const finalData = yearDates.map(day => {
-        const count = reviewsByDate[day.date] || 0;
-        let level = 0;
-        if (count > 0) level = 1;
-        if (count > 3) level = 2;
-        if (count > 8) level = 3;
-        if (count > 15) level = 4;
+        const dateStr = d.toISOString().split('T')[0];
+        const reviewStat = reviewMap.get(dateStr);
         
-        return {
-          ...day,
-          count,
-          level
-        };
-      });
+        yearData.push({
+          date: dateStr,
+          count: reviewStat?.reviews_count || 0,
+          cardsStudied: reviewStat?.cards_studied || 0,
+          sessionCount: reviewStat?.session_count || 0,
+          masterAgainCount: reviewStat?.master_again_count || 0,
+          level: getHeatmapLevel(reviewStat?.reviews_count || 0)
+        });
+      }
 
-      setHeatmapData(finalData);
+      setHeatmapData(yearData);
+
+      // Calculate stats
+      const streaks = calculateStreaks(reviewStats);
+      const todayStr = getTodayLocalDate();
+      const todayStats = reviewMap.get(todayStr);
+
       setStats({
-        longestStreak: 0, // Simplified
-        currentStreak: 0, // Simplified  
-        totalReviews
+        currentStreak: streaks.currentStreak,
+        longestStreak: streaks.longestStreak,
+        totalReviews,
+        todayReviews: todayStats?.reviews_count || 0
       });
 
-    } catch (error) {
-      console.error('💥 Error:', error);
+      console.log('✅ Heatmap data loaded successfully');
+    } catch (err) {
+      console.error('❌ Error fetching heatmap data:', err);
+      setError('Failed to load heatmap data');
     } finally {
       setLoading(false);
     }
   }, [user?.id, selectedYear]);
 
-  // LISTEN FOR REFRESH EVENTS
-  useEffect(() => {
-    if (!user?.id) return;
+  /**
+   * Get heatmap level (0-4) based on review count
+   */
+  const getHeatmapLevel = (count) => {
+    if (count === 0) return 0;
+    if (count <= 3) return 1;
+    if (count <= 7) return 2;
+    if (count <= 15) return 3;
+    return 4;
+  };
 
-    const handleRefresh = () => {
-      console.log('🔔 Refresh event received');
-      nuclearRefresh();
-    };
-
-    // Listen to ALL possible events
-    window.addEventListener('heatmap-refresh', handleRefresh);
-    window.addEventListener('flashcard-reviewed', handleRefresh);
-    window.addEventListener('study-complete', handleRefresh);
-    
-    // Make nuclear refresh available globally
-    window.nuclearRefresh = nuclearRefresh;
-
-    return () => {
-      window.removeEventListener('heatmap-refresh', handleRefresh);
-      window.removeEventListener('flashcard-reviewed', handleRefresh);
-      window.removeEventListener('study-complete', handleRefresh);
-      delete window.nuclearRefresh;
-    };
-  }, [user?.id, nuclearRefresh]);
-
-  // FETCH DATA WHEN DEPENDENCIES CHANGE
-  useEffect(() => {
-    fetchData();
-  }, [fetchData, forceUpdate]); // Include forceUpdate as dependency
-
-  // Group days into weeks
+  /**
+   * Group days into weeks for display
+   */
   const groupIntoWeeks = (days) => {
+    if (!days || days.length === 0) return [];
+
     const weeks = [];
     let currentWeek = [];
-    
-    if (days.length === 0) return weeks;
-    
+
+    // Find the first day and determine starting day of week
     const firstDate = new Date(days[0].date + 'T00:00:00');
-    const dayOfWeek = firstDate.getDay();
-    
-    // Add empty cells for days before month starts
+    const dayOfWeek = firstDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+    // Add empty cells for days before the month starts
     for (let i = 0; i < dayOfWeek; i++) {
       currentWeek.push(null);
     }
-    
+
+    // Add all days
     days.forEach(day => {
       currentWeek.push(day);
+      
       if (currentWeek.length === 7) {
-        weeks.push(currentWeek);
+        weeks.push([...currentWeek]);
         currentWeek = [];
       }
     });
-    
-    // Fill remaining cells
+
+    // Fill the last week if needed
     while (currentWeek.length > 0 && currentWeek.length < 7) {
       currentWeek.push(null);
     }
     if (currentWeek.length > 0) {
       weeks.push(currentWeek);
     }
-    
+
     return weeks;
   };
 
+  /**
+   * Get month labels for the year
+   */
+  const getMonthLabels = () => {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    
+    return months.map((month, index) => ({
+      name: month,
+      weekOffset: getWeekOffset(selectedYear, index)
+    }));
+  };
+
+  /**
+   * Calculate week offset for month labels
+   */
+  const getWeekOffset = (year, monthIndex) => {
+    const firstDayOfYear = new Date(year, 0, 1);
+    const firstDayOfMonth = new Date(year, monthIndex, 1);
+    const daysDiff = Math.floor((firstDayOfMonth - firstDayOfYear) / (1000 * 60 * 60 * 24));
+    const firstDayWeekday = firstDayOfYear.getDay();
+    return Math.floor((daysDiff + firstDayWeekday) / 7);
+  };
+
+  // Effect to fetch data when dependencies change
+  useEffect(() => {
+    fetchHeatmapData();
+  }, [fetchHeatmapData]);
+
+  // Effect to listen for heatmap refresh events
+  useEffect(() => {
+    const handleRefresh = () => {
+      console.log('🔄 Heatmap refresh event received');
+      fetchHeatmapData();
+    };
+
+    window.addEventListener('heatmap-refresh', handleRefresh);
+    return () => window.removeEventListener('heatmap-refresh', handleRefresh);
+  }, [fetchHeatmapData]);
+
+  // Don't render if user is not logged in
   if (!user) return null;
 
-  if (loading) {
-    return (
-      <div style={{ 
-        background: '#1e1e1e',
-        border: '1px solid #333',
-        borderRadius: '16px',
-        padding: '24px',
-        color: 'white'
-      }}>
-        <h3>📊 Study Activity</h3>
-        <div style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ 
-            width: '30px', height: '30px', 
-            border: '3px solid #333', borderTop: '3px solid #4facfe',
-            borderRadius: '50%', animation: 'spin 1s linear infinite',
-            margin: '0 auto 16px'
-          }}></div>
-          <p>Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   const weeks = groupIntoWeeks(heatmapData);
-  const today = getToday();
+  const monthLabels = getMonthLabels();
+  const today = getTodayLocalDate();
 
   return (
-    <div style={{ 
-      background: '#1e1e1e',
-      border: '1px solid #333',
-      borderRadius: '16px',
-      padding: '24px',
-      color: 'white'
-    }} key={`heatmap-${forceUpdate}`}>
-      
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <div>
-          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div className={`flashcard-heatmap ${className}`}>
+      {/* Header */}
+      <div className="heatmap-header">
+        <div className="heatmap-title-section">
+          <h3>
             📊 Study Activity
-            <span style={{ fontSize: '0.7rem', background: '#4facfe', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>
-              F{forceUpdate}
-            </span>
+            {loading && <span className="loading-indicator">⟳</span>}
           </h3>
-          <span style={{ fontSize: '0.9rem', color: '#aaa' }}>
+          <span className="total-reviews">
             {stats.totalReviews} reviews in {selectedYear}
           </span>
         </div>
-        
-        <button 
-          onClick={nuclearRefresh}
-          style={{
-            background: 'rgba(79, 172, 254, 0.1)',
-            border: '1px solid rgba(79, 172, 254, 0.3)',
-            color: '#4facfe',
-            borderRadius: '8px',
-            padding: '8px 16px',
-            cursor: 'pointer'
-          }}
-        >
-          🔄 Refresh
-        </button>
+
+        <div className="year-navigation">
+          <button
+            className="year-nav-btn"
+            onClick={() => setSelectedYear(prev => prev - 1)}
+            disabled={loading || selectedYear <= availableYears[availableYears.length - 1]}
+            title="Previous year"
+          >
+            ‹
+          </button>
+          
+          <select
+            className="year-select"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+            disabled={loading}
+          >
+            {availableYears.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+          
+          <button
+            className="year-nav-btn"
+            onClick={() => setSelectedYear(prev => prev + 1)}
+            disabled={loading || selectedYear >= new Date().getFullYear()}
+            title="Next year"
+          >
+            ›
+          </button>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-          <div style={{ width: '40px' }}></div>
-          <div style={{ display: 'flex', gap: '2px' }}>
-            {weeks.map((week, weekIndex) => (
-              <div key={weekIndex} style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '12px' }}>
-                {week.map((day, dayIndex) => {
-                  if (!day) {
-                    return <div key={`${weekIndex}-${dayIndex}`} style={{ width: '12px', height: '12px' }} />;
-                  }
-                  
-                  const isToday = day.date === today;
-                  const colors = ['#2d2d2d', '#0e4429', '#006d32', '#26a641', '#39d353'];
-                  const bgColor = colors[day.level] || colors[0];
-                  
-                  return (
-                    <div
-                      key={`${weekIndex}-${dayIndex}`}
-                      style={{
-                        width: '12px',
-                        height: '12px',
-                        borderRadius: '2px',
-                        backgroundColor: bgColor,
-                        border: isToday ? '2px solid #4facfe' : `1px solid ${bgColor}`,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '6px',
-                        fontWeight: 'bold',
-                        color: day.level === 4 ? '#000' : '#fff'
-                      }}
-                      title={`${day.count} reviews on ${day.date}${isToday ? ' (TODAY)' : ''}`}
-                    >
-                      {day.count > 0 && day.count < 100 && (
-                        <span style={{ fontSize: '5px', opacity: 0.8 }}>
-                          {day.count}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+      {/* Error State */}
+      {error && (
+        <div className="heatmap-error">
+          <p>⚠️ {error}</p>
+          <button onClick={fetchHeatmapData} className="retry-button">
+            Try Again
+          </button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="heatmap-loading">
+          <div className="loading-spinner"></div>
+          <p>Loading heatmap...</p>
+        </div>
+      )}
+
+      {/* Heatmap Grid */}
+      {!loading && !error && (
+        <div className="heatmap-grid">
+          {/* Month Labels */}
+          <div className="month-labels">
+            {monthLabels.map((month, index) => (
+              <span
+                key={month.name}
+                className="month-label"
+                style={{ left: `${month.weekOffset * 14 + 45}px` }}
+              >
+                {month.name}
+              </span>
             ))}
           </div>
-        </div>
-      </div>
 
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-around', 
-        padding: '16px',
-        background: 'rgba(0, 0, 0, 0.2)',
-        borderRadius: '12px'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#4facfe' }}>
-            {stats.totalReviews}
+          {/* Main Grid */}
+          <div className="heatmap-main-grid">
+            {/* Day Labels */}
+            <div className="day-labels">
+              <span>Sun</span>
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+              <span>Sat</span>
+            </div>
+
+            {/* Heatmap */}
+            <div className="heatmap-weeks">
+              {weeks.map((week, weekIndex) => (
+                <div key={weekIndex} className="heatmap-week">
+                  {week.map((day, dayIndex) => {
+                    if (!day) {
+                      return <div key={`${weekIndex}-${dayIndex}`} className="heatmap-day empty" />;
+                    }
+
+                    const isToday = day.date === today;
+                    const tooltipText = `${day.count} reviews on ${day.date}${isToday ? ' (Today)' : ''}${
+                      day.cardsStudied > 0 ? `\n${day.cardsStudied} cards studied` : ''
+                    }${day.sessionCount > 0 ? `\n${day.sessionCount} sessions` : ''}${
+                      day.masterAgainCount > 0 ? `\n${day.masterAgainCount} master again sessions` : ''
+                    }`;
+
+                    return (
+                      <div
+                        key={`${weekIndex}-${dayIndex}`}
+                        className={`heatmap-day ${isToday ? 'today' : ''}`}
+                        data-level={day.level}
+                        data-today={isToday}
+                        title={tooltipText}
+                      >
+                        {day.count > 0 && day.count < 100 && (
+                          <span className="day-count">{day.count}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#aaa' }}>Total Reviews</div>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '1.4rem', fontWeight: '700', color: '#4facfe' }}>
-            {today}
+      )}
+
+      {/* Stats */}
+      {!loading && !error && (
+        <div className="heatmap-stats">
+          <div className="stat-item">
+            <div className="stat-value">{stats.totalReviews}</div>
+            <div className="stat-label">Total Reviews</div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#aaa' }}>Today</div>
+          <div className="stat-item">
+            <div className="stat-value">{stats.currentStreak}</div>
+            <div className="stat-label">Current Streak</div>
+          </div>
+          <div className="stat-item">
+            <div className="stat-value">{stats.longestStreak}</div>
+            <div className="stat-label">Longest Streak</div>
+          </div>
+          <div className="stat-item">
+            <div className="stat-value">{stats.todayReviews}</div>
+            <div className="stat-label">Today</div>
+          </div>
         </div>
-      </div>
-      
-      <div style={{ 
-        fontSize: '0.7rem', 
-        color: '#666', 
-        textAlign: 'center', 
-        marginTop: '12px',
-        fontFamily: 'monospace'
-      }}>
-        Force Update: {forceUpdate} | Today: {today} | Data Points: {heatmapData.length}
+      )}
+
+      {/* Legend */}
+      <div className="heatmap-legend">
+        <span className="legend-text">Less</span>
+        <div className="legend-squares">
+          {[0, 1, 2, 3, 4].map(level => (
+            <div
+              key={level}
+              className={`legend-square level-${level}`}
+              title={`Level ${level}`}
+            />
+          ))}
+        </div>
+        <span className="legend-text">More</span>
       </div>
     </div>
   );
