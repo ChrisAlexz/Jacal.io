@@ -1,9 +1,10 @@
-// src/components/Home.jsx - Updated with Heatmap
+// src/components/Home.jsx - FIXED: Proper Supabase query syntax + ClassDeckModal
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
-import FlashcardHeatmap from './FlashcardHeatmap'; // ADD THIS IMPORT
+import FlashcardHeatmap from './FlashcardHeatmap';
+import ClassDeckModal from './ClassDeckModal';
 import '../styles/Home.css';
 
 export default function Home() {
@@ -18,6 +19,7 @@ export default function Home() {
   const [recentSets, setRecentSets] = useState([]);
   const [lastStudiedSet, setLastStudiedSet] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Get greeting based on time of day
   const getGreeting = () => {
@@ -27,96 +29,167 @@ export default function Home() {
     return 'Good Evening';
   };
 
-  // Fetch user statistics and sets - FIXED VERSION
+  // FIXED: Improved fetchStats with better error handling and logging
   const fetchStats = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('❌ No user ID available for stats');
+      setLoading(false);
+      return;
+    }
 
     try {
-      // Get your cards first (we know these exist - 73 cards)
-      const { data: yourCards, error: cardsError } = await supabase
+      console.log('📊 Fetching stats for user:', user.id);
+
+      // FIXED: Use the correct approach - get cards first, then fetch sets
+      const { data: userCards, error: cardsError } = await supabase
         .from('flashcard_cards')
-        .select('set_id, user_id')
+        .select('set_id, id, user_id')
         .eq('user_id', user.id);
 
-      if (cardsError || !yourCards || yourCards.length === 0) {
+      if (cardsError) {
+        console.error('❌ Error fetching user cards:', cardsError);
         setStats({ totalSets: 0, totalCards: 0, studiedToday: 0 });
+        setLoading(false);
         return;
       }
 
-      // Get unique set_ids from your cards
-      const setIds = [...new Set(yourCards.map(card => card.set_id))];
+      console.log('✅ Found', userCards?.length || 0, 'cards for user');
 
-      // Get sets by these set_ids (regardless of user_id on sets table)
-      const { data: setsData, error: setsError } = await supabase
-        .from('flashcard_sets')
-        .select('*')
-        .in('id', setIds)
-        .order('updated_at', { ascending: false });
+      if (!userCards || userCards.length === 0) {
+        console.log('ℹ️ No cards found for user');
+        setStats({ totalSets: 0, totalCards: 0, studiedToday: 0 });
+        setRecentSets([]);
+        setLastStudiedSet(null);
+        setLoading(false);
+        return;
+      }
 
-      if (setsError || !setsData) {
-        setStats({ totalSets: 0, totalCards: yourCards.length, studiedToday: 0 });
+      // Get unique set IDs
+      const setIds = [...new Set(userCards.map(card => card.set_id))].filter(Boolean);
+      console.log('📦 Found', setIds.length, 'unique set IDs:', setIds);
+
+      if (setIds.length === 0) {
+        console.log('ℹ️ No valid set IDs found');
+        setStats({ totalSets: 0, totalCards: userCards.length, studiedToday: 0 });
+        setRecentSets([]);
+        setLastStudiedSet(null);
+        setLoading(false);
+        return;
+      }
+
+      // FIXED: Use multiple individual queries instead of .in() to avoid 400 error
+      const setsData = [];
+      
+      // Fetch sets one by one to avoid the .in() syntax issue
+      for (const setId of setIds) {
+        try {
+          const { data: setData, error: setError } = await supabase
+            .from('flashcard_sets')
+            .select('*')
+            .eq('id', setId)
+            .single();
+
+          if (setError) {
+            console.warn('⚠️ Error fetching set', setId, ':', setError.message);
+            continue; // Skip this set and continue with others
+          }
+
+          if (setData) {
+            setsData.push(setData);
+          }
+        } catch (error) {
+          console.warn('⚠️ Exception fetching set', setId, ':', error.message);
+          continue; // Skip this set and continue with others
+        }
+      }
+
+      console.log('✅ Successfully fetched', setsData.length, 'sets');
+
+      if (setsData.length === 0) {
+        console.log('ℹ️ No sets data retrieved');
+        setStats({ totalSets: 0, totalCards: userCards.length, studiedToday: 0 });
+        setRecentSets([]);
+        setLastStudiedSet(null);
+        setLoading(false);
         return;
       }
 
       // Get card counts for each set
       const setsWithCounts = await Promise.all(
         setsData.map(async (set) => {
-          const { count } = await supabase
-            .from('flashcard_cards')
-            .select('*', { count: 'exact', head: true })
-            .eq('set_id', set.id);
+          try {
+            const { count, error: countError } = await supabase
+              .from('flashcard_cards')
+              .select('*', { count: 'exact', head: true })
+              .eq('set_id', set.id);
 
-          return {
-            ...set,
-            card_count: count || 0
-          };
+            if (countError) {
+              console.warn('⚠️ Error counting cards for set', set.id, ':', countError.message);
+            }
+
+            return {
+              ...set,
+              card_count: count || 0
+            };
+          } catch (error) {
+            console.warn('⚠️ Exception counting cards for set', set.id, ':', error.message);
+            return {
+              ...set,
+              card_count: 0
+            };
+          }
         })
       );
 
       // Update stats
       setStats({
-        totalSets: setsData.length,
-        totalCards: yourCards.length,
-        studiedToday: 0
+        totalSets: setsWithCounts.length,
+        totalCards: userCards.length,
+        studiedToday: 0 // TODO: Calculate actual studied today count if needed
       });
 
-      // Set recent sets (show all sets, user can see what they have)
-      const recentSetsData = setsWithCounts
-        .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+      // Sort by updated_at and set recent sets
+      const sortedSets = setsWithCounts
+        .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
         .slice(0, 6);
 
-      setRecentSets(recentSetsData);
+      setRecentSets(sortedSets);
       
       // Set last studied (most recently updated set with cards)
       const setsWithCards = setsWithCounts.filter(set => set.card_count > 0);
       if (setsWithCards.length > 0) {
-        setLastStudiedSet(setsWithCards[0]);
+        const mostRecentSet = setsWithCards
+          .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))[0];
+        setLastStudiedSet(mostRecentSet);
       }
 
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-      setStats({ totalSets: 0, totalCards: 0, studiedToday: 0 });
-    }
-  };
+      console.log('✅ Stats updated successfully:', {
+        totalSets: setsWithCounts.length,
+        totalCards: userCards.length,
+        recentSetsCount: sortedSets.length
+      });
 
-  // Fetch recent sets and find last studied
-  const fetchRecentSets = async () => {
-    // This is now handled in fetchStats() to avoid duplicate calls
-    return;
+    } catch (error) {
+      console.error('💥 Unexpected error in fetchStats:', error);
+      setStats({ totalSets: 0, totalCards: 0, studiedToday: 0 });
+      setRecentSets([]);
+      setLastStudiedSet(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await fetchStats(); // This now handles both stats and recent sets
-      setLoading(false);
+      if (user) {
+        await fetchStats();
+      } else {
+        setLoading(false);
+      }
     };
 
-    if (user) {
-      loadData();
-    } else {
-      setLoading(false);
-    }
+    loadData();
   }, [user]);
 
   // If user is not logged in, show hero section
@@ -134,15 +207,29 @@ export default function Home() {
             
             <div className="hero-features">
               <div className="feature-item">
-                <span className="feature-icon">⚡</span>
+                <span className="feature-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </span>
                 <span>Smart Spaced Repetition</span>
               </div>
               <div className="feature-item">
-                <span className="feature-icon">📊</span>
+                <span className="feature-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 3V21H21V9L15 3H3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 9H15M9 13H15M9 17H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </span>
                 <span>Progress Tracking</span>
               </div>
               <div className="feature-item">
-                <span className="feature-icon">🎯</span>
+                <span className="feature-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                    <path d="M12 6V12L16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </span>
                 <span>Focused Learning</span>
               </div>
             </div>
@@ -177,10 +264,14 @@ export default function Home() {
           
           <button 
             className="primary-cta"
-            onClick={() => navigate('/set')}
+            onClick={() => setShowCreateModal(true)}
           >
-            <span className="cta-icon">📚</span>
-            View My Sets
+            <span className="cta-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </span>
+            Create New Set
           </button>
         </div>
       </div>
@@ -189,7 +280,12 @@ export default function Home() {
       <div className="stats-section">
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-icon sets-icon">📚</div>
+            <div className="stat-icon sets-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 3H8C9.1 3 10 3.9 10 5V19C10 20.1 9.1 21 8 21H2V3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M22 3H16C14.9 3 14 3.9 14 5V19C14 20.1 14.9 21 16 21H22V3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
             <div className="stat-content">
               <div className="stat-number">{stats.totalSets}</div>
               <div className="stat-label">Flashcard Sets</div>
@@ -197,7 +293,12 @@ export default function Home() {
           </div>
           
           <div className="stat-card">
-            <div className="stat-icon cards-icon">🃏</div>
+            <div className="stat-icon cards-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="2"/>
+                <path d="M7 8H17M7 12H17M7 16H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
             <div className="stat-content">
               <div className="stat-number">{stats.totalCards}</div>
               <div className="stat-label">Total Cards</div>
@@ -205,7 +306,11 @@ export default function Home() {
           </div>
           
           <div className="stat-card">
-            <div className="stat-icon study-icon">⚡</div>
+            <div className="stat-icon study-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
             <div className="stat-content">
               <div className="stat-number">{stats.studiedToday}</div>
               <div className="stat-label">Studied Today</div>
@@ -220,23 +325,32 @@ export default function Home() {
         <div className="actions-grid">
           <button 
             className="action-card"
-            onClick={() => navigate('/flashcards')}
+            onClick={() => navigate('/set')}
           >
-            <div className="action-icon create-icon">➕</div>
+            <div className="action-icon browse-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/>
+                <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
             <div className="action-content">
-              <h3>Create New Set</h3>
-              <p>Start building a new flashcard collection</p>
+              <h3>View My Sets</h3>
+              <p>Browse and manage your flashcard collections</p>
             </div>
           </button>
           
           <button 
             className="action-card"
-            onClick={() => navigate('/set')}
+            onClick={() => setShowCreateModal(true)}
           >
-            <div className="action-icon browse-icon">👁️</div>
+            <div className="action-icon create-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
             <div className="action-content">
-              <h3>Browse Sets</h3>
-              <p>View and manage your flashcard sets</p>
+              <h3>Create New Set</h3>
+              <p>Start building a new flashcard collection</p>
             </div>
           </button>
 
@@ -251,7 +365,11 @@ export default function Home() {
             }}
             disabled={!lastStudiedSet}
           >
-            <div className="action-icon study-icon">⚡</div>
+            <div className="action-icon study-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
             <div className="action-content">
               <h3>Quick Study</h3>
               <p>
@@ -265,7 +383,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* HEATMAP - Moved to after Quick Actions */}
+      {/* Heatmap */}
       {user && <FlashcardHeatmap />}
 
       {/* Recent Sets */}
@@ -294,7 +412,12 @@ export default function Home() {
                 onClick={() => navigate(`/flashcards/${set.id}`)}
               >
                 <div className="set-card-header">
-                  <span className="set-card-icon">📝</span>
+                  <span className="set-card-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="2"/>
+                      <path d="M7 8H17M7 12H17M7 16H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </span>
                   <button 
                     className="menu-btn"
                     onClick={(e) => {
@@ -310,7 +433,7 @@ export default function Home() {
                   <h3 className="set-card-title">{set.title}</h3>
                   <div className="set-card-meta">
                     <span>{set.card_count || 0} cards</span>
-                    <span>Updated {new Date(set.updated_at).toLocaleDateString()}</span>
+                    <span>Updated {new Date(set.updated_at || set.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
                 
@@ -326,7 +449,12 @@ export default function Home() {
         ) : (
           <div className="empty-state">
             <div className="empty-illustration">
-              <div className="empty-icon">📚</div>
+              <div className="empty-icon">
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M2 3H8C9.1 3 10 3.9 10 5V19C10 20.1 9.1 21 8 21H2V3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M22 3H16C14.9 3 14 3.9 14 5V19C14 20.1 14.9 21 16 21H22V3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
               <div className="empty-books">
                 <div className="book book-1"></div>
                 <div className="book book-2"></div>
@@ -346,6 +474,17 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* ClassDeckModal */}
+      {showCreateModal && (
+        <ClassDeckModal
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            fetchStats(); // Refresh the stats to show the new set
+            setShowCreateModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

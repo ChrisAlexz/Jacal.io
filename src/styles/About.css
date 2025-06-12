@@ -1,4 +1,4 @@
-/* src/styles/About.css - ENHANCED WITH SET PAGE BACKGROUND ANIMATIONS */
+/* src/styles/About.css - ENHANCED WITH NEW SECTIONS */
 
 .about-container {
   min-height: 100vh;
@@ -366,6 +366,9 @@
 .feature-card:nth-child(4) { animation-delay: 0.25s; }
 .feature-card:nth-child(5) { animation-delay: 0.3s; }
 .feature-card:nth-child(6) { animation-delay: 0.35s; }
+.feature-card:nth-child(7) { animation-delay: 0.4s; }
+.feature-card:nth-child(8) { animation-delay: 0.45s; }
+.feature-card:nth-child(9) { animation-delay: 0.5s; }
 
 .feature-card::before {
   content: '';
@@ -580,6 +583,97 @@
   gap: 6px;
 }
 
+/* NEW: Card Types Section */
+.card-types-section {
+  padding: 80px 20px;
+  background: transparent;
+  position: relative;
+  z-index: 1;
+  animation: fadeInUp 0.6s ease-out 0.3s both;
+}
+
+.card-types-section .section-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.card-types-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.card-type-item {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 16px;
+  padding: 32px 24px;
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  animation: slideInLeft 0.5s ease-out;
+  animation-fill-mode: both;
+}
+
+/* Staggered entrance for card type items */
+.card-type-item:nth-child(1) { animation-delay: 0.1s; }
+.card-type-item:nth-child(2) { animation-delay: 0.15s; }
+.card-type-item:nth-child(3) { animation-delay: 0.2s; }
+.card-type-item:nth-child(4) { animation-delay: 0.25s; }
+
+.card-type-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.card-type-item:hover {
+  border-color: #4facfe;
+  transform: translateY(-6px);
+  box-shadow: 0 8px 30px rgba(79, 172, 254, 0.15);
+}
+
+.card-type-item:hover::before {
+  opacity: 1;
+}
+
+.card-type-icon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  display: inline-block;
+  padding: 20px;
+  border-radius: 50%;
+  background: rgba(79, 172, 254, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.card-type-item:hover .card-type-icon {
+  transform: scale(1.1);
+}
+
+.card-type-item h4 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: white;
+}
+
+.card-type-item p {
+  font-size: 1rem;
+  color: #ccc;
+  line-height: 1.6;
+  margin: 0;
+}
+
 /* Science Section */
 .science-section {
   padding: 80px 20px;
@@ -587,7 +681,7 @@
   position: relative;
   overflow: hidden;
   z-index: 1; /* Above background animations */
-  animation: fadeInUp 0.6s ease-out 0.3s both;
+  animation: fadeInUp 0.6s ease-out 0.4s both;
 }
 
 .science-section::before {
@@ -735,6 +829,100 @@
   100% { transform: scale(1.2); opacity: 0; }
 }
 
+/* NEW: Advanced Features Section */
+.advanced-features-section {
+  padding: 80px 20px;
+  background: transparent;
+  position: relative;
+  z-index: 1;
+  animation: fadeInUp 0.6s ease-out 0.5s both;
+}
+
+.advanced-features-section .section-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.advanced-features-list {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+.advanced-feature {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  animation: slideInLeft 0.5s ease-out;
+  animation-fill-mode: both;
+}
+
+/* Staggered entrance for advanced features */
+.advanced-feature:nth-child(1) { animation-delay: 0.1s; }
+.advanced-feature:nth-child(2) { animation-delay: 0.15s; }
+.advanced-feature:nth-child(3) { animation-delay: 0.2s; }
+.advanced-feature:nth-child(4) { animation-delay: 0.25s; }
+
+.advanced-feature::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.advanced-feature:hover {
+  border-color: #4facfe;
+  transform: translateX(8px);
+  box-shadow: 0 4px 20px rgba(79, 172, 254, 0.1);
+}
+
+.advanced-feature:hover::before {
+  opacity: 1;
+}
+
+.feature-highlight {
+  font-size: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(79, 172, 254, 0.1);
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.advanced-feature:hover .feature-highlight {
+  transform: scale(1.1);
+}
+
+.feature-desc {
+  flex: 1;
+  font-size: 1rem;
+  color: #ccc;
+  line-height: 1.6;
+}
+
+.feature-desc strong {
+  color: white;
+  font-weight: 600;
+}
+
 /* CTA Section */
 .cta-section {
   padding: 80px 20px;
@@ -742,7 +930,7 @@
   text-align: center;
   position: relative;
   z-index: 1; /* Above background animations */
-  animation: fadeInUp 0.6s ease-out 0.4s both;
+  animation: fadeInUp 0.6s ease-out 0.6s both;
 }
 
 .cta-content {
@@ -820,6 +1008,11 @@
     gap: 24px;
   }
   
+  .card-types-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
   .step-item {
     grid-template-columns: 1fr;
     text-align: center;
@@ -849,6 +1042,18 @@
     align-items: center;
   }
 
+  .advanced-feature {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .feature-highlight {
+    width: 50px;
+    height: 50px;
+    font-size: 2rem;
+  }
+
   /* Reduce animation intensity on mobile */
   .about-container::after {
     animation-duration: 35s, 28s, 50s;
@@ -872,6 +1077,15 @@
     padding: 24px;
   }
   
+  .card-type-item {
+    padding: 24px 20px;
+  }
+  
+  .card-type-icon {
+    font-size: 2.5rem;
+    padding: 16px;
+  }
+  
   .science-stats {
     flex-direction: column;
     gap: 20px;
@@ -883,9 +1097,19 @@
   
   .features-section,
   .how-it-works-section,
+  .card-types-section,
   .science-section,
+  .advanced-features-section,
   .cta-section {
     padding: 60px 15px;
+  }
+
+  .advanced-feature {
+    padding: 20px;
+  }
+
+  .feature-desc {
+    font-size: 0.9rem;
   }
 
   /* Disable complex animations on very small screens for performance */
@@ -917,14 +1141,20 @@
   .about-hero,
   .features-section,
   .how-it-works-section,
+  .card-types-section,
   .science-section,
+  .advanced-features-section,
   .cta-section,
   .feature-card,
+  .card-type-item,
+  .advanced-feature,
   .step-item {
     animation: none;
   }
   
   .feature-card:hover,
+  .card-type-item:hover,
+  .advanced-feature:hover,
   .cta-primary:hover,
   .cta-secondary:hover {
     transform: none;

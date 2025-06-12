@@ -1,7 +1,7 @@
 import React from 'react';
 import Layout from './Layout';
 import '../styles/About.css';
-import { MdSchool, MdFolderSpecial, MdBrush, MdBarChart, MdEditNote, MdDevices } from 'react-icons/md';
+import { MdSchool, MdFolderSpecial, MdBrush, MdBarChart, MdEditNote, MdDevices, MdRecordVoiceOver, MdImage, MdSpeed, MdMemory } from 'react-icons/md';
 
 export default function About() {
   return (
@@ -22,7 +22,8 @@ export default function About() {
             </div>
             <h1 className="hero-title">Learn Smarter, Not Harder</h1>
             <p className="hero-subtitle">
-              Master any subject with our intelligent flashcard system designed for modern learners
+              Master any subject with our advanced flashcard system featuring multimedia support, 
+              multiple card types, and scientifically-proven learning techniques
             </p>
           </div>
         </div>
@@ -30,9 +31,9 @@ export default function About() {
         {/* Features Section */}
         <div className="features-section">
           <div className="section-header">
-            <h2 className="section-title">Why Choose Our Platform?</h2>
+            <h2 className="section-title">Powerful Learning Features</h2>
             <p className="section-subtitle">
-              Built with cutting-edge learning science and modern technology
+              Everything you need for effective studying, from basic flashcards to advanced learning modes
             </p>
           </div>
 
@@ -44,8 +45,8 @@ export default function About() {
               <div className="feature-content">
                 <h3>Smart Spaced Repetition</h3>
                 <p>
-                  Our algorithm automatically schedules your review sessions based on how well you know each card. 
-                  Study less, remember more with scientifically-proven spaced repetition.
+                  Our intelligent algorithm automatically schedules your review sessions based on how well you know each card. 
+                  Rate cards as Easy, Good, Hard, or Again to optimize your learning intervals and maximize retention.
                 </p>
               </div>
             </div>
@@ -57,8 +58,8 @@ export default function About() {
               <div className="feature-content">
                 <h3>Rich Text Formatting</h3>
                 <p>
-                  Create beautiful flashcards with bold text, italics, colors, superscript, subscript, and more. 
-                  Perfect for math equations, chemical formulas, and detailed notes.
+                  Create beautiful flashcards with advanced formatting including bold, italics, colors, 
+                  superscript, subscript, and structured text. Perfect for detailed notes, definitions, and organized content.
                 </p>
               </div>
             </div>
@@ -68,36 +69,62 @@ export default function About() {
                 <MdEditNote />
               </div>
               <div className="feature-content">
-                <h3>Cloze Deletions</h3>
+                <h3>Multiple Card Types</h3>
                 <p>
-                  Create fill-in-the-blank style cards by hiding key information. 
-                  Perfect for memorizing definitions, dates, and important facts.
+                  Choose from Basic cards, Type-Answer cards for active recall, Cloze deletions for fill-in-the-blank, 
+                  and Image Occlusion cards for visual learning. Each type optimized for different learning scenarios.
                 </p>
               </div>
             </div>
 
             <div className="feature-card">
               <div className="feature-icon mobile-icon">
-                <MdDevices />
+                <MdRecordVoiceOver />
               </div>
               <div className="feature-content">
-                <h3>Study Anywhere</h3>
+                <h3>Audio Integration</h3>
                 <p>
-                  Responsive design that works perfectly on desktop, tablet, and mobile. 
-                  Study during your commute, lunch break, or whenever you have a spare moment.
+                  Record and attach audio to both sides of your flashcards. Perfect for language learning, 
+                  pronunciation practice, music theory, or creating audio-only study sessions for commuting.
                 </p>
               </div>
             </div>
 
             <div className="feature-card">
               <div className="feature-icon progress-icon">
+                <MdImage />
+              </div>
+              <div className="feature-content">
+                <h3>Image Occlusion</h3>
+                <p>
+                  Upload images and create interactive occlusion cards by covering parts of diagrams, maps, or charts. 
+                  Ideal for anatomy, geography, technical diagrams, and visual memorization tasks.
+                </p>
+              </div>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-icon organize-icon">
+                <MdSpeed />
+              </div>
+              <div className="feature-content">
+                <h3>Speed Focus Mode</h3>
+                <p>
+                  Test your knowledge under time pressure with our Speed Focus mode. Quick-fire questions 
+                  help identify weak areas and build confidence for exams and time-pressured scenarios.
+                </p>
+              </div>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-icon mobile-icon">
                 <MdBarChart />
               </div>
               <div className="feature-content">
-                <h3>Progress Tracking</h3>
+                <h3>Study Analytics</h3>
                 <p>
-                  Monitor your learning journey with detailed statistics and progress indicators. 
-                  See how many cards you've mastered and track your daily study streaks.
+                  Track your learning journey with detailed statistics, study streaks, and progress tracking. 
+                  Monitor your performance and maintain consistent study habits with comprehensive insights.
                 </p>
               </div>
             </div>
@@ -109,8 +136,21 @@ export default function About() {
               <div className="feature-content">
                 <h3>Organized Learning</h3>
                 <p>
-                  Create unlimited sets and organize them by subject, class, or topic. 
-                  Keep your study materials neat and easily accessible.
+                  Create unlimited sets organized by classes or subjects. Import decks from Anki and Quizlet, 
+                  and keep your study materials perfectly organized and easily accessible across all your devices.
+                </p>
+              </div>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-icon mobile-icon">
+                <MdDevices />
+              </div>
+              <div className="feature-content">
+                <h3>Cross-Device Access</h3>
+                <p>
+                  Access your flashcards from any device with responsive design that adapts to desktop, 
+                  tablet, and mobile screens. Your study progress syncs across all devices automatically.
                 </p>
               </div>
             </div>
@@ -130,10 +170,10 @@ export default function About() {
             <div className="step-item">
               <div className="step-number">1</div>
               <div className="step-content">
-                <h3>Create Your Sets</h3>
+                <h3>Create Your Study Material</h3>
                 <p>
-                  Add your study material by creating flashcard sets for different subjects. 
-                  Use our rich text editor to format your content exactly how you want it.
+                  Build flashcard sets using our advanced editor with rich text formatting, math expressions, 
+                  audio recordings, and images. Choose from multiple card types or import existing decks from Anki/Quizlet.
                 </p>
               </div>
               <div className="step-visual create-visual">
@@ -148,10 +188,10 @@ export default function About() {
             <div className="step-item reverse">
               <div className="step-number">2</div>
               <div className="step-content">
-                <h3>Study Smart</h3>
+                <h3>Study with Intelligence</h3>
                 <p>
-                  Review your cards with our intelligent study system. Rate each card as Easy, Good, Hard, 
-                  or Again to help the algorithm determine when to show it next.
+                  Review your cards with spaced repetition algorithm. Rate each card's difficulty to customize 
+                  your learning schedule. Use Speed Focus mode for quick reviews or regular study for deep learning.
                 </p>
               </div>
               <div className="step-visual study-visual">
@@ -167,10 +207,10 @@ export default function About() {
             <div className="step-item">
               <div className="step-number">3</div>
               <div className="step-content">
-                <h3>Track Progress</h3>
+                <h3>Track Your Progress</h3>
                 <p>
-                  Watch your knowledge grow with detailed progress tracking. 
-                  See your daily study stats and celebrate your learning milestones.
+                  Monitor your learning with comprehensive analytics including study statistics, streak tracking, 
+                  and performance insights to optimize your study routine and maintain consistency.
                 </p>
               </div>
               <div className="step-visual progress-visual">
@@ -179,24 +219,61 @@ export default function About() {
                     <div className="progress-fill-demo"></div>
                   </div>
                   <div className="stats-demo">
-                    <div className="stat-demo">📚 15 Sets</div>
-                    <div className="stat-demo">📄 245 Cards</div>
-                    <div className="stat-demo">🔥 7 Day Streak</div>
+                    <div className="stat-demo">📚 25 Sets</div>
+                    <div className="stat-demo">📄 485 Cards</div>
+                    <div className="stat-demo">🔥 12 Day Streak</div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Card Types Section */}
+        <div className="card-types-section">
+          <div className="section-header">
+            <h2 className="section-title">Flexible Card Types</h2>
+            <p className="section-subtitle">
+              Choose the perfect card type for your learning style and subject matter
+            </p>
+          </div>
+
+          <div className="card-types-grid">
+            <div className="card-type-item">
+              <div className="card-type-icon">💭</div>
+              <h4>Basic Cards</h4>
+              <p>Traditional front-and-back flashcards perfect for vocabulary, definitions, and general Q&A.</p>
+            </div>
+
+            <div className="card-type-item">
+              <div className="card-type-icon">⌨️</div>
+              <h4>Type-Answer Cards</h4>
+              <p>Active recall cards where you type the answer, improving retention through active engagement.</p>
+            </div>
+
+            <div className="card-type-item">
+              <div className="card-type-icon">🔍</div>
+              <h4>Cloze Deletions</h4>
+              <p>Fill-in-the-blank style cards created by selecting text to hide, ideal for context-based learning.</p>
+            </div>
+
+            <div className="card-type-item">
+              <div className="card-type-icon">🖼️</div>
+              <h4>Image Occlusion</h4>
+              <p>Interactive image-based cards where you cover and reveal parts of diagrams, perfect for visual subjects.</p>
+            </div>
+          </div>
+        </div>
+
         {/* Science Section */}
         <div className="science-section">
           <div className="science-content">
             <div className="science-text">
               <h2>Built on Learning Science</h2>
               <p>
-                Our platform is based on decades of cognitive psychology research. 
-                Spaced repetition and active recall are proven to be the most effective 
-                methods for long-term retention.
+                Our platform combines cutting-edge cognitive psychology research with modern technology. 
+                Spaced repetition, active recall, and multimedia learning are proven to be the most effective 
+                methods for long-term retention and deep understanding.
               </p>
               <div className="science-stats">
                 <div className="science-stat">
@@ -208,7 +285,7 @@ export default function About() {
                   <div className="stat-label">Less Study Time</div>
                 </div>
                 <div className="science-stat">
-                  <div className="stat-number">2x</div>
+                  <div className="stat-number">3x</div>
                   <div className="stat-label">Faster Learning</div>
                 </div>
               </div>
@@ -228,20 +305,22 @@ export default function About() {
           </div>
         </div>
 
+
+
         {/* CTA Section */}
         <div className="cta-section">
           <div className="cta-content">
             <h2>Ready to Transform Your Learning?</h2>
             <p>
-              Join thousands of students, professionals, and lifelong learners who have 
-              already discovered the power of intelligent flashcards.
+              Join thousands of students, professionals, and lifelong learners who have discovered 
+              the power of intelligent flashcards with multimedia support and advanced study modes.
             </p>
             <div className="cta-buttons">
               <button className="cta-primary">
                 Get Started Free
               </button>
               <button className="cta-secondary">
-                Learn More
+                View Demo
               </button>
             </div>
           </div>
