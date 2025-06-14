@@ -1278,3 +1278,262 @@
 .import-btn.success {
   animation: importSuccess 0.6s ease-in-out;
 }
+/* Add these styles to your existing Set.css for hierarchical navigation */
+
+/* Breadcrumb Navigation */
+.breadcrumb-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: rgba(79, 172, 254, 0.1);
+  border: 1px solid rgba(79, 172, 254, 0.3);
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #4facfe;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.breadcrumb-item:hover {
+  background: rgba(79, 172, 254, 0.2);
+  color: white;
+}
+
+.breadcrumb-item.root {
+  font-weight: 600;
+}
+
+.breadcrumb-separator {
+  color: #666;
+  font-size: 0.8rem;
+  user-select: none;
+}
+
+/* Back Button */
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ccc;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+/* Navigate Folder Button */
+.navigate-folder-btn {
+  background: rgba(79, 172, 254, 0.1);
+  color: #4facfe;
+  border: 1px solid rgba(79, 172, 254, 0.3);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1.2rem;
+}
+
+.navigate-folder-btn:hover {
+  background: rgba(79, 172, 254, 0.2);
+  border-color: rgba(79, 172, 254, 0.5);
+  transform: scale(1.1);
+}
+
+/* Folder Navigation Section */
+.folder-navigation-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(79, 172, 254, 0.05);
+  border: 1px solid rgba(79, 172, 254, 0.2);
+  border-radius: 8px;
+}
+
+.open-folder-btn,
+.create-subfolder-btn {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+.open-folder-btn:hover,
+.create-subfolder-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+}
+
+/* Update class header to not be clickable */
+.class-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: #252525;
+  transition: background-color 0.2s;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.class-header:hover {
+  background: #2a2a2a;
+}
+
+.expand-icon {
+  color: #4facfe;
+  font-size: 1.2rem;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+
+.expand-icon:hover {
+  transform: scale(1.1);
+}
+
+/* Add click handler to just the expand icon */
+.class-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.class-title .expand-icon {
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.class-title .expand-icon:hover {
+  background: rgba(79, 172, 254, 0.1);
+}
+
+/* Make the class item look more like a folder container */
+.class-item {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-left: 4px solid #4facfe;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  animation: slideInLeft 0.5s ease-out;
+  animation-fill-mode: both;
+  margin-bottom: 20px;
+}
+
+.class-item:hover {
+  border-color: #4facfe;
+  border-left-color: #00f2fe;
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.1);
+}
+
+/* Empty actions styling */
+.empty-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.empty-action-btn.secondary {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+}
+
+.empty-action-btn.secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .breadcrumb-nav {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+  
+  .breadcrumb-item {
+    font-size: 0.8rem;
+    padding: 3px 6px;
+  }
+  
+  .back-button {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+  
+  .empty-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .empty-action-btn,
+  .empty-action-btn.secondary {
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+  }
+  
+  .navigate-folder-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .breadcrumb-nav {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  
+  .controls-bar {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .open-folder-btn,
+  .create-subfolder-btn {
+    font-size: 0.8rem;
+    padding: 8px 12px;
+  }
+}

@@ -1,6 +1,6 @@
-// src/components/Set.jsx - UPDATED WITH IMPORT FUNCTIONALITY
+// src/components/Set.jsx - UPDATED WITH MINIMAL HIERARCHICAL FEATURES
 import React, { useEffect, useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
 import ClassDeckModal from './ClassDeckModal';
@@ -17,20 +17,29 @@ import {
   faPlus, 
   faSearch, 
   faBolt,
-  faFileImport 
+  faFileImport,
+  faArrowLeft,
+  faHome
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function Set() {
   const { user } = useContext(UserAuthContext);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  
   const [classes, setClasses] = useState([]);
+  const [currentClassId, setCurrentClassId] = useState(null);
+  const [currentPath, setCurrentPath] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedClasses, setExpandedClasses] = useState({});
-  const [showModal, setShowModal] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [selectedClassId, setSelectedClassId] = useState(null);
   const [editingClassNames, setEditingClassNames] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('recent');
+  
+  // Modal states
+  const [showModal, setShowModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [selectedClassId, setSelectedClassId] = useState(null);
   
   // Delete modal state
   const [deleteModal, setDeleteModal] = useState({
@@ -40,70 +49,148 @@ export default function Set() {
     name: '',
     onConfirm: null
   });
-  
-  const navigate = useNavigate();
+
+  // Check URL parameters for folder navigation
+  useEffect(() => {
+    const folderId = searchParams.get('folder');
+    if (folderId && folderId !== currentClassId) {
+      setCurrentClassId(folderId);
+      loadCurrentClassPath(folderId);
+    } else if (!folderId && currentClassId) {
+      setCurrentClassId(null);
+      setCurrentPath([]);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (user) fetchClasses();
-  }, [user]);
+  }, [user, currentClassId]);
+
+  const loadCurrentClassPath = async (classId) => {
+    if (!classId) {
+      setCurrentPath([]);
+      return;
+    }
+
+    try {
+      const { data: classData, error } = await supabase
+        .from('classes')
+        .select('id, name, parent_id')
+        .eq('id', classId)
+        .single();
+      
+      if (error || !classData) {
+        console.error('Error loading class:', error);
+        return;
+      }
+
+      // For now, just show the current class in the path
+      // Later we can build full breadcrumb trail when parent_id is implemented
+      setCurrentPath([{ id: classData.id, name: classData.name }]);
+    } catch (error) {
+      console.error('Error loading class path:', error);
+      setCurrentPath([]);
+    }
+  };
 
   const fetchClasses = async () => {
     setLoading(true);
     
-    // First get classes and their flashcard sets
-    const { data: classesData, error: classesError } = await supabase
-      .from('classes')
-      .select(`*, flashcard_sets (*)`)
-      .eq('user_id', user.id)
-      .order('name', { ascending: true });
+    try {
+      // If we're viewing a specific class's children, filter by parent_id (when column exists)
+      // Otherwise, show all classes (original behavior)
+      let classesQuery = supabase
+        .from('classes')
+        .select(`*, flashcard_sets (*)`)
+        .eq('user_id', user.id);
 
-    if (classesError) {
-      console.error('Error fetching classes:', classesError);
+      // Only filter by parent_id if we're in a subfolder AND the column exists
+      if (currentClassId) {
+        try {
+          classesQuery = classesQuery.eq('parent_id', currentClassId);
+        } catch (error) {
+          // parent_id column doesn't exist yet, show no classes when in subfolder
+          console.log('parent_id column not available yet');
+          setClasses([]);
+          setLoading(false);
+          return;
+        }
+      } else {
+        // For root level, try to exclude classes with parent_id if column exists
+        try {
+          classesQuery = classesQuery.or('parent_id.is.null');
+        } catch (error) {
+          // parent_id column doesn't exist, show all classes (original behavior)
+          console.log('parent_id column not available, showing all classes');
+        }
+      }
+
+      const { data: classesData, error: classesError } = await classesQuery
+        .order('name', { ascending: true });
+
+      if (classesError) {
+        console.error('Error fetching classes:', classesError);
+        setLoading(false);
+        return;
+      }
+
+      // Then get card counts for each flashcard set (ORIGINAL LOGIC)
+      if (classesData) {
+        const classesWithCounts = await Promise.all(
+          classesData.map(async (cls) => {
+            const setsWithCounts = await Promise.all(
+              cls.flashcard_sets.map(async (set) => {
+                const { count, error: countError } = await supabase
+                  .from('flashcard_cards')
+                  .select('*', { count: 'exact', head: true })
+                  .eq('set_id', set.id);
+
+                if (countError) {
+                  console.error('Error counting cards:', countError);
+                }
+
+                return {
+                  ...set,
+                  card_count: count || 0
+                };
+              })
+            );
+
+            return {
+              ...cls,
+              flashcard_sets: setsWithCounts
+            };
+          })
+        );
+
+        setClasses(classesWithCounts);
+        const expanded = {};
+        const names = {};
+        classesWithCounts.forEach(cls => {
+          expanded[cls.id] = true;
+          names[cls.id] = cls.name;
+        });
+        setExpandedClasses(expanded);
+        setEditingClassNames(names);
+      }
+    } catch (error) {
+      console.error('Error in fetchClasses:', error);
+    } finally {
       setLoading(false);
-      return;
     }
+  };
 
-    // Then get card counts for each flashcard set
-    if (classesData) {
-      const classesWithCounts = await Promise.all(
-        classesData.map(async (cls) => {
-          const setsWithCounts = await Promise.all(
-            cls.flashcard_sets.map(async (set) => {
-              const { count, error: countError } = await supabase
-                .from('flashcard_cards')
-                .select('*', { count: 'exact', head: true })
-                .eq('set_id', set.id);
-
-              if (countError) {
-                console.error('Error counting cards:', countError);
-              }
-
-              return {
-                ...set,
-                card_count: count || 0
-              };
-            })
-          );
-
-          return {
-            ...cls,
-            flashcard_sets: setsWithCounts
-          };
-        })
-      );
-
-      setClasses(classesWithCounts);
-      const expanded = {};
-      const names = {};
-      classesWithCounts.forEach(cls => {
-        expanded[cls.id] = true;
-        names[cls.id] = cls.name;
-      });
-      setExpandedClasses(expanded);
-      setEditingClassNames(names);
+  const navigateToClass = (classId) => {
+    if (classId) {
+      setSearchParams({ folder: classId });
+    } else {
+      setSearchParams({});
     }
-    
-    setLoading(false);
+  };
+
+  const navigateBack = () => {
+    // For now, just go back to root. Later we can implement proper parent navigation
+    setSearchParams({});
   };
 
   const toggleClass = (id) => {
@@ -288,8 +375,43 @@ export default function Set() {
               </div>
             </div>
             
+            {/* Breadcrumb Navigation (only show if we have a path) */}
+            {currentPath.length > 0 && (
+              <div className="breadcrumb-nav">
+                <button 
+                  className="breadcrumb-item root"
+                  onClick={() => navigateToClass(null)}
+                >
+                  <FontAwesomeIcon icon={faHome} />
+                  <span>Home</span>
+                </button>
+                {currentPath.map((cls, index) => (
+                  <React.Fragment key={cls.id}>
+                    <span className="breadcrumb-separator">/</span>
+                    <button 
+                      className="breadcrumb-item"
+                      onClick={() => navigateToClass(cls.id)}
+                    >
+                      {cls.name}
+                    </button>
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
+            
             {/* Search and Filter Bar */}
             <div className="controls-bar">
+              {currentClassId && (
+                <button 
+                  className="back-button"
+                  onClick={navigateBack}
+                  title="Go back"
+                >
+                  <FontAwesomeIcon icon={faArrowLeft} />
+                  <span>Back</span>
+                </button>
+              )}
+              
               <div className="search-container">
                 <FontAwesomeIcon icon={faSearch} className="search-icon" />
                 <input
@@ -354,11 +476,15 @@ export default function Set() {
               <div className="class-list">
                 {filteredClasses.map(cls => (
                   <div key={cls.id} className="class-item">
-                    <div className="class-header" onClick={() => toggleClass(cls.id)}>
+                    <div className="class-header">
                       <div className="class-title">
                         <FontAwesomeIcon
                           icon={expandedClasses[cls.id] ? faChevronDown : faChevronRight}
                           className="expand-icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleClass(cls.id);
+                          }}
                         />
                         <span className="deck-count">
                           {cls.flashcard_sets.length} {cls.flashcard_sets.length === 1 ? 'deck' : 'decks'}
@@ -373,6 +499,16 @@ export default function Set() {
                         />
                       </div>
                       <div className="class-actions">
+                        <button
+                          className="navigate-folder-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigateToClass(cls.id);
+                          }}
+                          title="Open this folder"
+                        >
+                          📁
+                        </button>
                         <button
                           className="import-deck-btn"
                           onClick={(e) => {
@@ -432,10 +568,30 @@ export default function Set() {
                                 <FontAwesomeIcon icon={faFileImport} />
                                 Import
                               </button>
+                              <button
+                                className="create-subfolder-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigateToClass(cls.id);
+                                }}
+                              >
+                                📁 Open Folder
+                              </button>
                             </div>
                           </div>
                         ) : (
-                          <div className="deck-grid">
+                          <>
+                            {/* Add folder navigation button above decks */}
+                            <div className="folder-navigation-section">
+                              <button
+                                className="open-folder-btn"
+                                onClick={() => navigateToClass(cls.id)}
+                              >
+                                📁 Open "{cls.name}" folder to create subfolders
+                              </button>
+                            </div>
+                            
+                            <div className="deck-grid">
                             {cls.flashcard_sets.map(deck => (
                               <div key={deck.id} className="deck-card">
                                 <div className="deck-card-header">
@@ -507,7 +663,8 @@ export default function Set() {
                                 </div>
                               </div>
                             ))}
-                          </div>
+                                                      </div>
+                          </>
                         )}
                       </div>
                     )}
