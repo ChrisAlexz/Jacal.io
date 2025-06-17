@@ -1,4 +1,4 @@
-// src/components/Set.jsx - ENHANCED HIERARCHICAL FOLDER SYSTEM
+// src/components/Set.jsx - Shows subfolders as individual visual items
 import React, { useEffect, useState, useContext } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabase';
@@ -37,13 +37,13 @@ export default function Set() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   
-  const [classes, setClasses] = useState([]);
+  const [items, setItems] = useState([]);
   const [currentClassId, setCurrentClassId] = useState(null);
   const [currentPath, setCurrentPath] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('recent');
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [viewMode, setViewMode] = useState('grid');
   
   // Modal states
   const [showModal, setShowModal] = useState(false);
@@ -63,9 +63,7 @@ export default function Set() {
   useEffect(() => {
     console.log('🔄 useEffect triggered - currentClassId changed to:', currentClassId);
     if (user) {
-      // Check database structure and debug the current context
-      checkDatabaseStructure();
-      fetchClasses();
+      fetchItems();
     }
   }, [user, currentClassId]);
 
@@ -82,7 +80,7 @@ export default function Set() {
       setCurrentClassId(null);
       setCurrentPath([]);
     }
-  }, [searchParams, currentClassId]);
+  }, [searchParams]);
 
   const loadCurrentClassPath = async (classId) => {
     if (!classId) {
@@ -91,7 +89,6 @@ export default function Set() {
     }
 
     try {
-      // Build the full breadcrumb path by traversing up the hierarchy
       const path = [];
       let currentId = classId;
       
@@ -115,148 +112,121 @@ export default function Set() {
     }
   };
 
-  const checkDatabaseStructure = async () => {
-    try {
-      console.log('🔍 Checking database structure and data...');
-      
-      // First, check all classes for this user to see the data structure
-      const { data: allClasses, error: allError } = await supabase
-        .from('classes')
-        .select('id, name, parent_id, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      
-      if (allError) {
-        console.error('❌ Error fetching all classes:', allError);
-      } else {
-        console.log('📊 ALL classes for user:', allClasses?.length || 0);
-        if (allClasses && allClasses.length > 0) {
-          console.table(allClasses);
-          
-          // Show hierarchy structure
-          const rootFolders = allClasses.filter(c => c.parent_id === null);
-          const subFolders = allClasses.filter(c => c.parent_id !== null);
-          
-          console.log('🏠 Root folders:', rootFolders.length, rootFolders.map(f => f.name));
-          console.log('📁 Sub folders:', subFolders.length);
-          
-          subFolders.forEach(sub => {
-            const parent = allClasses.find(p => p.id === sub.parent_id);
-            console.log(`  📂 "${sub.name}" (parent: "${parent?.name || 'UNKNOWN'}")`);
-          });
-        }
-      }
-      
-      // If we're in a specific folder, check what should be shown
-      if (currentClassId) {
-        console.log('🔍 Checking what should be visible in folder:', currentClassId);
-        const { data: childClasses, error: childError } = await supabase
-          .from('classes')
-          .select('id, name, parent_id, created_at')
-          .eq('user_id', user.id)
-          .eq('parent_id', currentClassId);
-          
-        if (childError) {
-          console.error('❌ Error fetching child classes:', childError);
-        } else {
-          console.log('👶 Child classes in current folder:', childClasses?.length || 0, childClasses);
-        }
-      }
-      
-    } catch (error) {
-      console.error('💥 Error checking database structure:', error);
-    }
-  };
-
-  const fetchClasses = async () => {
+  const fetchItems = async () => {
     setLoading(true);
     
     try {
-      console.log('🔄 Fetching classes for user:', user.id, 'currentClassId:', currentClassId);
+      console.log('🔄 Fetching items for user:', user.id, 'currentClassId:', currentClassId);
       
-      let classesQuery = supabase
+      const allItems = [];
+
+      // STEP 1: Get child folders for current context
+      let foldersQuery = supabase
         .from('classes')
-        .select(`*, flashcard_sets (*)`)
+        .select('*')
         .eq('user_id', user.id);
 
-      // Filter by current folder context
       if (currentClassId) {
-        console.log('📁 Filtering by parent_id:', currentClassId);
-        classesQuery = classesQuery.eq('parent_id', currentClassId);
+        foldersQuery = foldersQuery.eq('parent_id', currentClassId);
       } else {
-        console.log('🏠 Loading root level folders (parent_id IS NULL)');
-        classesQuery = classesQuery.is('parent_id', null);
+        foldersQuery = foldersQuery.is('parent_id', null);
       }
 
-      const { data: classesData, error: classesError } = await classesQuery
+      const { data: foldersData, error: foldersError } = await foldersQuery
         .order('name', { ascending: true });
 
-      if (classesError) {
-        console.error('❌ Error fetching classes:', classesError);
+      if (foldersError) {
+        console.error('❌ Error fetching folders:', foldersError);
         setLoading(false);
         return;
       }
 
-      console.log('📊 Raw classes data:', classesData?.length || 0, 'items');
-      if (classesData && classesData.length > 0) {
-        console.log('📁 Classes found:', classesData.map(c => ({ 
-          id: c.id, 
-          name: c.name, 
-          parent_id: c.parent_id,
-          created_at: c.created_at 
-        })));
-      }
+      console.log('📁 Child folders found:', foldersData?.length || 0);
 
-      // Get card counts for each flashcard set
-      if (classesData) {
-        const classesWithCounts = await Promise.all(
-          classesData.map(async (cls) => {
-            const setsWithCounts = await Promise.all(
-              cls.flashcard_sets.map(async (set) => {
-                const { count, error: countError } = await supabase
-                  .from('flashcard_cards')
-                  .select('*', { count: 'exact', head: true })
-                  .eq('set_id', set.id);
+      // STEP 2: Process each child folder and add as individual item
+      for (const folder of foldersData || []) {
+        // Count contents of this folder
+        const { count: directSetsCount } = await supabase
+          .from('flashcard_sets')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('class_id', folder.id);
 
-                if (countError) {
-                  console.error('❌ Error counting cards:', countError);
-                }
+        const { count: childFoldersCount } = await supabase
+          .from('classes')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('parent_id', folder.id);
 
-                return {
-                  ...set,
-                  card_count: count || 0
-                };
-              })
-            );
-
-            return {
-              ...cls,
-              flashcard_sets: setsWithCounts,
-              isFolder: true
-            };
-          })
-        );
-
-        console.log('✅ Processed classes with counts:', classesWithCounts.length, 'items');
-        console.log('🎯 Setting classes state with:', classesWithCounts.map(c => c.name));
-        
-        // Force re-render by using functional state update
-        setClasses(() => {
-          console.log('🔄 State update function called with new data:', classesWithCounts.length, 'items');
-          return classesWithCounts;
+        allItems.push({
+          ...folder,
+          type: 'folder',
+          isFolder: true,
+          totalSets: directSetsCount || 0,
+          totalSubfolders: childFoldersCount || 0,
+          hasContent: (directSetsCount || 0) > 0 || (childFoldersCount || 0) > 0
         });
-      } else {
-        console.log('📭 No classes data received');
-        setClasses([]);
       }
+
+      // STEP 3: Get direct flashcard sets in current folder
+      let directSetsQuery = supabase
+        .from('flashcard_sets')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (currentClassId) {
+        directSetsQuery = directSetsQuery.eq('class_id', currentClassId);
+      } else {
+        directSetsQuery = directSetsQuery.is('class_id', null);
+      }
+
+      const { data: directSets, error: directSetsError } = await directSetsQuery
+        .order('created_at', { ascending: false });
+
+      if (directSetsError) {
+        console.error('❌ Error fetching direct sets:', directSetsError);
+      }
+
+      // Add direct sets as individual items
+      for (const set of directSets || []) {
+        const { count, error: countError } = await supabase
+          .from('flashcard_cards')
+          .select('*', { count: 'exact', head: true })
+          .eq('set_id', set.id);
+
+        if (countError) {
+          console.error('❌ Error counting cards for set:', countError);
+        }
+
+        allItems.push({
+          ...set,
+          type: 'deck',
+          isDeck: true,
+          card_count: count || 0,
+          name: set.title
+        });
+      }
+
+      console.log('✅ Total items found:', allItems.length);
+      console.log('📊 Items breakdown:', allItems.map(item => ({
+        name: item.name,
+        type: item.type,
+        hasContent: item.hasContent,
+        totalSets: item.totalSets,
+        totalSubfolders: item.totalSubfolders
+      })));
+
+      setItems(allItems);
+      
     } catch (error) {
-      console.error('💥 Error in fetchClasses:', error);
+      console.error('💥 Error in fetchItems:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const navigateToClass = (classId) => {
+    console.log('🧭 navigateToClass called with:', classId);
     if (classId) {
       setSearchParams({ folder: classId });
     } else {
@@ -276,18 +246,13 @@ export default function Set() {
     if (!folderName.trim()) return;
 
     try {
-      console.log('🚀 === FOLDER CREATION DEBUG ===');
-      console.log('📝 Folder name:', folderName);
-      console.log('📍 Current context:', { currentClassId, currentPath });
-      console.log('👤 User ID:', user.id);
+      console.log('🚀 Creating folder:', folderName, 'in parent:', currentClassId);
       
       const folderData = {
         name: folderName.trim(),
         user_id: user.id,
         parent_id: currentClassId || null
       };
-      
-      console.log('📋 Data being inserted:', folderData);
       
       const { data, error } = await supabase
         .from('classes')
@@ -301,31 +266,8 @@ export default function Set() {
       }
 
       console.log('✅ Folder created successfully:', data);
-      console.log('🔍 Checking what should now be visible...');
-
-      // Close the modal first
       setShowCreateFolderModal(false);
-      
-      // Check what's in the database after creation
-      const { data: checkData, error: checkError } = await supabase
-        .from('classes')
-        .select('id, name, parent_id, created_at')
-        .eq('user_id', user.id)
-        .eq('parent_id', currentClassId || null);
-        
-      console.log('📊 Items that should be visible after creation:', checkData?.length || 0, checkData);
-      
-      // Force a complete refresh of the data
-      console.log('🔄 Triggering fetchClasses...');
-      await fetchClasses();
-      
-      // Add a small delay to ensure state has updated
-      setTimeout(() => {
-        console.log('🎯 After fetchClasses delay, current state:', {
-          classesLength: classes.length,
-          currentClassId: currentClassId
-        });
-      }, 100);
+      await fetchItems();
       
     } catch (error) {
       console.error('💥 Error in createNewFolder:', error);
@@ -333,77 +275,53 @@ export default function Set() {
     }
   };
 
-  // Enhanced delete handlers
-  const handleDeleteClass = async (classId, className, e) => {
-    e.stopPropagation();
+  const handleItemClick = (item, e) => {
+    if (e.target.closest('.folder-actions') || e.target.closest('button')) {
+      console.log('🚫 Click on action button, ignoring item click');
+      return;
+    }
     
-    const classObj = classes.find(c => c.id === classId);
-    const deckCount = classObj?.flashcard_sets?.length || 0;
+    console.log('📁 Item clicked:', item.name, 'Type:', item.type, 'ID:', item.id);
     
-    setDeleteModal({
-      isOpen: true,
-      type: 'folder',
-      id: classId,
-      name: className,
-      onConfirm: () => performDeleteClass(classId),
-      title: 'Delete Folder',
-      message: deckCount > 0 
-        ? `This will permanently delete the folder "${className}" and all ${deckCount} deck${deckCount !== 1 ? 's' : ''} inside it. This action cannot be undone.`
-        : `This will permanently delete the folder "${className}". This action cannot be undone.`
-    });
-  };
-
-  const performDeleteClass = async (classId) => {
-    try {
-      const { error } = await supabase
-        .from('classes')
-        .delete()
-        .eq('id', classId);
-
-      if (!error) {
-        setClasses(prev => prev.filter(c => c.id !== classId));
-      }
-    } catch (err) {
-      console.error('Error deleting class:', err);
+    if (item.type === 'folder') {
+      navigateToClass(item.id);
+    } else if (item.type === 'deck') {
+      navigate(`/flashcards/${item.id}`);
     }
   };
 
-  const handleDeleteDeck = async (deckId, deckTitle, e) => {
+  const handleDeleteItem = async (itemId, itemName, itemType, e) => {
     e.stopPropagation();
+    console.log('🗑️ Delete item clicked:', itemName, itemType);
     
-    const deck = classes.flatMap(c => c.flashcard_sets).find(d => d.id === deckId);
-    const cardCount = deck?.card_count || 0;
+    const item = items.find(i => i.id === itemId);
     
     setDeleteModal({
       isOpen: true,
-      type: 'deck',
-      id: deckId,
-      name: deckTitle,
-      onConfirm: () => performDeleteDeck(deckId),
-      title: 'Delete Deck',
-      message: cardCount > 0 
-        ? `This will permanently delete the deck "${deckTitle}" and all ${cardCount} card${cardCount !== 1 ? 's' : ''} inside it. This action cannot be undone.`
-        : `This will permanently delete the deck "${deckTitle}". This action cannot be undone.`
+      type: itemType,
+      id: itemId,
+      name: itemName,
+      onConfirm: () => performDeleteItem(itemId, itemType),
+      title: itemType === 'folder' ? 'Delete Folder' : 'Delete Deck',
+      message: itemType === 'folder' 
+        ? `This will permanently delete the folder "${itemName}"${item?.hasContent ? ' and all its contents' : ''}. This action cannot be undone.`
+        : `This will permanently delete the deck "${itemName}" and all its cards. This action cannot be undone.`
     });
   };
 
-  const performDeleteDeck = async (deckId) => {
+  const performDeleteItem = async (itemId, itemType) => {
     try {
+      const table = itemType === 'folder' ? 'classes' : 'flashcard_sets';
       const { error } = await supabase
-        .from('flashcard_sets')
+        .from(table)
         .delete()
-        .eq('id', deckId);
+        .eq('id', itemId);
 
       if (!error) {
-        setClasses(prev =>
-          prev.map(c => ({
-            ...c,
-            flashcard_sets: c.flashcard_sets.filter(d => d.id !== deckId)
-          }))
-        );
+        setItems(prev => prev.filter(i => i.id !== itemId));
       }
     } catch (err) {
-      console.error('Error deleting deck:', err);
+      console.error('Error deleting item:', err);
     }
   };
 
@@ -417,41 +335,34 @@ export default function Set() {
     });
   };
 
-  // Handle import success
   const handleImportSuccess = (deckId) => {
-    fetchClasses();
+    fetchItems();
     setShowImportModal(false);
     setSelectedClassId(null);
   };
 
-  // Sort and filter logic - FIXED
-  const getSortedAndFilteredClasses = () => {
-    console.log('🔍 getSortedAndFilteredClasses called with:', classes.length, 'classes');
-    
-    let filtered = classes.filter(cls => 
-      cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cls.flashcard_sets.some(deck => 
-        deck.title.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+  const getSortedAndFilteredItems = () => {
+    let filtered = items.filter(item => 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    console.log('📝 After filtering by search term:', filtered.length, 'classes');
+    // Sort: folders first, then decks
+    filtered.sort((a, b) => {
+      if (a.type !== b.type) {
+        return a.type === 'folder' ? -1 : 1;
+      }
+      
+      switch (sortBy) {
+        case 'alphabetical':
+          return a.name.localeCompare(b.name);
+        case 'oldest':
+          return new Date(a.created_at) - new Date(b.created_at);
+        case 'recent':
+        default:
+          return new Date(b.created_at) - new Date(a.created_at);
+      }
+    });
 
-    // Sort classes
-    switch (sortBy) {
-      case 'alphabetical':
-        filtered.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case 'oldest':
-        filtered.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-        break;
-      case 'recent':
-      default:
-        filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        break;
-    }
-
-    console.log('📊 Final filtered classes:', filtered.map(c => c.name));
     return filtered;
   };
 
@@ -486,21 +397,13 @@ export default function Set() {
     );
   }
 
-  const filteredClasses = getSortedAndFilteredClasses();
-  
-  console.log('🎨 Rendering with:', {
-    classesLength: classes.length,
-    filteredClassesLength: filteredClasses.length,
-    searchTerm,
-    currentClassId,
-    loading
-  });
+  const filteredItems = getSortedAndFilteredItems();
 
   return (
     <Layout>
       <div className="set-page">
         <div className="set-container">
-          {/* Enhanced Header Section */}
+          {/* Header Section */}
           <div className="set-header">
             <div className="header-content">
               <div className="header-text">
@@ -531,34 +434,10 @@ export default function Set() {
                   <span className="btn-icon">+</span>
                   Create Deck
                 </button>
-                {/* Debug button - remove after fixing */}
-                <button 
-                  onClick={() => {
-                    console.log('🔍 DEBUG: Manual refresh triggered');
-                    console.log('📍 Current context:', { currentClassId, currentPath });
-                    console.log('📊 Current classes state:', classes.length, classes.map(c => c.name));
-                    console.log('📝 Current search term:', searchTerm);
-                    const filtered = getSortedAndFilteredClasses();
-                    console.log('🎯 Filtered classes:', filtered.length, filtered.map(c => c.name));
-                    checkDatabaseStructure();
-                    fetchClasses();
-                  }}
-                  className="debug-btn"
-                  style={{ 
-                    background: '#ff6b35', 
-                    color: 'white', 
-                    border: 'none', 
-                    padding: '10px', 
-                    borderRadius: '8px',
-                    fontSize: '0.8rem'
-                  }}
-                >
-                  🔍 Debug
-                </button>
               </div>
             </div>
             
-            {/* Enhanced Breadcrumb Navigation */}
+            {/* Breadcrumb Navigation */}
             {currentPath.length > 0 && (
               <div className="enhanced-breadcrumb">
                 <div className="breadcrumb-content">
@@ -601,7 +480,7 @@ export default function Set() {
               </div>
             )}
             
-            {/* Enhanced Controls Bar */}
+            {/* Controls Bar */}
             <div className="enhanced-controls-bar">
               <div className="search-and-sort">
                 <div className="search-container">
@@ -654,7 +533,7 @@ export default function Set() {
                 <div className="loading-spinner"></div>
                 <p>Loading your library...</p>
               </div>
-            ) : filteredClasses.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon">📚</div>
                 <h3>{searchTerm ? 'No items found' : currentPath.length > 0 ? 'Empty folder' : 'Welcome to your library'}</h3>
@@ -692,25 +571,39 @@ export default function Set() {
                 )}
               </div>
             ) : (
-              <div className={`content-grid ${viewMode}-view`} key={`${currentClassId}-${classes.length}`}>
-                {filteredClasses.map(cls => (
-                  <div key={cls.id} className="folder-card">
-                    {/* Folder Header */}
+              <div className={`content-grid ${viewMode}-view`}>
+                {filteredItems.map(item => (
+                  <div 
+                    key={item.id} 
+                    className={`folder-card ${item.type === 'deck' ? 'deck-card' : ''} clickable-card`}
+                    onClick={(e) => handleItemClick(item, e)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {/* Item Header */}
                     <div className="folder-header">
                       <div className="folder-info">
                         <div className="folder-icon-and-name">
                           <FontAwesomeIcon 
-                            icon={faFolder} 
+                            icon={item.type === 'folder' ? faFolder : faFileImport} 
                             className="folder-icon"
+                            style={{ 
+                              color: item.type === 'folder' ? '#4facfe' : '#ff6b35',
+                              fontSize: '1.8rem'
+                            }}
                           />
                           <div className="folder-details">
-                            <h3 className="folder-name">{cls.name}</h3>
+                            <h3 className="folder-name">{item.name}</h3>
                             <div className="folder-meta">
                               <span className="deck-count">
-                                {cls.flashcard_sets.length} deck{cls.flashcard_sets.length !== 1 ? 's' : ''}
+                                {item.type === 'folder' 
+                                  ? item.hasContent
+                                    ? `${item.totalSubfolders || 0} folder${(item.totalSubfolders || 0) !== 1 ? 's' : ''}, ${item.totalSets || 0} deck${(item.totalSets || 0) !== 1 ? 's' : ''}`
+                                    : 'Empty folder'
+                                  : `${item.card_count || 0} cards`
+                                }
                               </span>
                               <span className="folder-date">
-                                Created {formatDate(cls.created_at)}
+                                Created {formatDate(item.created_at)}
                               </span>
                             </div>
                           </div>
@@ -718,119 +611,111 @@ export default function Set() {
                       </div>
                       
                       <div className="folder-actions">
-                        <button
-                          className="action-btn open-btn"
-                          onClick={() => navigateToClass(cls.id)}
-                          title="Open folder"
-                        >
-                          <FontAwesomeIcon icon={faFolderOpen} />
-                        </button>
-                        <button
-                          className="action-btn import-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedClassId(cls.id);
-                            setShowImportModal(true);
-                          }}
-                          title="Import to this folder"
-                        >
-                          <FontAwesomeIcon icon={faFileImport} />
-                        </button>
-                        <button
-                          className="action-btn add-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedClassId(cls.id);
-                            setShowModal(true);
-                          }}
-                          title="Add deck to folder"
-                        >
-                          <FontAwesomeIcon icon={faPlus} />
-                        </button>
-                        <button
-                          className="action-btn delete-btn"
-                          onClick={(e) => handleDeleteClass(cls.id, cls.name, e)}
-                          title="Delete folder"
-                        >
-                          <FontAwesomeIcon icon={faTrash} />
-                        </button>
+                        {item.type === 'folder' ? (
+                          // Folder actions
+                          <>
+                            <button
+                              className="action-btn open-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log('🔘 Open folder button clicked');
+                                navigateToClass(item.id);
+                              }}
+                              title="Open folder"
+                            >
+                              <FontAwesomeIcon icon={faFolderOpen} />
+                            </button>
+                            <button
+                              className="action-btn import-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedClassId(item.id);
+                                setShowImportModal(true);
+                              }}
+                              title="Import to this folder"
+                            >
+                              <FontAwesomeIcon icon={faFileImport} />
+                            </button>
+                            <button
+                              className="action-btn add-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedClassId(item.id);
+                                setShowModal(true);
+                              }}
+                              title="Add deck to folder"
+                            >
+                              <FontAwesomeIcon icon={faPlus} />
+                            </button>
+                            <button
+                              className="action-btn delete-btn"
+                              onClick={(e) => handleDeleteItem(item.id, item.name, item.type, e)}
+                              title="Delete folder"
+                            >
+                              <FontAwesomeIcon icon={faTrash} />
+                            </button>
+                          </>
+                        ) : (
+                          // Deck actions
+                          <>
+                            <button
+                              className="action-btn open-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/flashcards/${item.id}`);
+                              }}
+                              title="Edit deck"
+                            >
+                              <FontAwesomeIcon icon={faEdit} />
+                            </button>
+                            <button
+                              className="action-btn import-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/study/${item.id}`);
+                              }}
+                              title="Study deck"
+                              style={{ background: 'rgba(40, 167, 69, 0.1)', color: '#28a745', border: '1px solid rgba(40, 167, 69, 0.3)' }}
+                            >
+                              Study
+                            </button>
+                            <button
+                              className="action-btn delete-btn"
+                              onClick={(e) => handleDeleteItem(item.id, item.name, item.type, e)}
+                              title="Delete deck"
+                            >
+                              <FontAwesomeIcon icon={faTrash} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
 
-                    {/* Deck Preview */}
-                    {cls.flashcard_sets.length > 0 && (
-                      <div className="deck-preview">
-                        <div className="preview-header">
-                          <span className="preview-title">Recent Decks</span>
-                          <button
-                            className="view-all-btn"
-                            onClick={() => navigateToClass(cls.id)}
-                          >
-                            View All
-                          </button>
+                    {/* Simplified bottom section - no preview, just visual consistency */}
+                    <div className="item-summary">
+                      {item.type === 'folder' ? (
+                        <div className="folder-summary">
+                          <div className="summary-icon">
+                            📁
+                          </div>
+                          <p>
+                            {item.hasContent 
+                              ? `Contains ${item.totalSubfolders + item.totalSets} items`
+                              : 'Empty folder - click to add content'
+                            }
+                          </p>
                         </div>
-                        <div className="preview-decks">
-                          {cls.flashcard_sets.slice(0, 3).map(deck => (
-                            <div key={deck.id} className="preview-deck">
-                              <div className="preview-deck-info">
-                                <span className="preview-deck-title">{deck.title}</span>
-                                <span className="preview-deck-meta">
-                                  {deck.card_count} cards • {formatDate(deck.created_at)}
-                                </span>
-                              </div>
-                              <div className="preview-deck-actions">
-                                <button
-                                  className="preview-action study"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(`/study/${deck.id}`);
-                                  }}
-                                  title="Study deck"
-                                >
-                                  Study
-                                </button>
-                                <button
-                                  className="preview-action speed"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(`/speed/${deck.id}`);
-                                  }}
-                                  title="Speed mode"
-                                >
-                                  <FontAwesomeIcon icon={faBolt} />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
+                      ) : (
+                        <div className="deck-summary">
+                          <div className="summary-icon">
+                            🗂️
+                          </div>
+                          <p>
+                            Ready to study • {item.card_count || 0} flashcards
+                          </p>
                         </div>
-                      </div>
-                    )}
-
-                    {/* Empty Folder State */}
-                    {cls.flashcard_sets.length === 0 && (
-                      <div className="empty-folder-content">
-                        <div className="empty-folder-icon">📂</div>
-                        <p>Empty folder</p>
-                        <div className="empty-folder-actions">
-                          <button
-                            className="empty-folder-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedClassId(cls.id);
-                              setShowModal(true);
-                            }}
-                          >
-                            Add Deck
-                          </button>
-                          <button
-                            className="empty-folder-btn secondary"
-                            onClick={() => navigateToClass(cls.id)}
-                          >
-                            Open Folder
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -846,7 +731,7 @@ export default function Set() {
               setSelectedClassId(null);
             }}
             onSuccess={() => {
-              fetchClasses();
+              fetchItems();
               setShowModal(false);
               setSelectedClassId(null);
             }}
@@ -873,7 +758,6 @@ export default function Set() {
           />
         )}
 
-        {/* Enhanced Delete Confirmation Modal */}
         <DeleteConfirmationModal
           isOpen={deleteModal.isOpen}
           onClose={closeDeleteModal}
@@ -903,7 +787,6 @@ const CreateFolderModal = ({ onClose, onSuccess, currentPath }) => {
     
     try {
       await onSuccess(folderName);
-      // Success - modal will be closed by parent component
     } catch (err) {
       setError(err.message || 'Failed to create folder');
       setLoading(false);
