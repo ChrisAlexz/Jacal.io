@@ -1,4 +1,4 @@
-/* src/styles/Set.css - ENHANCED HIERARCHICAL TREE VIEW */
+/* src/styles/Set.css - ENHANCED HIERARCHICAL TREE VIEW WITH LIMITED TITLE AND DATE */
 
 .set-page {
   min-height: 100vh;
@@ -344,7 +344,7 @@
   background: rgba(79, 172, 254, 0.1);
 }
 
-/* ===== TREE VIEW STYLES - FIXED FOR PROPER HIERARCHY ===== */
+/* ===== TREE VIEW STYLES - UPDATED WITH TITLE AND DATE ===== */
 .tree-view {
   background: linear-gradient(135deg, #1e1e1e 0%, #252525 100%);
   border: 1px solid #333;
@@ -387,7 +387,7 @@
   border-left: 4px solid #ff6b35;
 }
 
-/* FIXED: Tree Item Icon Section */
+/* Tree Item Icon Section */
 .tree-icon {
   display: flex;
   align-items: center;
@@ -442,14 +442,21 @@
   filter: brightness(1.2);
 }
 
-/* FIXED: Tree Item Info */
+/* UPDATED: Tree Item Info with Title and Date Layout */
 .tree-item-info {
   flex: 1;
   min-width: 0;
   margin-right: 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+}
+
+.tree-item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
 }
 
 .tree-item-name {
@@ -460,6 +467,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.3;
+  cursor: pointer; /* Show that it's clickable */
 }
 
 .tree-folder .tree-item-name {
@@ -469,6 +477,17 @@
 .tree-deck .tree-item-name {
   color: #fff3e0;
 }
+
+/* Date styling - simple faded gray */
+.tree-item-date {
+  font-size: 0.75rem;
+  color: #888;
+  font-weight: 400;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Remove all the special date coloring and effects */
 
 .tree-item-meta {
   display: flex;
@@ -496,12 +515,7 @@
   border: 1px solid rgba(255, 107, 53, 0.3);
 }
 
-.item-date {
-  color: #888;
-  font-size: 0.8rem;
-}
-
-/* FIXED: Tree Item Actions */
+/* Tree Item Actions */
 .tree-item-actions {
   display: flex;
   gap: 8px;
@@ -627,7 +641,7 @@
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
 
-/* FIXED: Tree Children with proper indentation */
+/* Tree Children with proper indentation */
 .tree-children {
   background: linear-gradient(135deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.1) 100%);
   border-top: 1px solid rgba(255, 255, 255, 0.05);
@@ -645,7 +659,7 @@
   background: linear-gradient(180deg, rgba(79, 172, 254, 0.3) 0%, rgba(79, 172, 254, 0.1) 100%);
 }
 
-/* FIXED: Progressive background darkening for nested levels */
+/* Progressive background darkening for nested levels */
 .tree-children .tree-children {
   background: rgba(0, 0, 0, 0.15);
 }
@@ -658,7 +672,7 @@
   background: rgba(0, 0, 0, 0.25);
 }
 
-/* FIXED: Add connecting lines for tree structure */
+/* Add connecting lines for tree structure */
 .tree-children .tree-item::before {
   content: '';
   position: absolute;
@@ -669,38 +683,7 @@
   background: rgba(79, 172, 254, 0.3);
 }
 
-/* FIXED: Add proper indentation indicators */
-.tree-item[style*="36px"]::after {
-  content: '';
-  position: absolute;
-  left: 16px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: rgba(79, 172, 254, 0.2);
-}
-
-.tree-item[style*="60px"]::after {
-  content: '';
-  position: absolute;
-  left: 40px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: rgba(79, 172, 254, 0.2);
-}
-
-.tree-item[style*="84px"]::after {
-  content: '';
-  position: absolute;
-  left: 64px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: rgba(79, 172, 254, 0.2);
-}
-
-/* FIXED: Enhanced depth indicators */
+/* Enhanced depth indicators */
 .tree-item[style*="36px"] {
   background: rgba(79, 172, 254, 0.02);
   border-left: 2px solid rgba(79, 172, 254, 0.2);
@@ -1169,6 +1152,15 @@
     font-size: 1rem;
   }
   
+  /* UPDATED: Mobile responsive for title and date - keep them inline */
+  .tree-item-title-row {
+    gap: 6px;
+  }
+  
+  .tree-item-date {
+    font-size: 0.7rem;
+  }
+  
   .tree-item-meta {
     flex-direction: column;
     gap: 4px;
@@ -1268,6 +1260,15 @@
     font-size: 0.95rem;
   }
   
+  /* UPDATED: Small mobile responsive for title and date - keep them inline */
+  .tree-item-title-row {
+    gap: 4px;
+  }
+  
+  .tree-item-date {
+    font-size: 0.65rem;
+  }
+  
   .tree-item-meta {
     font-size: 0.8rem;
   }
@@ -1331,6 +1332,50 @@
   border-left: 4px solid #4facfe;
 }
 
+/* ===== TOOLTIP FOR TRUNCATED TITLES ===== */
+.tree-item-name[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  top: -45px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: tooltipFadeIn 0.2s ease-out;
+  pointer-events: none;
+}
+
+.tree-item-name[title]:hover::before {
+  content: '';
+  position: absolute;
+  z-index: 999;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+
+@keyframes tooltipFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
 /* ===== REDUCED MOTION SUPPORT ===== */
 @media (prefers-reduced-motion: reduce) {
   .set-page::before,
@@ -1361,6 +1406,10 @@
   .modal-overlay {
     animation: none;
   }
+  
+  .tree-item-name[title]:hover::after {
+    animation: none;
+  }
 }
 
 /* ===== HIGH CONTRAST MODE SUPPORT ===== */
@@ -1382,37 +1431,10 @@
   .tree-view {
     border-width: 2px;
   }
-}
-
-/* ===== TREE DEPTH VISUAL INDICATORS ===== */
-.tree-item[style*="24px"] .tree-item-info::before {
-  content: '';
-  position: absolute;
-  left: 12px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: rgba(79, 172, 254, 0.2);
-}
-
-.tree-item[style*="48px"] .tree-item-info::before {
-  content: '';
-  position: absolute;
-  left: 36px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: rgba(79, 172, 254, 0.2);
-}
-
-.tree-item[style*="72px"] .tree-item-info::before {
-  content: '';
-  position: absolute;
-  left: 60px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: rgba(79, 172, 254, 0.2);
+  
+  .tree-item-date {
+    border-width: 2px;
+  }
 }
 
 /* ===== SELECTION STATES ===== */
@@ -1485,5 +1507,9 @@
   .tree-view {
     box-shadow: none;
     border: 1px solid #333;
+  }
+  
+  .tree-item-date {
+    color: #000 !important;
   }
 }

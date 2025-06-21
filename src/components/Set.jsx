@@ -1,4 +1,4 @@
-// src/components/Set.jsx - FIXED HIERARCHICAL TREE VIEW
+// src/components/Set.jsx - FIXED HIERARCHICAL TREE VIEW WITH LIMITED TITLE AND DATE
 import React, { useEffect, useState, useContext, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
@@ -32,7 +32,31 @@ import {
   faLayerGroup
 } from '@fortawesome/free-solid-svg-icons';
 
-// Helper function to build tree structure from flat data - FIXED
+// Helper function to truncate title with ellipsis
+const truncateTitle = (title, maxLength = 30) => {
+  if (!title) return 'Untitled';
+  if (title.length <= maxLength) return title;
+  return title.substring(0, maxLength) + '...';
+};
+
+// Helper function to format date
+const formatDate = (dateString) => {
+  if (!dateString) return 'Unknown date';
+  
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Unknown date';
+  }
+};
+
+// Helper function to build tree structure from flat data
 const buildTree = (folders, sets) => {
   try {
     console.log('Building tree with folders:', folders?.length, 'sets:', sets?.length);
@@ -142,7 +166,7 @@ const buildTree = (folders, sets) => {
   }
 };
 
-// Tree Node Component - FIXED
+// Tree Node Component - UPDATED WITH LIMITED TITLE AND DATE
 const TreeNode = React.memo(({ 
   item, 
   depth = 0, 
@@ -232,6 +256,10 @@ const TreeNode = React.memo(({
     return null;
   }
   
+  // Get truncated title and formatted date
+  const displayTitle = truncateTitle(item.name, 30);
+  const formattedDate = formatDate(item.created_at);
+  
   return (
     <div className="tree-node">
       <div 
@@ -260,9 +288,19 @@ const TreeNode = React.memo(({
           />
         </div>
         
-        {/* Item Info */}
+        {/* Item Info - UPDATED WITH LIMITED TITLE AND DATE */}
         <div className="tree-item-info">
-          <span className="tree-item-name">{item.name || 'Unnamed Item'}</span>
+          <div className="tree-item-title-row">
+            <span 
+              className="tree-item-name" 
+              title={item.name || 'Unnamed Item'} // Show full name on hover
+            >
+              {displayTitle}
+            </span>
+            <span className="tree-item-date">
+              {formattedDate}
+            </span>
+          </div>
           <div className="tree-item-meta">
             {isFolder ? (
               <span className="item-count">
@@ -273,9 +311,6 @@ const TreeNode = React.memo(({
                 {item.card_count || 0} cards
               </span>
             )}
-            <span className="item-date">
-              {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Unknown date'}
-            </span>
           </div>
         </div>
         
@@ -333,7 +368,7 @@ const TreeNode = React.memo(({
         </div>
       </div>
       
-      {/* Children - FIXED: Only render when expanded and has children */}
+      {/* Children - Only render when expanded and has children */}
       {isFolder && isExpanded && hasVisibleChildren && (
         <div className="tree-children">
           {filteredChildren.map(child => (
@@ -372,7 +407,7 @@ const TreeNode = React.memo(({
   );
 });
 
-// Main SetPage Component - RENAMED TO AVOID CONFLICT WITH JS SET
+// Main SetPage Component
 export default function SetPage() {
   const { user } = useContext(UserAuthContext);
   const navigate = useNavigate();
