@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - Production-safe version
+// src/components/FlashcardStudyPage.jsx - FIXED VERSION with better organization but same CSS structure
 import React, { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
@@ -20,8 +20,36 @@ import {
 
 import "../styles/FlashcardStudyPage.css";
 
+// Helper functions moved to top for better organization
 const getCardType = (card, deckType) => {
   return card.card_type || deckType;
+};
+
+const processClozeText = (text, isRevealed, activeClozeDeletion = 1) => {
+  if (!text) return '';
+  
+  let processedText = text;
+  const clozePattern = /{{c(\d+)::(.*?)}}/g;
+  
+  processedText = processedText.replace(clozePattern, (match, clozeNumber, clozeText) => {
+    const clozeNum = parseInt(clozeNumber);
+    
+    if (isRevealed) {
+      if (clozeNum === activeClozeDeletion) {
+        return `<span class="cloze-revealed-active">${clozeText}</span>`;
+      } else {
+        return `<span class="cloze-revealed-inactive">${clozeText}</span>`;
+      }
+    } else {
+      if (clozeNum === activeClozeDeletion) {
+        return `<span class="cloze-question">[...]</span>`;
+      } else {
+        return `<span class="cloze-other">${clozeText}</span>`;
+      }
+    }
+  });
+  
+  return processedText;
 };
 
 export default function FlashcardStudyPage() {
@@ -133,77 +161,12 @@ export default function FlashcardStudyPage() {
     return getIntervalPreviewsFixed(currentCard, IMMEDIATE_REVIEW_SETTINGS);
   };
 
-  if (sessionCards.length === 0 && allCards.length === 0) {
-    return (
-      <div className="study-container">
-        <div className="loading-study">
-          <div className="loading-spinner"></div>
-          <p>Loading cards...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (sessionCards.length === 0 && allCards.length > 0) {
-    return (
-      <div className="study-container">
-        <div className="study-completion">
-          <div className="completion-icon">🎉</div>
-          <h2>Perfect! All Cards Mastered!</h2>
-          <p>Congratulations! You've marked every single card as "Easy" - you've truly mastered this deck! All {allCards.length} cards have been successfully completed.</p>
-         
-          <div className="completion-actions">
-            <button 
-              type="button"
-              className="back-button"
-              onClick={() => navigate(-1)}
-            >
-              Back to Sets
-            </button>
-            <button 
-              type="button"
-              className="restart-button"
-              onClick={handleMasterAgain}
-            >
-              Master Again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const currentCard = sessionCards.length > 0 && currentIndex < sessionCards.length ? sessionCards[currentIndex] : null;
-  
-  if (!currentCard) {
-    return (
-      <div className="study-container">
-        <div className="loading-study">
-          <div className="loading-spinner"></div>
-          <p>Loading cards...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  const currentCardType = getCardType(currentCard, deckType);
-  
-  const hasCustomBackContent =
-    currentCardType === "Cloze" &&
-    currentCard.back !== currentCard.front &&
-    currentCard.back.trim() !== "";
-
-  const isImageOcclusionCard = currentCard.front && (
-    currentCard.front.includes('image-occlusion-card') || 
-    currentCard.front.includes('occlusion-') ||
-    currentCardType === 'Image-Occlusion'
-  );
-
-  const intervalPreviews = getIntervalPreviewsForCard();
-
   const handleShowAnswer = () => setShowBack(true);
 
   const handleSubmitAnswer = () => {
+    const currentCard = sessionCards[currentIndex];
+    const currentCardType = getCardType(currentCard, deckType);
+    
     if (currentCardType !== 'Basic-Type' || !currentCard) return;
     
     const correctAnswer = currentCard.back.replace(/<[^>]*>/g, '').trim().toLowerCase();
@@ -216,12 +179,12 @@ export default function FlashcardStudyPage() {
 
   // Enhanced difficulty choice handling with minimal logging
   const handleDifficultyChoice = async (difficulty) => {
-    if (!currentCard || !user?.id) {
+    if (!sessionCards[currentIndex] || !user?.id) {
       console.error('Missing card or user for difficulty choice');
       return;
     }
     
-    const currentCardData = currentCard;
+    const currentCardData = sessionCards[currentIndex];
     const now = new Date().toISOString();
     const currentUserId = user.id;
     
@@ -313,32 +276,75 @@ export default function FlashcardStudyPage() {
     }
   };
 
-  const processClozeText = (text, isRevealed, activeClozeDeletion = 1) => {
-    if (currentCardType !== "Cloze") return text;
-    
-    let processedText = text;
-    const clozePattern = /{{c(\d+)::(.*?)}}/g;
-    
-    processedText = processedText.replace(clozePattern, (match, clozeNumber, clozeText) => {
-      const clozeNum = parseInt(clozeNumber);
-      
-      if (isRevealed) {
-        if (clozeNum === activeClozeDeletion) {
-          return `<span class="cloze-revealed-active">${clozeText}</span>`;
-        } else {
-          return `<span class="cloze-revealed-inactive">${clozeText}</span>`;
-        }
-      } else {
-        if (clozeNum === activeClozeDeletion) {
-          return `<span class="cloze-question">[...]</span>`;
-        } else {
-          return `<span class="cloze-other">${clozeText}</span>`;
-        }
-      }
-    });
-    
-    return processedText;
-  };
+  // Loading state
+  if (sessionCards.length === 0 && allCards.length === 0) {
+    return (
+      <div className="study-container">
+        <div className="loading-study">
+          <div className="loading-spinner"></div>
+          <p>Loading cards...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Completion state
+  if (sessionCards.length === 0 && allCards.length > 0) {
+    return (
+      <div className="study-container">
+        <div className="study-completion">
+          <div className="completion-icon">🎉</div>
+          <h2>Perfect! All Cards Mastered!</h2>
+          <p>Congratulations! You've marked every single card as "Easy" - you've truly mastered this deck! All {allCards.length} cards have been successfully completed.</p>
+         
+          <div className="completion-actions">
+            <button 
+              type="button"
+              className="back-button"
+              onClick={() => navigate(-1)}
+            >
+              Back to Sets
+            </button>
+            <button 
+              type="button"
+              className="restart-button"
+              onClick={handleMasterAgain}
+            >
+              Master Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const currentCard = sessionCards[currentIndex];
+  
+  if (!currentCard) {
+    return (
+      <div className="study-container">
+        <div className="loading-study">
+          <div className="loading-spinner"></div>
+          <p>Loading cards...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  const currentCardType = getCardType(currentCard, deckType);
+  
+  const hasCustomBackContent =
+    currentCardType === "Cloze" &&
+    currentCard.back !== currentCard.front &&
+    currentCard.back.trim() !== "";
+
+  const isImageOcclusionCard = currentCard.front && (
+    currentCard.front.includes('image-occlusion-card') || 
+    currentCard.front.includes('occlusion-') ||
+    currentCardType === 'Image-Occlusion'
+  );
+
+  const intervalPreviews = getIntervalPreviewsForCard();
 
   return (
     <div className="study-container">

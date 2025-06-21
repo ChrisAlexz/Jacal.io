@@ -1,0 +1,408 @@
+/* src/components/SpacedLearning.css - Styles for Spaced Learning Component */
+
+.spaced-learning-container {
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+/* SPACED LEARNING CONTROLS */
+.spaced-learning-controls {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  z-index: 1;
+  position: relative;
+}
+
+.spaced-learning-btn {
+  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 28px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(155, 89, 182, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.spaced-learning-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.spaced-learning-btn:hover::before {
+  left: 100%;
+}
+
+.spaced-learning-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(155, 89, 182, 0.5);
+  border-color: rgba(155, 89, 182, 0.6);
+}
+
+.spaced-learning-btn.active {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  border-color: rgba(46, 204, 113, 0.6);
+  box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+}
+
+.spaced-learning-btn.active:hover {
+  box-shadow: 0 8px 25px rgba(46, 204, 113, 0.6);
+}
+
+/* BATCH PROGRESS INDICATOR */
+.batch-progress-indicator {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.batch-info {
+  color: #9b59b6;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  background: rgba(155, 89, 182, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(155, 89, 182, 0.3);
+  backdrop-filter: blur(5px);
+}
+
+/* BATCH COMPLETION SCREEN */
+.batch-completion-screen {
+  text-align: center;
+  padding: 80px 40px;
+  max-width: 600px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, rgba(30, 30, 30, 0.98) 0%, rgba(40, 40, 40, 0.98) 100%);
+  border-radius: 24px;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(155, 89, 182, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+  color: white;
+}
+
+.batch-completion-screen::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #9b59b6 0%, #8e44ad 50%, #9b59b6 100%);
+  animation: batchShimmer 2s ease-in-out infinite;
+}
+
+@keyframes batchShimmer {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.batch-completion-screen .completion-icon {
+  font-size: 5rem;
+  margin-bottom: 24px;
+  animation: batchBounce 2s ease-in-out infinite;
+  filter: drop-shadow(0 4px 12px rgba(155, 89, 182, 0.4));
+}
+
+@keyframes batchBounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+.batch-completion-screen h2 {
+  color: white;
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.batch-completion-screen p {
+  color: #aaa;
+  font-size: 1.1rem;
+  margin: 0 0 40px 0;
+  line-height: 1.6;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 40px;
+}
+
+/* BATCH PROGRESS BAR */
+.batch-progress {
+  margin: 30px 0;
+  text-align: center;
+}
+
+.progress-bar {
+  width: 100%;
+  max-width: 400px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  margin: 0 auto 12px auto;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+  border-radius: 12px;
+  transition: width 0.8s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: progressShimmer 2s ease-in-out infinite;
+}
+
+@keyframes progressShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.progress-text {
+  color: #9b59b6;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* COMPLETION ACTIONS */
+.completion-actions {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 100;
+}
+
+.back-button, 
+.continue-button, 
+.restart-button {
+  padding: 16px 32px;
+  border: none;
+  border-radius: 16px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-decoration: none;
+  min-width: 160px;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.back-button {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ddd;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.back-button::before {
+  content: '←';
+  font-size: 1.2rem;
+  margin-right: 4px;
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.1);
+}
+
+.continue-button {
+  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+  color: white;
+  border: 2px solid transparent;
+  box-shadow: 0 4px 20px rgba(155, 89, 182, 0.4);
+}
+
+.continue-button::before {
+  content: '→';
+  font-size: 1.2rem;
+  margin-left: 4px;
+  order: 2;
+}
+
+.continue-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(155, 89, 182, 0.5);
+  background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+}
+
+.restart-button {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  border: 2px solid transparent;
+  box-shadow: 0 4px 20px rgba(79, 172, 254, 0.3);
+}
+
+.restart-button::before {
+  content: '🔄';
+  font-size: 1.1rem;
+  margin-right: 4px;
+}
+
+.restart-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(79, 172, 254, 0.4);
+}
+
+/* RESPONSIVE DESIGN */
+@media (max-width: 768px) {
+  .spaced-learning-btn {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+  }
+
+  .batch-info {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+  }
+
+  .batch-completion-screen {
+    padding: 60px 30px;
+    margin: 20px;
+    border-radius: 20px;
+  }
+
+  .batch-completion-screen .completion-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+  }
+
+  .batch-completion-screen h2 {
+    font-size: 1.8rem;
+  }
+
+  .batch-completion-screen p {
+    font-size: 1rem;
+    margin-bottom: 30px;
+  }
+
+  .completion-actions {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .back-button, 
+  .continue-button, 
+  .restart-button {
+    width: 100%;
+    padding: 18px 24px;
+  }
+
+  .progress-bar {
+    height: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .spaced-learning-controls {
+    margin-bottom: 15px;
+  }
+
+  .spaced-learning-btn {
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+    padding: 14px 20px;
+  }
+
+  .batch-completion-screen {
+    padding: 50px 20px;
+    margin: 15px;
+  }
+
+  .batch-completion-screen .completion-icon {
+    font-size: 3.5rem;
+  }
+
+  .batch-completion-screen h2 {
+    font-size: 1.6rem;
+  }
+
+  .progress-text {
+    font-size: 1rem;
+  }
+
+  .progress-bar {
+    height: 8px;
+  }
+}
+
+/* HIGH CONTRAST MODE SUPPORT */
+@media (prefers-contrast: high) {
+  .spaced-learning-btn,
+  .batch-completion-screen {
+    border-width: 2px;
+  }
+
+  .progress-bar {
+    border: 2px solid #fff;
+  }
+}
+
+/* REDUCED MOTION SUPPORT */
+@media (prefers-reduced-motion: reduce) {
+  .spaced-learning-btn::before,
+  .progress-fill::after,
+  .batch-completion-screen::before,
+  .batch-completion-screen .completion-icon {
+    animation: none;
+  }
+
+  .spaced-learning-btn:hover,
+  .back-button:hover,
+  .continue-button:hover,
+  .restart-button:hover {
+    transform: none;
+  }
+
+  .progress-fill {
+    transition: width 0.3s ease;
+  }
+}
