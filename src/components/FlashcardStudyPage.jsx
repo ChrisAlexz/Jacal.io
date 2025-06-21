@@ -1,594 +1,385 @@
-// src/components/FlashcardStudyPage.jsx - FIXED VERSION with better organization but same CSS structure
-import React, { useState, useEffect, useContext } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "../supabase";
-import AudioPlayer from "./AudioPlayer";
-import UserAuthContext from './context/UserAuthContext';
-import { trackReview, trackStudySession } from '../utils/heatmapTracking';
-import { 
-  calculateNextReview, 
-  getDueCards, 
-  getStudyStats, 
-  getIntervalPreviews,
-  shouldRemoveFromSession,
-  DEFAULT_SETTINGS,
-  CARD_STATES,
-  IMMEDIATE_REVIEW_SETTINGS,
-  calculateNextReviewWithImmediate,
-  getIntervalPreviewsFixed
-} from "../utils/SpacedRepetition";
+// src/components/SpacedLearning.jsx - FIXED: Proper Integration with StudyPage
+import React, { useState, useEffect, useRef } from 'react';
+import '../styles/SpacedLearning.css';
 
-import "../styles/FlashcardStudyPage.css";
+const SpacedLearning = ({
+  allCards,
+  onCardsUpdate,
+  onSessionCardsUpdate,
+  onCurrentIndexUpdate,
+  onUIReset,
+  isEnabled,
+  onToggle,
+  children
+}) => {
+  // Spaced Learning state
+  const [spacedLearningBatches, setSpacedLearningBatches] = useState([]);
+  const [currentBatchIndex, setCurrentBatchIndex] = useState(0);
+  const [showBatchCompletion, setShowBatchCompletion] = useState(false);
+  const [batchCompletionData, setBatchCompletionData] = useState({ completed: 0, total: 0 });
+  const [isInitialized, setIsInitialized] = useState(false);
 
-// Helper functions moved to top for better organization
-const getCardType = (card, deckType) => {
-  return card.card_type || deckType;
-};
+  // Create ref for external access
+  const spacedLearningRef = useRef();
 
-const processClozeText = (text, isRevealed, activeClozeDeletion = 1) => {
-  if (!text) return '';
-  
-  let processedText = text;
-  const clozePattern = /{{c(\d+)::(.*?)}}/g;
-  
-  processedText = processedText.replace(clozePattern, (match, clozeNumber, clozeText) => {
-    const clozeNum = parseInt(clozeNumber);
-    
-    if (isRevealed) {
-      if (clozeNum === activeClozeDeletion) {
-        return `<span class="cloze-revealed-active">${clozeText}</span>`;
-      } else {
-        return `<span class="cloze-revealed-inactive">${clozeText}</span>`;
-      }
-    } else {
-      if (clozeNum === activeClozeDeletion) {
-        return `<span class="cloze-question">[...]</span>`;
-      } else {
-        return `<span class="cloze-other">${clozeText}</span>`;
-      }
-    }
+  // DEBUG: Log when component renders
+  console.log('🔄 SpacedLearning render:', {
+    allCardsLength: allCards.length,
+    isEnabled,
+    isInitialized,
+    showBatchCompletion
   });
-  
-  return processedText;
-};
 
-export default function FlashcardStudyPage() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const { user } = useContext(UserAuthContext);
-  
-  const [allCards, setAllCards] = useState([]);
-  const [sessionCards, setSessionCards] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [showBack, setShowBack] = useState(false);
-  const [deckType, setDeckType] = useState("Basic");
-  const [setTitle, setSetTitle] = useState("");
-  const [studyStats, setStudyStats] = useState(null);
-  const [showCompletionPopup, setShowCompletionPopup] = useState(false);
-  const [userAnswer, setUserAnswer] = useState('');
-  const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
-  const [isAnswerCorrect, setIsAnswerCorrect] = useState(null);
-  const [isMasterAgainSession, setIsMasterAgainSession] = useState(false);
-  const [sessionReviewCount, setSessionReviewCount] = useState(0);
-
-  useEffect(() => {
-    if (id) {
-      fetchFlashcardSet(id);
+  // Utility functions
+  const createSpacedLearningBatches = (cards, batchSize = 20) => {
+    console.log(`🔧 Creating batches for ${cards.length} cards with batch size ${batchSize}`);
+    const batches = [];
+    
+    // For very large datasets, process in chunks to avoid blocking
+    const processChunk = (startIndex) => {
+      const endIndex = Math.min(startIndex + batchSize, cards.length);
+      batches.push(cards.slice(startIndex, endIndex));
+    };
+    
+    for (let i = 0; i < cards.length; i += batchSize) {
+      processChunk(i);
     }
-  }, [id]);
+    
+    console.log(`✅ Created ${batches.length} batches`);
+    return batches;
+  };
 
-  const fetchFlashcardSet = async (setId) => {
-    try {
-      const { data: setData, error: setError } = await supabase
-        .from("flashcard_sets")
-        .select("*")
-        .eq("id", setId)
-        .single();
+  const shouldUseSpacedLearning = (cards, enabled) => {
+    return enabled && cards.length >= 20;
+  };
 
-      if (setError) {
-        console.error("Error fetching flashcard set");
-        return;
+  // FIXED: Initialize spaced learning when cards or enabled state changes
+  useEffect(() => {
+    console.log('🔄 SpacedLearning useEffect triggered:', {
+      allCardsLength: allCards.length,
+      isEnabled,
+      isInitialized
+    });
+
+    // Always mark as initialized if we have cards, regardless of spaced learning mode
+    if (allCards.length > 0) {
+      if (shouldUseSpacedLearning(allCards, isEnabled)) {
+        console.log('📚 Initializing spaced learning mode');
+        initializeSpacedLearning();
+      } else {
+        console.log('📖 Using regular study mode');
+        // Regular study mode - just pass through cards
+        onSessionCardsUpdate(allCards);
+        onCurrentIndexUpdate(0);
+        setIsInitialized(true);
       }
+    } else if (allCards.length === 0) {
+      // No cards yet, but mark as initialized to show loading state properly
+      setIsInitialized(true);
+    }
+  }, [allCards.length, isEnabled]); // FIXED: Only depend on length and enabled state
 
-      if (setData) {
-        setDeckType(setData.type);
-        setSetTitle(setData.title);
-      }
-
-      const { data, error } = await supabase
-        .from("flashcard_cards")
-        .select("*")
-        .eq("set_id", setId);
-
-      if (error) {
-        console.error("Error fetching flashcards");
-        return;
-      }
-
-      const cards = data || [];
-      
-      // Initialize imported cards properly - they should NOT be considered mastered
-      const cardsWithMasteryStatus = cards.map(card => ({
+  // FIXED: Proper initialization that handles both new sessions and master again
+  const initializeSpacedLearning = () => {
+    console.log('🚀 Starting spaced learning initialization...');
+    
+    // Filter out completed cards only if this isn't a master again session
+    const isMasterAgain = allCards.some(card => card._masterAgainSession);
+    
+    let cardsToUse;
+    if (isMasterAgain) {
+      // Master again: use all cards, reset completion status
+      cardsToUse = allCards.map(card => ({
         ...card,
+        _spacedLearningCompleted: false,
+        _mastered: false
+      }));
+      console.log('🔄 Master Again: Resetting all', cardsToUse.length, 'cards');
+    } else {
+      // Regular session: filter out completed cards
+      cardsToUse = allCards.filter(card => !card._spacedLearningCompleted);
+      console.log('📚 Regular session: Using', cardsToUse.length, 'incomplete cards');
+    }
+    
+    if (cardsToUse.length === 0) {
+      console.log('✅ All spaced learning completed');
+      setSpacedLearningBatches([]);
+      setCurrentBatchIndex(0);
+      onSessionCardsUpdate([]);
+      setIsInitialized(true);
+      return;
+    }
+    
+    // OPTIMIZED: Create batches more efficiently for large datasets
+    console.log('📊 Creating batches for', cardsToUse.length, 'cards...');
+    const batches = createSpacedLearningBatches(cardsToUse);
+    console.log('✅ Created', batches.length, 'batches');
+    
+    setSpacedLearningBatches(batches);
+    setCurrentBatchIndex(0);
+    setShowBatchCompletion(false);
+    
+    if (batches.length > 0) {
+      console.log('🎯 Starting batch 1 with', batches[0].length, 'cards');
+      onSessionCardsUpdate(batches[0]);
+      onCurrentIndexUpdate(0);
+    }
+    
+    setIsInitialized(true);
+    console.log('🎉 Spaced learning initialization complete!');
+  };
+
+  // FIXED: Toggle spaced learning with proper state management
+  const toggleSpacedLearning = () => {
+    const newEnabled = !isEnabled;
+    console.log('🔄 Toggling spaced learning:', newEnabled ? 'ON' : 'OFF');
+    onToggle(newEnabled);
+    
+    // Reset UI state
+    onUIReset();
+    onCurrentIndexUpdate(0);
+    setShowBatchCompletion(false);
+    
+    if (newEnabled && allCards.length >= 20) {
+      // Enable spaced learning
+      console.log('✅ Enabling spaced learning mode');
+      initializeSpacedLearning();
+    } else {
+      // Disable spaced learning - return to normal mode
+      console.log('❌ Disabling spaced learning, returning to normal mode');
+      setSpacedLearningBatches([]);
+      setCurrentBatchIndex(0);
+      onSessionCardsUpdate(allCards);
+      setIsInitialized(true);
+    }
+  };
+
+  // FIXED: Handle batch completion properly
+  const handleBatchCompletion = () => {
+    console.log('🎯 handleBatchCompletion called for batch', currentBatchIndex + 1);
+    
+    const completedBatch = currentBatchIndex + 1;
+    const totalBatches = spacedLearningBatches.length;
+    
+    console.log(`📊 Batch ${completedBatch} of ${totalBatches} completed`);
+    
+    setBatchCompletionData({
+      completed: completedBatch,
+      total: totalBatches
+    });
+    
+    // Mark current batch cards as completed
+    const updatedAllCards = allCards.map(card => {
+      const isInCurrentBatch = spacedLearningBatches[currentBatchIndex]?.some(
+        batchCard => batchCard.id === card.id
+      );
+      if (isInCurrentBatch) {
+        console.log('✅ Marking card as spaced learning completed:', card.id);
+        return { ...card, _spacedLearningCompleted: true };
+      }
+      return card;
+    });
+    
+    onCardsUpdate(updatedAllCards);
+    
+    // CRITICAL: Show batch completion screen
+    setShowBatchCompletion(true);
+    console.log('🎉 Batch completion screen should now be visible');
+  };
+
+  // FIXED: Continue to next batch
+  const continueToNextBatch = () => {
+    console.log('➡️ Continuing to next batch');
+    setShowBatchCompletion(false);
+    
+    const nextBatchIndex = currentBatchIndex + 1;
+    if (nextBatchIndex < spacedLearningBatches.length) {
+      console.log('🎯 Starting batch', nextBatchIndex + 1, 'of', spacedLearningBatches.length);
+      setCurrentBatchIndex(nextBatchIndex);
+      onSessionCardsUpdate(spacedLearningBatches[nextBatchIndex]);
+      onCurrentIndexUpdate(0);
+      onUIReset();
+    } else {
+      // All batches completed
+      console.log('🎉 All spaced learning batches completed!');
+      onToggle(false);
+      onSessionCardsUpdate([]);
+    }
+  };
+
+  // FIXED: Reset spaced learning properly
+  const resetSpacedLearning = () => {
+    console.log('🔄 Resetting spaced learning');
+    if (isEnabled && allCards.length >= 20) {
+      const resetCards = allCards.map(card => ({
+        ...card,
+        _spacedLearningCompleted: false,
         _mastered: false,
-        _isImported: true
+        _masterAgainSession: true // Mark as master again session
       }));
       
-      setAllCards(cardsWithMasteryStatus);
-      setSessionCards(cardsWithMasteryStatus);
-      setCurrentIndex(0);
+      onCardsUpdate(resetCards);
       
-      const stats = getStudyStats(cardsWithMasteryStatus);
-      setStudyStats(stats);
-      
-    } catch (error) {
-      console.error("Error in fetchFlashcardSet");
+      // Will trigger re-initialization via useEffect
+      setShowBatchCompletion(false);
     }
   };
 
-  const handleMasterAgain = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!user?.id || allCards.length === 0) {
-      return;
-    }
-    
-    const resetCards = allCards.map(card => ({
-      ...card,
-      _masterAgainSession: true,
-      _mastered: false,
-      session_failures: 0,
-      session_reviews: 0
-    }));
-    
-    setSessionCards(resetCards);
-    setIsMasterAgainSession(true);
-    setCurrentIndex(0);
-    setShowBack(false);
-    setShowCorrectAnswer(false);
-    setIsAnswerCorrect(null);
-    setUserAnswer('');
-    setSessionReviewCount(0);
-  };
+  // FIXED: Expose methods to parent component via ref
+  useEffect(() => {
+    spacedLearningRef.current = {
+      handleBatchCompletion,
+      resetSpacedLearning,
+      shouldUseSpacedLearning: () => shouldUseSpacedLearning(allCards, isEnabled),
+      initializeSpacedLearning
+    };
 
-  const getIntervalPreviewsForCard = () => {
-    if (sessionCards.length === 0 || currentIndex >= sessionCards.length || !sessionCards[currentIndex]) {
-      return { again: "30s", hard: "10m", good: "1d", easy: "4d" };
+    // Also expose globally for FlashcardStudyPage to access
+    if (window) {
+      window.spacedLearningRef = spacedLearningRef;
     }
 
-    const currentCard = sessionCards[currentIndex];
-    return getIntervalPreviewsFixed(currentCard, IMMEDIATE_REVIEW_SETTINGS);
-  };
+    return () => {
+      if (window) {
+        window.spacedLearningRef = null;
+      }
+    };
+  }, [allCards, isEnabled, spacedLearningBatches, currentBatchIndex]);
 
-  const handleShowAnswer = () => setShowBack(true);
-
-  const handleSubmitAnswer = () => {
-    const currentCard = sessionCards[currentIndex];
-    const currentCardType = getCardType(currentCard, deckType);
-    
-    if (currentCardType !== 'Basic-Type' || !currentCard) return;
-    
-    const correctAnswer = currentCard.back.replace(/<[^>]*>/g, '').trim().toLowerCase();
-    const userAnswerClean = userAnswer.trim().toLowerCase();
-    
-    const isCorrect = correctAnswer === userAnswerClean;
-    setIsAnswerCorrect(isCorrect);
-    setShowCorrectAnswer(true);
-  };
-
-  // Enhanced difficulty choice handling with minimal logging
-  const handleDifficultyChoice = async (difficulty) => {
-    if (!sessionCards[currentIndex] || !user?.id) {
-      console.error('Missing card or user for difficulty choice');
-      return;
-    }
-    
-    const currentCardData = sessionCards[currentIndex];
-    const now = new Date().toISOString();
-    const currentUserId = user.id;
-    
-    try {
-      // STEP 1: Update card in database
-      const basicUpdate = {
-        last_reviewed: now,
-        reviews: (currentCardData.reviews || 0) + 1
-      };
-
-      const { error: basicError } = await supabase
-        .from('flashcard_cards')
-        .update(basicUpdate)
-        .eq('id', currentCardData.id);
-
-      if (basicError) {
-        console.error('Database update failed');
-      } else {
-        // STEP 2: Track in heatmap (ONLY ONCE per card review)
-        try {
-          const trackingSuccess = await trackReview(currentUserId, isMasterAgainSession);
-          if (trackingSuccess) {
-            setSessionReviewCount(prev => prev + 1);
-          }
-        } catch (trackingError) {
-          console.error('Heatmap tracking error');
+  // Don't render anything until initialized, but add timeout for large datasets
+  if (!isInitialized) {
+    // Add timeout for very large datasets
+    setTimeout(() => {
+      if (!isInitialized) {
+        console.log('⚠️ Initialization timeout - forcing initialization');
+        setIsInitialized(true);
+        // If still no session cards, provide a fallback
+        if (allCards.length > 0) {
+          onSessionCardsUpdate(allCards.slice(0, 20)); // Show first 20 as fallback
         }
       }
+    }, 3000); // 3 second timeout
 
-      // STEP 3: Session management
-      const updatedCard = {
-        ...currentCardData,
-        last_reviewed: now,
-        reviews: (currentCardData.reviews || 0) + 1
-      };
-
-      const newAllCards = allCards.map(card => 
-        card.id === currentCardData.id ? updatedCard : card
-      );
-      setAllCards(newAllCards);
-
-      if (difficulty === 'easy') {
-        // Mark card as mastered and remove from session
-        const newSessionCards = sessionCards.filter((_, index) => index !== currentIndex);
-        setSessionCards(newSessionCards);
-        
-        // Update the card in allCards to mark it as mastered
-        const newAllCards = allCards.map(card => 
-          card.id === currentCardData.id ? { ...updatedCard, _mastered: true } : card
-        );
-        setAllCards(newAllCards);
-        
-        if (newSessionCards.length === 0) {
-          setShowCompletionPopup(true);
-          setTimeout(() => setShowCompletionPopup(false), 2000);
-          return;
-        }
-        
-        const nextIndex = currentIndex >= newSessionCards.length ? 0 : currentIndex;
-        setCurrentIndex(nextIndex);
-        
-      } else if (difficulty === 'again') {
-        const newSessionCards = [...sessionCards];
-        const moveToPosition = Math.min(currentIndex + 3, newSessionCards.length - 1);
-        
-        if (moveToPosition !== currentIndex && newSessionCards.length > 3) {
-          const [cardToMove] = newSessionCards.splice(currentIndex, 1);
-          newSessionCards.splice(moveToPosition, 0, cardToMove);
-        }
-        
-        setSessionCards(newSessionCards);
-        const nextIndex = currentIndex >= newSessionCards.length ? 0 : currentIndex;
-        setCurrentIndex(nextIndex);
-        
-      } else {
-        const nextIndex = (currentIndex + 1) % sessionCards.length;
-        setCurrentIndex(nextIndex);
-      }
-
-      // Reset UI state
-      setShowBack(false);
-      setShowCorrectAnswer(false);
-      setIsAnswerCorrect(null);
-      setUserAnswer('');
-
-    } catch (error) {
-      console.error('Error in handleDifficultyChoice');
-      alert('There was an error processing your answer.');
-    }
-  };
-
-  // Loading state
-  if (sessionCards.length === 0 && allCards.length === 0) {
     return (
-      <div className="study-container">
-        <div className="loading-study">
+      <div className="spaced-learning-container">
+        <div className="loading-spaced-learning">
           <div className="loading-spinner"></div>
-          <p>Loading cards...</p>
+          <p>Initializing study session...</p>
+          {allCards.length > 100 && (
+            <p style={{ fontSize: '0.9rem', color: '#888', marginTop: '10px' }}>
+              Large deck detected ({allCards.length} cards) - this may take a moment...
+            </p>
+          )}
         </div>
       </div>
     );
   }
 
-  // Completion state
-  if (sessionCards.length === 0 && allCards.length > 0) {
+  // CRITICAL: Debug log to see what state we're in
+  console.log('🔍 SpacedLearning render state:', {
+    showBatchCompletion,
+    isEnabled,
+    batchesLength: spacedLearningBatches.length,
+    currentBatchIndex,
+    batchCompletionData
+  });
+
+  // FIXED: Batch completion screen
+  if (showBatchCompletion) {
+    const isLastBatch = batchCompletionData.completed >= batchCompletionData.total;
+    
+    console.log('🎭 Rendering batch completion screen:', {
+      isLastBatch,
+      completed: batchCompletionData.completed,
+      total: batchCompletionData.total
+    });
+    
     return (
-      <div className="study-container">
-        <div className="study-completion">
-          <div className="completion-icon">🎉</div>
-          <h2>Perfect! All Cards Mastered!</h2>
-          <p>Congratulations! You've marked every single card as "Easy" - you've truly mastered this deck! All {allCards.length} cards have been successfully completed.</p>
+      <div className="spaced-learning-container">
+        <div className="batch-completion-screen">
+          <div className="completion-icon">🎯</div>
+          <h2>
+            {isLastBatch ? 'All Sessions Complete!' : `Session ${batchCompletionData.completed} Complete!`}
+          </h2>
+          <p>
+            {isLastBatch 
+              ? `Congratulations! You've completed all ${batchCompletionData.total} sessions in this spaced learning deck. You've mastered the entire set!`
+              : `Great job! You've completed session ${batchCompletionData.completed} of ${batchCompletionData.total}. Ready for the next batch of 20 cards?`
+            }
+          </p>
+          
+          <div className="batch-progress">
+            <div className="progress-bar">
+              <div 
+                className="progress-fill" 
+                style={{ width: `${(batchCompletionData.completed / batchCompletionData.total) * 100}%` }}
+              ></div>
+            </div>
+            <span className="progress-text">
+              {batchCompletionData.completed} / {batchCompletionData.total} sessions completed
+            </span>
+          </div>
          
           <div className="completion-actions">
             <button 
               type="button"
               className="back-button"
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                console.log('🔙 Back button clicked');
+                window.history.back();
+              }}
             >
               Back to Sets
             </button>
-            <button 
-              type="button"
-              className="restart-button"
-              onClick={handleMasterAgain}
-            >
-              Master Again
-            </button>
+            {!isLastBatch && (
+              <button 
+                type="button"
+                className="continue-button"
+                onClick={() => {
+                  console.log('➡️ Continue button clicked');
+                  continueToNextBatch();
+                }}
+              >
+                Continue to Next Session
+              </button>
+            )}
+            {isLastBatch && (
+              <button 
+                type="button"
+                className="restart-button"
+                onClick={() => {
+                  console.log('🔄 Restart button clicked');
+                  resetSpacedLearning();
+                }}
+              >
+                Study Again
+              </button>
+            )}
           </div>
         </div>
       </div>
     );
   }
 
-  const currentCard = sessionCards[currentIndex];
-  
-  if (!currentCard) {
-    return (
-      <div className="study-container">
-        <div className="loading-study">
-          <div className="loading-spinner"></div>
-          <p>Loading cards...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  const currentCardType = getCardType(currentCard, deckType);
-  
-  const hasCustomBackContent =
-    currentCardType === "Cloze" &&
-    currentCard.back !== currentCard.front &&
-    currentCard.back.trim() !== "";
-
-  const isImageOcclusionCard = currentCard.front && (
-    currentCard.front.includes('image-occlusion-card') || 
-    currentCard.front.includes('occlusion-') ||
-    currentCardType === 'Image-Occlusion'
-  );
-
-  const intervalPreviews = getIntervalPreviewsForCard();
-
+  // Regular study interface - just show batch progress and pass through children
   return (
-    <div className="study-container">
-      {showCompletionPopup && (
-        <div className="completion-popup">
-          <div className="completion-popup-content">
-            <div className="completion-popup-icon">🎉</div>
-            <div className="completion-popup-text">
-              <h3>Card Mastered!</h3>
-              <p>Marked as Easy!</p>
-            </div>
-          </div>
+    <div className="spaced-learning-container">
+      {/* Batch Progress Indicator - Only show when enabled and multiple batches */}
+      {isEnabled && spacedLearningBatches.length > 1 && (
+        <div className="batch-progress-indicator">
+          <span className="batch-info">
+            Session {currentBatchIndex + 1} of {spacedLearningBatches.length}
+            <span className="batch-cards-info">
+              ({spacedLearningBatches[currentBatchIndex]?.length || 0} cards in this session)
+            </span>
+          </span>
         </div>
       )}
 
-      <div className="study-header">
-        <div className="study-info">
-          <h1>{setTitle}</h1>
-          <div className="progress-info">
-            <span>{currentIndex + 1} / {sessionCards.length} cards remaining</span>
-          </div>
-        </div>
-        
-        <div className="study-stats-header">
-          <div className="stat-item total-cards">
-            <span className="count">{allCards.length}</span>
-            <span className="label">Total Cards</span>
-          </div>
-          <div className="stat-item remaining">
-            <span className="count">{sessionCards.length}</span>
-            <span className="label">Remaining</span>
-          </div>
-          <div className="stat-item mastered">
-            <span className="count">{allCards.filter(card => card._mastered === true).length}</span>
-            <span className="label">Mastered</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="study-mode-selector">
-        <button 
-          className="speed-focus-btn"
-          onClick={() => navigate(`/speed/${id}`)}
-          title="Speed Focus Mode - Test your knowledge under time pressure!"
-        >
-          ⚡ Speed Focus Mode
-        </button>
-      </div>
-
-      <div className="flashcard-study-box">
-        <div className="flashcard-front">
-          {isImageOcclusionCard ? (
-            <div dangerouslySetInnerHTML={{ __html: currentCard.front }} />
-          ) : currentCardType === "Cloze" ? (
-            <div dangerouslySetInnerHTML={{ __html: processClozeText(currentCard.front, showBack, 1) }} />
-          ) : (
-            <div dangerouslySetInnerHTML={{ __html: currentCard.front }} />
-          )}
-        </div>
-
-        {currentCard.front_audio_url && (
-          <div className="card-audio front-audio" key={`front-audio-${currentCard.id}-${currentIndex}`}>
-            <div style={{ padding: '12px', background: 'rgba(79, 172, 254, 0.1)', borderRadius: '8px' }}>
-              <div style={{ marginBottom: '8px', color: '#4facfe', fontWeight: '600', fontSize: '0.9rem' }}>
-                🎵 Front Audio
-              </div>
-              <audio controls style={{ width: '100%' }}>
-                <source src={currentCard.front_audio_url} type="audio/webm" />
-                <source src={currentCard.front_audio_url} type="audio/mp4" />
-                <source src={currentCard.front_audio_url} type="audio/mpeg" />
-                Your browser does not support audio playback.
-              </audio>
-            </div>
-          </div>
-        )}
-
-        {currentCardType === 'Basic-Type' && !showCorrectAnswer && (
-          <div className="type-answer-section">
-            <input
-              type="text"
-              value={userAnswer}
-              onChange={(e) => setUserAnswer(e.target.value)}
-              placeholder="Type your answer here..."
-              className="answer-input"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && userAnswer.trim()) {
-                  handleSubmitAnswer();
-                }
-              }}
-              autoFocus
-            />
-            <button 
-              className="submit-answer-btn" 
-              onClick={handleSubmitAnswer}
-              disabled={!userAnswer.trim()}
-            >
-              Submit Answer
-            </button>
-          </div>
-        )}
-
-        {currentCardType === 'Basic-Type' && showCorrectAnswer && (
-          <div className="answer-results">
-            <div className={`answer-feedback ${isAnswerCorrect ? 'correct' : 'incorrect'}`}>
-              <span>{isAnswerCorrect ? '✅' : '❌'}</span>
-              <span>{isAnswerCorrect ? 'Correct!' : 'Incorrect'}</span>
-            </div>
-            <div className="answer-comparison">
-              <div className="user-answer">
-                <strong>Your answer:</strong>
-                <div>{userAnswer}</div>
-              </div>
-              <div className="correct-answer">
-                <strong>Correct answer:</strong> 
-                <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
-              </div>
-            </div>
-            
-            {currentCard.back_audio_url && (
-              <div className="card-audio back-audio" key={`back-audio-basic-${currentCard.id}-${currentIndex}`}>
-                <div style={{ padding: '12px', background: 'rgba(40, 167, 69, 0.1)', borderRadius: '8px' }}>
-                  <div style={{ marginBottom: '8px', color: '#28a745', fontWeight: '600', fontSize: '0.9rem' }}>
-                    🎵 Back Audio
-                  </div>
-                  <audio controls style={{ width: '100%' }}>
-                    <source src={currentCard.back_audio_url} type="audio/webm" />
-                    <source src={currentCard.back_audio_url} type="audio/mp4" />
-                    <source src={currentCard.back_audio_url} type="audio/mpeg" />
-                    Your browser does not support audio playback.
-                  </audio>
-                </div>
-              </div>
-            )}
-            
-            <div className="difficulty-buttons">
-              <div className="interval-preview">
-                <div className="interval-item">
-                  <button className="again-btn preview" disabled>Again</button>
-                  <span className="interval-text">{intervalPreviews.again}</span>
-                </div>
-                <div className="interval-item">
-                  <button className="hard-btn preview" disabled>Hard</button>
-                  <span className="interval-text">{intervalPreviews.hard}</span>
-                </div>
-                <div className="interval-item">
-                  <button className="good-btn preview" disabled>Good</button>
-                  <span className="interval-text">{intervalPreviews.good}</span>
-                </div>
-                <div className="interval-item">
-                  <button className="easy-btn preview" disabled>Easy</button>
-                  <span className="interval-text">{intervalPreviews.easy}</span>
-                </div>
-              </div>
-              <div className="button-row">
-                <button className="again-btn" onClick={() => handleDifficultyChoice('again')}>
-                  Again
-                </button>
-                <button className="hard-btn" onClick={() => handleDifficultyChoice('hard')}>
-                  Hard
-                </button>
-                <button className="good-btn" onClick={() => handleDifficultyChoice('good')}>
-                  Good
-                </button>
-                <button className="easy-btn" onClick={() => handleDifficultyChoice('easy')}>
-                  Easy
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {currentCardType !== 'Basic-Type' && !showBack && (
-          <button className="show-answer-btn" onClick={handleShowAnswer}>
-            Show Answer
-          </button>
-        )}
-
-        {currentCardType !== 'Basic-Type' && showBack && (
-          <>
-            {isImageOcclusionCard && (
-              <div className="flashcard-back">
-                <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
-              </div>
-            )}
-            
-            {!isImageOcclusionCard && (currentCardType !== "Cloze" || hasCustomBackContent) && (
-              <div className="flashcard-back">
-                <div dangerouslySetInnerHTML={{ __html: currentCard.back }} />
-              </div>
-            )}
-
-            {currentCard.back_audio_url && (
-              <div className="card-audio back-audio" key={`back-audio-${currentCard.id}-${currentIndex}`}>
-                <div style={{ padding: '12px', background: 'rgba(40, 167, 69, 0.1)', borderRadius: '8px' }}>
-                  <div style={{ marginBottom: '8px', color: '#28a745', fontWeight: '600', fontSize: '0.9rem' }}>
-                    🎵 Back Audio
-                  </div>
-                  <audio controls style={{ width: '100%' }}>
-                    <source src={currentCard.back_audio_url} type="audio/webm" />
-                    <source src={currentCard.back_audio_url} type="audio/mp4" />
-                    <source src={currentCard.back_audio_url} type="audio/mpeg" />
-                    Your browser does not support audio playback.
-                  </audio>
-                </div>
-              </div>
-            )}
-
-            <div className="difficulty-buttons">
-              <div className="interval-preview">
-                <div className="interval-item">
-                  <button className="again-btn preview" disabled>Again</button>
-                  <span className="interval-text">{intervalPreviews.again}</span>
-                </div>
-                <div className="interval-item">
-                  <button className="hard-btn preview" disabled>Hard</button>
-                  <span className="interval-text">{intervalPreviews.hard}</span>
-                </div>
-                <div className="interval-item">
-                  <button className="good-btn preview" disabled>Good</button>
-                  <span className="interval-text">{intervalPreviews.good}</span>
-                </div>
-                <div className="interval-item">
-                  <button className="easy-btn preview" disabled>Easy</button>
-                  <span className="interval-text">{intervalPreviews.easy}</span>
-                </div>
-              </div>
-              <div className="button-row">
-                <button className="again-btn" onClick={() => handleDifficultyChoice('again')}>
-                  Again
-                </button>
-                <button className="hard-btn" onClick={() => handleDifficultyChoice('hard')}>
-                  Hard
-                </button>
-                <button className="good-btn" onClick={() => handleDifficultyChoice('good')}>
-                  Good
-                </button>
-                <button className="easy-btn" onClick={() => handleDifficultyChoice('easy')}>
-                  Easy
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
+      {/* Pass through children (main study content) */}
+      {children}
     </div>
   );
-}
+};
+
+export default SpacedLearning;

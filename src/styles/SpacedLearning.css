@@ -1,4 +1,4 @@
-/* src/components/SpacedLearning.css - Styles for Spaced Learning Component */
+/* src/styles/SpacedLearning.css - UPDATED: Better Button Visibility */
 
 .spaced-learning-container {
   width: 100%;
@@ -9,10 +9,20 @@
 /* SPACED LEARNING CONTROLS */
 .spaced-learning-controls {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   margin-bottom: 20px;
   z-index: 1;
   position: relative;
+  padding: 10px;
+  background: rgba(30, 30, 30, 0.95);
+  border-radius: 16px;
+  border: 1px solid rgba(155, 89, 182, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.spaced-learning-controls.loading-controls {
+  opacity: 0.7;
 }
 
 .spaced-learning-btn {
@@ -33,6 +43,13 @@
   border: 1px solid rgba(155, 89, 182, 0.3);
   position: relative;
   overflow: hidden;
+  min-width: 280px;
+  justify-content: center;
+}
+
+.spaced-learning-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .spaced-learning-btn::before {
@@ -46,11 +63,11 @@
   transition: left 0.5s;
 }
 
-.spaced-learning-btn:hover::before {
+.spaced-learning-btn:hover:not(:disabled)::before {
   left: 100%;
 }
 
-.spaced-learning-btn:hover {
+.spaced-learning-btn:hover:not(:disabled) {
   transform: translateY(-3px);
   box-shadow: 0 8px 25px rgba(155, 89, 182, 0.5);
   border-color: rgba(155, 89, 182, 0.6);
@@ -62,8 +79,26 @@
   box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
 }
 
-.spaced-learning-btn.active:hover {
+.spaced-learning-btn.active:hover:not(:disabled) {
   box-shadow: 0 8px 25px rgba(46, 204, 113, 0.6);
+}
+
+/* SPACED LEARNING HINT */
+.spaced-learning-hint {
+  margin-top: 10px;
+  text-align: center;
+  padding: 8px 16px;
+  background: rgba(155, 89, 182, 0.1);
+  border: 1px solid rgba(155, 89, 182, 0.3);
+  border-radius: 8px;
+  max-width: 400px;
+}
+
+.spaced-learning-hint small {
+  color: #bb86fc;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  display: block;
 }
 
 /* BATCH PROGRESS INDICATOR */
@@ -82,6 +117,49 @@
   border-radius: 12px;
   border: 1px solid rgba(155, 89, 182, 0.3);
   backdrop-filter: blur(5px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.batch-cards-info {
+  font-size: 0.75rem;
+  color: #bb86fc;
+  font-weight: 400;
+}
+
+/* LOADING SPACED LEARNING */
+.loading-spaced-learning {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: white;
+}
+
+.loading-spaced-learning .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(155, 89, 182, 0.3);
+  border-top: 3px solid #9b59b6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-spaced-learning p {
+  color: #bb86fc;
+  font-size: 1rem;
+  margin: 0;
 }
 
 /* BATCH COMPLETION SCREEN */
@@ -260,11 +338,10 @@
   box-shadow: 0 4px 20px rgba(155, 89, 182, 0.4);
 }
 
-.continue-button::before {
+.continue-button::after {
   content: '→';
   font-size: 1.2rem;
   margin-left: 4px;
-  order: 2;
 }
 
 .continue-button:hover {
@@ -293,14 +370,33 @@
 
 /* RESPONSIVE DESIGN */
 @media (max-width: 768px) {
+  .spaced-learning-controls {
+    padding: 8px;
+    margin-bottom: 16px;
+  }
+
   .spaced-learning-btn {
     padding: 12px 20px;
     font-size: 0.9rem;
+    min-width: 240px;
+  }
+
+  .spaced-learning-hint {
+    padding: 6px 12px;
+    margin-top: 8px;
+  }
+
+  .spaced-learning-hint small {
+    font-size: 0.8rem;
   }
 
   .batch-info {
     font-size: 0.8rem;
     padding: 6px 12px;
+  }
+
+  .batch-cards-info {
+    font-size: 0.7rem;
   }
 
   .batch-completion-screen {
@@ -343,6 +439,7 @@
 @media (max-width: 480px) {
   .spaced-learning-controls {
     margin-bottom: 15px;
+    padding: 6px;
   }
 
   .spaced-learning-btn {
@@ -350,6 +447,7 @@
     max-width: 300px;
     justify-content: center;
     padding: 14px 20px;
+    min-width: unset;
   }
 
   .batch-completion-screen {
@@ -377,6 +475,7 @@
 /* HIGH CONTRAST MODE SUPPORT */
 @media (prefers-contrast: high) {
   .spaced-learning-btn,
+  .spaced-learning-controls,
   .batch-completion-screen {
     border-width: 2px;
   }
@@ -391,7 +490,8 @@
   .spaced-learning-btn::before,
   .progress-fill::after,
   .batch-completion-screen::before,
-  .batch-completion-screen .completion-icon {
+  .batch-completion-screen .completion-icon,
+  .loading-spaced-learning .loading-spinner {
     animation: none;
   }
 
