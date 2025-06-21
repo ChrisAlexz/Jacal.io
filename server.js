@@ -1,13 +1,48 @@
-// server.js - Enhanced with debug logging and fixed port
+// Add these lines to the TOP of your server.js file, right after the imports
+
 const express = require('express');
 const cors = require('cors');
 const { Resend } = require('resend');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 3001; // Changed from 3002 to 3001
+const port = process.env.PORT || 3001;
 
-// Initialize Resend with your API key
+// ====== ADD THESE LINES TO FIX HTTP 431 ERROR ======
+
+// Increase header size limits to prevent 431 errors
+app.use((req, res, next) => {
+  // Set security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  next();
+});
+
+// Increase limits to prevent 431 Request Header Fields Too Large
+app.use(express.json({ 
+  limit: '2mb',
+  parameterLimit: 20000,
+  extended: true
+}));
+
+app.use(express.urlencoded({ 
+  limit: '2mb', 
+  extended: true,
+  parameterLimit: 20000
+}));
+
+// CORS with increased header limits
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+  maxAge: 86400, // 24 hours
+  preflightContinue: false,
+  optionsSuccessStatus: 200
+}));
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Middleware

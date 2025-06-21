@@ -11,8 +11,9 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { isLoggedIn, user } = useContext(UserAuthContext);
 
-  console.log('Navbar isLoggedIn:', isLoggedIn);
-  console.log('Navbar user:', user);
+  // REMOVED: Sensitive logging that exposes user data in production
+  // console.log('Navbar isLoggedIn:', isLoggedIn);
+  // console.log('Navbar user:', user);
 
   return (
     <div className="navbar">

@@ -1,4 +1,4 @@
-// src/components/Set.jsx - FIXED HIERARCHICAL TREE VIEW WITH LIMITED TITLE AND DATE
+// src/components/Set.jsx - PRODUCTION-SAFE VERSION with minimal logging
 import React, { useEffect, useState, useContext, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
@@ -51,16 +51,13 @@ const formatDate = (dateString) => {
       day: '2-digit' 
     });
   } catch (error) {
-    console.error('Error formatting date:', error);
     return 'Unknown date';
   }
 };
 
-// Helper function to build tree structure from flat data
+// Helper function to build tree structure from flat data - SECURE VERSION
 const buildTree = (folders, sets) => {
   try {
-    console.log('Building tree with folders:', folders?.length, 'sets:', sets?.length);
-    
     if (!Array.isArray(folders) || !Array.isArray(sets)) {
       console.error('Invalid input data for buildTree');
       return [];
@@ -130,7 +127,6 @@ const buildTree = (folders, sets) => {
         const parent = folderMap.get(folder.parent_id);
         const child = folderMap.get(folder.id);
         parent.children.push(child);
-        console.log('Added child folder', child.name, 'to parent', parent.name);
       }
     });
     
@@ -156,17 +152,15 @@ const buildTree = (folders, sets) => {
     };
     
     const result = sortRecursively(tree);
-    console.log('Final tree structure:', JSON.stringify(result, null, 2));
-    console.log('Tree built successfully:', result.length, 'root items');
     return result;
     
   } catch (error) {
-    console.error('Error building tree:', error);
+    console.error('Error building tree');
     return [];
   }
 };
 
-// Tree Node Component - UPDATED WITH LIMITED TITLE AND DATE
+// Tree Node Component - SECURE VERSION with minimal logging
 const TreeNode = React.memo(({ 
   item, 
   depth = 0, 
@@ -187,13 +181,12 @@ const TreeNode = React.memo(({
     (item?.sets?.length > 0)
   );
   
-  // Filter children based on search
+  // Filter children based on search - NO LOGGING
   const filteredChildren = useMemo(() => {
     if (!isFolder || !item?.children) return [];
     const filtered = item.children.filter(child => 
       child?.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    console.log('Filtered children for', item.name, ':', filtered);
     return filtered;
   }, [isFolder, item?.children, searchTerm, item?.name]);
   
@@ -202,7 +195,6 @@ const TreeNode = React.memo(({
     const filtered = item.sets.filter(set => 
       set?.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    console.log('Filtered sets for', item.name, ':', filtered);
     return filtered;
   }, [isFolder, item?.sets, searchTerm, item?.name]);
   
@@ -288,12 +280,12 @@ const TreeNode = React.memo(({
           />
         </div>
         
-        {/* Item Info - UPDATED WITH LIMITED TITLE AND DATE */}
+        {/* Item Info */}
         <div className="tree-item-info">
           <div className="tree-item-title-row">
             <span 
               className="tree-item-name" 
-              title={item.name || 'Unnamed Item'} // Show full name on hover
+              title={item.name || 'Unnamed Item'}
             >
               {displayTitle}
             </span>
@@ -407,7 +399,7 @@ const TreeNode = React.memo(({
   );
 });
 
-// Main SetPage Component
+// Main SetPage Component - SECURE VERSION
 export default function SetPage() {
   const { user } = useContext(UserAuthContext);
   const navigate = useNavigate();
@@ -444,8 +436,6 @@ export default function SetPage() {
     setLoading(true);
     
     try {
-      console.log('Fetching all data...');
-      
       // Fetch all folders
       const { data: foldersData, error: foldersError } = await supabase
         .from('classes')
@@ -454,7 +444,7 @@ export default function SetPage() {
         .order('name', { ascending: true });
 
       if (foldersError) {
-        console.error('Error fetching folders:', foldersError);
+        console.error('Error fetching folders');
         setTree([]);
         return;
       }
@@ -467,13 +457,10 @@ export default function SetPage() {
         .order('title', { ascending: true });
 
       if (setsError) {
-        console.error('Error fetching sets:', setsError);
+        console.error('Error fetching sets');
         setTree([]);
         return;
       }
-
-      console.log('Fetched folders:', foldersData?.length || 0);
-      console.log('Fetched sets:', setsData?.length || 0);
 
       // Get card counts for all sets
       const setsWithCounts = await Promise.all(
@@ -487,7 +474,7 @@ export default function SetPage() {
               .eq('set_id', set.id);
 
             if (countError) {
-              console.error('Error counting cards for set:', set.id, countError);
+              console.error('Error counting cards for set');
             }
 
             return {
@@ -495,7 +482,7 @@ export default function SetPage() {
               card_count: count || 0
             };
           } catch (error) {
-            console.error('Error processing set:', set.id, error);
+            console.error('Error processing set');
             return { ...set, card_count: 0 };
           }
         })
@@ -509,7 +496,7 @@ export default function SetPage() {
       setTree(treeData);
       
     } catch (error) {
-      console.error('Error in fetchAllData:', error);
+      console.error('Error in fetchAllData');
       setTree([]);
     } finally {
       setLoading(false);
@@ -582,7 +569,7 @@ export default function SetPage() {
       await fetchAllData();
       
     } catch (error) {
-      console.error('Error in createNewFolder:', error);
+      console.error('Error in createNewFolder');
       throw error;
     }
   }, [user?.id, fetchAllData]);
@@ -615,7 +602,7 @@ export default function SetPage() {
         await fetchAllData();
       }
     } catch (err) {
-      console.error('Error deleting item:', err);
+      console.error('Error deleting item');
     }
   }, [fetchAllData]);
 

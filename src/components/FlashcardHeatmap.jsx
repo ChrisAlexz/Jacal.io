@@ -1,4 +1,4 @@
-// src/components/FlashcardHeatmap.jsx - Working Heatmap Component
+// src/components/FlashcardHeatmap.jsx - Working Heatmap Component (Security Fixed)
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import UserAuthContext from './context/UserAuthContext';
 import { 

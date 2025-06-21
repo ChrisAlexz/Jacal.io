@@ -1,4 +1,4 @@
-// src/components/context/UserAuthContext.jsx - ENHANCED WITH SESSION MANAGEMENT
+// src/components/context/UserAuthContext.jsx - Production-safe with minimal logging
 import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../supabase';
 
@@ -186,8 +186,6 @@ export function UserAuthProvider({ children }) {
 
   // Handle session expiry
   const handleSessionExpiry = useCallback(async () => {
-    console.log('Session expired due to inactivity');
-    
     setShowSessionWarning(false);
     setSessionTimeRemaining(null);
     
@@ -199,33 +197,30 @@ export function UserAuthProvider({ children }) {
     await logout(true); // Pass flag to indicate it's due to inactivity
   }, []);
 
-  // Initialize auth state
+  // Initialize auth state - SECURE VERSION with minimal logging
   useEffect(() => {
     const initializeAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
-          console.error('Error fetching session:', error);
+          console.error('Error fetching session');
           return;
         }
         
-        console.log('UserAuthProvider -> getSession:', session);
         if (session?.user) {
           setUser(session.user);
           updateActivity(); // Initialize activity tracking
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('Error initializing auth');
       }
     };
 
     initializeAuth();
 
-    // Listen for auth state changes
+    // Listen for auth state changes - SECURE VERSION
     const { data: subscription } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('UserAuthProvider -> onAuthStateChange:', event, session);
-        
         if (event === 'SIGNED_IN' && session?.user) {
           setUser(session.user);
           updateActivity();
@@ -274,13 +269,10 @@ export function UserAuthProvider({ children }) {
 
       // Show notification if logout was due to inactivity
       if (dueToInactivity) {
-        // You can show a toast notification here
-        console.log('Logged out due to inactivity');
-        // Optional: Show a temporary notification to user
         showInactivityNotification();
       }
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error('Error during logout');
     }
   }, []);
 

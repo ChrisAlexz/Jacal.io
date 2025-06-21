@@ -1,4 +1,4 @@
-// src/components/Home.jsx - FIXED: Proper Supabase query syntax + ClassDeckModal
+// src/components/Home.jsx - Production-safe version with no sensitive logging
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
@@ -29,34 +29,34 @@ export default function Home() {
     return 'Good Evening';
   };
 
-  // FIXED: Improved fetchStats with better error handling and logging
+  // Improved fetchStats with secure logging
   const fetchStats = async () => {
     if (!user?.id) {
-      console.log('❌ No user ID available for stats');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('📊 Fetching stats for user:', user.id);
+      // REMOVED: Sensitive user ID logging
+      // console.log('📊 Fetching stats for user:', user.id);
 
-      // FIXED: Use the correct approach - get cards first, then fetch sets
+      // Get cards first, then fetch sets
       const { data: userCards, error: cardsError } = await supabase
         .from('flashcard_cards')
         .select('set_id, id, user_id')
         .eq('user_id', user.id);
 
       if (cardsError) {
-        console.error('❌ Error fetching user cards:', cardsError);
+        console.error('Error fetching user cards');
         setStats({ totalSets: 0, totalCards: 0, studiedToday: 0 });
         setLoading(false);
         return;
       }
 
-      console.log('✅ Found', userCards?.length || 0, 'cards for user');
+      // REMOVED: Sensitive card count logging that could expose scale
+      // console.log('✅ Found', userCards?.length || 0, 'cards for user');
 
       if (!userCards || userCards.length === 0) {
-        console.log('ℹ️ No cards found for user');
         setStats({ totalSets: 0, totalCards: 0, studiedToday: 0 });
         setRecentSets([]);
         setLastStudiedSet(null);
@@ -66,10 +66,11 @@ export default function Home() {
 
       // Get unique set IDs
       const setIds = [...new Set(userCards.map(card => card.set_id))].filter(Boolean);
-      console.log('📦 Found', setIds.length, 'unique set IDs:', setIds);
+      
+      // REMOVED: Sensitive set IDs logging
+      // console.log('📦 Found', setIds.length, 'unique set IDs:', setIds);
 
       if (setIds.length === 0) {
-        console.log('ℹ️ No valid set IDs found');
         setStats({ totalSets: 0, totalCards: userCards.length, studiedToday: 0 });
         setRecentSets([]);
         setLastStudiedSet(null);
@@ -77,10 +78,9 @@ export default function Home() {
         return;
       }
 
-      // FIXED: Use multiple individual queries instead of .in() to avoid 400 error
+      // Fetch sets one by one to avoid the .in() syntax issue
       const setsData = [];
       
-      // Fetch sets one by one to avoid the .in() syntax issue
       for (const setId of setIds) {
         try {
           const { data: setData, error: setError } = await supabase
@@ -90,23 +90,23 @@ export default function Home() {
             .single();
 
           if (setError) {
-            console.warn('⚠️ Error fetching set', setId, ':', setError.message);
-            continue; // Skip this set and continue with others
+            console.warn('Error fetching individual set');
+            continue;
           }
 
           if (setData) {
             setsData.push(setData);
           }
         } catch (error) {
-          console.warn('⚠️ Exception fetching set', setId, ':', error.message);
-          continue; // Skip this set and continue with others
+          console.warn('Exception fetching individual set');
+          continue;
         }
       }
 
-      console.log('✅ Successfully fetched', setsData.length, 'sets');
+      // REMOVED: Sensitive sets count logging
+      // console.log('✅ Successfully fetched', setsData.length, 'sets');
 
       if (setsData.length === 0) {
-        console.log('ℹ️ No sets data retrieved');
         setStats({ totalSets: 0, totalCards: userCards.length, studiedToday: 0 });
         setRecentSets([]);
         setLastStudiedSet(null);
@@ -124,7 +124,7 @@ export default function Home() {
               .eq('set_id', set.id);
 
             if (countError) {
-              console.warn('⚠️ Error counting cards for set', set.id, ':', countError.message);
+              console.warn('Error counting cards for set');
             }
 
             return {
@@ -132,7 +132,7 @@ export default function Home() {
               card_count: count || 0
             };
           } catch (error) {
-            console.warn('⚠️ Exception counting cards for set', set.id, ':', error.message);
+            console.warn('Exception counting cards for set');
             return {
               ...set,
               card_count: 0
@@ -163,14 +163,15 @@ export default function Home() {
         setLastStudiedSet(mostRecentSet);
       }
 
-      console.log('✅ Stats updated successfully:', {
-        totalSets: setsWithCounts.length,
-        totalCards: userCards.length,
-        recentSetsCount: sortedSets.length
-      });
+      // REMOVED: Sensitive stats logging that could expose user data patterns
+      // console.log('✅ Stats updated successfully:', {
+      //   totalSets: setsWithCounts.length,
+      //   totalCards: userCards.length,
+      //   recentSetsCount: sortedSets.length
+      // });
 
     } catch (error) {
-      console.error('💥 Unexpected error in fetchStats:', error);
+      console.error('Error in fetchStats');
       setStats({ totalSets: 0, totalCards: 0, studiedToday: 0 });
       setRecentSets([]);
       setLastStudiedSet(null);

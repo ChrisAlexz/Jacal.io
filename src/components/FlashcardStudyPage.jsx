@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - FIXED WITH CLEANED PROGRESS INFO
+// src/components/FlashcardStudyPage.jsx - Production-safe version
 import React, { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
@@ -58,7 +58,7 @@ export default function FlashcardStudyPage() {
         .single();
 
       if (setError) {
-        console.error("Error fetching flashcard set:", setError);
+        console.error("Error fetching flashcard set");
         return;
       }
 
@@ -73,7 +73,7 @@ export default function FlashcardStudyPage() {
         .eq("set_id", setId);
 
       if (error) {
-        console.error("Error fetching flashcards:", error);
+        console.error("Error fetching flashcards");
         return;
       }
 
@@ -82,13 +82,11 @@ export default function FlashcardStudyPage() {
       // Initialize imported cards properly - they should NOT be considered mastered
       const cardsWithMasteryStatus = cards.map(card => ({
         ...card,
-        _mastered: false, // FIXED: All imported cards start as unmastered
-        _isImported: true // Track that these are imported cards
+        _mastered: false,
+        _isImported: true
       }));
       
       setAllCards(cardsWithMasteryStatus);
-      
-      // For imported cards, ALL cards should be in the session initially
       setSessionCards(cardsWithMasteryStatus);
       setCurrentIndex(0);
       
@@ -96,7 +94,7 @@ export default function FlashcardStudyPage() {
       setStudyStats(stats);
       
     } catch (error) {
-      console.error("Error in fetchFlashcardSet:", error);
+      console.error("Error in fetchFlashcardSet");
     }
   };
 
@@ -111,7 +109,7 @@ export default function FlashcardStudyPage() {
     const resetCards = allCards.map(card => ({
       ...card,
       _masterAgainSession: true,
-      _mastered: false, // Reset mastery status for Master Again
+      _mastered: false,
       session_failures: 0,
       session_reviews: 0
     }));
@@ -216,18 +214,16 @@ export default function FlashcardStudyPage() {
     setShowCorrectAnswer(true);
   };
 
-  // FIXED: Enhanced difficulty choice handling with proper heatmap tracking
+  // Enhanced difficulty choice handling with minimal logging
   const handleDifficultyChoice = async (difficulty) => {
     if (!currentCard || !user?.id) {
-      console.error('❌ Missing card or user for difficulty choice');
+      console.error('Missing card or user for difficulty choice');
       return;
     }
     
     const currentCardData = currentCard;
     const now = new Date().toISOString();
     const currentUserId = user.id;
-    
-    console.log(`🎯 Processing ${difficulty} for card ${currentCardData.id}`);
     
     try {
       // STEP 1: Update card in database
@@ -236,30 +232,22 @@ export default function FlashcardStudyPage() {
         reviews: (currentCardData.reviews || 0) + 1
       };
 
-      console.log('💾 Updating card with:', basicUpdate);
-
       const { error: basicError } = await supabase
         .from('flashcard_cards')
         .update(basicUpdate)
         .eq('id', currentCardData.id);
 
       if (basicError) {
-        console.error('❌ Basic update failed:', basicError);
+        console.error('Database update failed');
       } else {
-        console.log('✅ Basic update successful');
-        
-        // STEP 2: CRITICAL - Track in heatmap (ONLY ONCE per card review)
-        console.log('📊 Tracking single review in heatmap');
+        // STEP 2: Track in heatmap (ONLY ONCE per card review)
         try {
           const trackingSuccess = await trackReview(currentUserId, isMasterAgainSession);
           if (trackingSuccess) {
-            console.log('✅ Heatmap tracking successful');
             setSessionReviewCount(prev => prev + 1);
-          } else {
-            console.log('❌ Heatmap tracking failed');
           }
         } catch (trackingError) {
-          console.error('💥 Heatmap tracking error:', trackingError);
+          console.error('Heatmap tracking error');
         }
       }
 
@@ -287,11 +275,8 @@ export default function FlashcardStudyPage() {
         setAllCards(newAllCards);
         
         if (newSessionCards.length === 0) {
-          console.log('🎉 SESSION COMPLETED!');
           setShowCompletionPopup(true);
           setTimeout(() => setShowCompletionPopup(false), 2000);
-          
-          // DON'T track session completion here since we already tracked individual reviews
           return;
         }
         
@@ -322,10 +307,8 @@ export default function FlashcardStudyPage() {
       setIsAnswerCorrect(null);
       setUserAnswer('');
 
-      console.log('✅ Session management completed');
-
     } catch (error) {
-      console.error('💥 Error in handleDifficultyChoice:', error);
+      console.error('Error in handleDifficultyChoice');
       alert('There was an error processing your answer.');
     }
   };

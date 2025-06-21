@@ -1,4 +1,4 @@
-// src/api/emailService.js - Email service for authentication
+// src/utils/emailService.js - Production-safe email service
 import { supabase } from '../supabase';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
@@ -14,8 +14,6 @@ export const emailService = {
   // Store verification token in database
   storeVerificationToken: async (userId, email, token, type) => {
     try {
-      console.log('📝 Storing verification token:', { userId, email, type });
-      
       const { error } = await supabase
         .from('verification_tokens')
         .insert({
@@ -28,14 +26,13 @@ export const emailService = {
         });
 
       if (error) {
-        console.error('❌ Error storing verification token:', error);
+        console.error('Error storing verification token');
         throw error;
       }
 
-      console.log('✅ Verification token stored successfully');
       return true;
     } catch (error) {
-      console.error('💥 Error in storeVerificationToken:', error);
+      console.error('Error in storeVerificationToken');
       throw error;
     }
   },
@@ -43,7 +40,18 @@ export const emailService = {
   // Send confirmation email via our Express server
   sendConfirmationEmail: async (email, confirmationUrl, userName) => {
     try {
-      console.log('📧 Sending confirmation email to:', email);
+      // Validate inputs
+      if (!email || !confirmationUrl) {
+        throw new Error('Missing required parameters');
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        throw new Error('Invalid email format');
+      }
+
+      // Sanitize userName
+      const safeName = userName ? userName.replace(/[<>]/g, '').trim() : '';
       
       const emailHtml = `
         <!DOCTYPE html>
@@ -94,6 +102,14 @@ export const emailService = {
               color: #666; 
               font-size: 14px; 
             }
+            .link-text {
+              word-break: break-all; 
+              background: #f5f5f5; 
+              padding: 10px; 
+              border-radius: 4px; 
+              font-size: 14px;
+              border: 1px solid #ddd;
+            }
           </style>
         </head>
         <body>
@@ -103,7 +119,7 @@ export const emailService = {
               <p>Your intelligent learning journey starts here</p>
             </div>
             <div class="content">
-              <h2>Hi ${userName || 'there'}! 👋</h2>
+              <h2>Hi ${safeName || 'there'}! 👋</h2>
               <p>Thank you for joining Jacal! We're excited to help you master new skills with our intelligent flashcard system.</p>
               
               <p>To get started, please verify your email address by clicking the button below:</p>
@@ -115,9 +131,9 @@ export const emailService = {
               </div>
               
               <p>Or copy and paste this link into your browser:</p>
-              <p style="word-break: break-all; background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 14px;">
+              <div class="link-text">
                 ${confirmationUrl}
-              </p>
+              </div>
               
               <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
               
@@ -153,16 +169,14 @@ export const emailService = {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('❌ Email service error:', errorData);
+        const errorData = await response.json().catch(() => ({ error: 'Network error' }));
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('✅ Confirmation email sent successfully:', result);
       return result;
     } catch (error) {
-      console.error('💥 Error sending confirmation email:', error);
+      console.error('Error sending confirmation email');
       throw error;
     }
   },
@@ -170,8 +184,10 @@ export const emailService = {
   // Verify token
   verifyToken: async (token, type) => {
     try {
-      console.log('🔍 Verifying token:', { token: token.substring(0, 8) + '...', type });
-      
+      if (!token || !type) {
+        throw new Error('Missing token or type');
+      }
+
       const { data, error } = await supabase
         .from('verification_tokens')
         .select('*')
@@ -182,7 +198,6 @@ export const emailService = {
         .single();
 
       if (error || !data) {
-        console.error('❌ Token verification failed:', error);
         throw new Error('Invalid or expired token');
       }
 
@@ -192,10 +207,9 @@ export const emailService = {
         .update({ used: true })
         .eq('id', data.id);
 
-      console.log('✅ Token verified successfully');
       return data;
     } catch (error) {
-      console.error('💥 Error verifying token:', error);
+      console.error('Error verifying token');
       throw error;
     }
   }

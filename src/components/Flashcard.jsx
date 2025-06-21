@@ -1,4 +1,4 @@
-// src/components/Flashcard.jsx - Updated with Heatmap Tracking
+// src/components/Flashcard.jsx - SECURE VERSION (No Database ID Logging)
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from '../supabase';
@@ -25,25 +25,24 @@ export default function Flashcard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Enhanced useEffect with better error handling and logging
+  // Enhanced useEffect with better error handling and minimal logging
   useEffect(() => {
     const loadData = async () => {
       if (id) {
-        console.log('🔄 Loading flashcard set with ID:', id);
+        // REMOVED: Sensitive ID logging
+        // console.log('🔄 Loading flashcard set with ID:', id);
         setLoading(true);
         setError(null);
         
         try {
           await fetchExistingSet(id);
         } catch (err) {
-          console.error('❌ Error loading flashcard set:', err);
+          console.error('Error loading flashcard set');
           setError('Failed to load flashcard set. Please try again.');
         } finally {
           setLoading(false);
         }
       } else {
-        // No ID - new set
-        console.log('🆕 Creating new flashcard set');
         setLoading(false);
       }
     };
@@ -52,7 +51,8 @@ export default function Flashcard() {
   }, [id]);
 
   const fetchExistingSet = async (theId) => {
-    console.log('📦 Fetching existing set with ID:', theId);
+    // REMOVED: Sensitive ID logging
+    // console.log('📦 Fetching existing set with ID:', theId);
     
     try {
       // First, try to get just the set info to verify it exists
@@ -63,7 +63,6 @@ export default function Flashcard() {
         .single();
 
       if (setError) {
-        console.error("❌ Error fetching set:", setError);
         if (setError.code === 'PGRST116') {
           throw new Error('Flashcard set not found');
         }
@@ -74,7 +73,8 @@ export default function Flashcard() {
         throw new Error('Flashcard set not found');
       }
 
-      console.log('✅ Set data loaded:', setData);
+      // REMOVED: Sensitive set data logging
+      // console.log('✅ Set data loaded:', setData);
 
       // Set the basic info first
       setSetId(setData.id);
@@ -82,7 +82,8 @@ export default function Flashcard() {
       setType(setData.type || 'Basic');
 
       // Now fetch the cards separately with a small delay to ensure database consistency
-      console.log('🃏 Fetching cards for set:', setData.id);
+      // REMOVED: Sensitive set ID logging
+      // console.log('🃏 Fetching cards for set:', setData.id);
       
       // Add a small delay to ensure database writes have settled
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -94,30 +95,31 @@ export default function Flashcard() {
         .order('created_at', { ascending: true });
 
       if (cardsError) {
-        console.error("❌ Error fetching cards:", cardsError);
-        // Don't throw here - just log and continue with empty cards
+        console.error("Error fetching cards");
         setFlashcards([]);
       } else {
-        console.log('✅ Cards loaded:', cardsData?.length || 0, 'cards');
+        // REMOVED: Sensitive card count and data logging
+        // console.log('✅ Cards loaded:', cardsData?.length || 0, 'cards');
         setFlashcards(cardsData || []);
       }
 
       // Always set deck type to 'Mixed' since we're always in per-card mode
       if (setData.type !== 'Mixed') {
-        console.log('🔄 Updating deck type to Mixed...');
+        // REMOVED: Logging about type updates
+        // console.log('🔄 Updating deck type to Mixed...');
         const { error: updateError } = await supabase
           .from('flashcard_sets')
           .update({ type: 'Mixed' })
           .eq('id', setData.id);
           
         if (updateError) {
-          console.error("❌ Error updating set type:", updateError);
+          console.error("Error updating set type");
         }
       }
 
     } catch (error) {
-      console.error('💥 Error in fetchExistingSet:', error);
-      throw error; // Re-throw to be handled by the calling function
+      console.error('Error in fetchExistingSet');
+      throw error;
     }
   };
 
@@ -125,13 +127,14 @@ export default function Flashcard() {
   useEffect(() => {
     const updateSetDetails = async () => {
       if (setId && title.trim()) {
-        console.log('📝 Updating set title to:', title);
+        // REMOVED: Sensitive title logging
+        // console.log('📝 Updating set title to:', title);
         const { error } = await supabase
           .from('flashcard_sets')
           .update({ title: title.trim() })
           .eq('id', setId);
         if (error) {
-          console.error("❌ Error updating set title:", error);
+          console.error("Error updating set title");
         }
       }
     };
@@ -140,22 +143,23 @@ export default function Flashcard() {
       if (setId && title.trim()) {
         updateSetDetails();
       }
-    }, 1000); // Increased debounce time
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, [title, setId]);
 
   const addFlashcard = async (front, back, cardType = null, frontAudioUrl = null, backAudioUrl = null) => {
-    console.log('🚀 addFlashcard called with:', {
-      front: front?.substring(0, 50) + '...',
-      back: back?.substring(0, 50) + '...',
-      cardType,
-      frontAudio: frontAudioUrl ? 'Yes' : 'No',
-      backAudio: backAudioUrl ? 'Yes' : 'No',
-      setId,
-      title: title?.substring(0, 30),
-      userId: user?.id
-    });
+    // REMOVED: Detailed logging with card content
+    // console.log('🚀 addFlashcard called with:', {
+    //   front: front?.substring(0, 50) + '...',
+    //   back: back?.substring(0, 50) + '...',
+    //   cardType,
+    //   frontAudio: frontAudioUrl ? 'Yes' : 'No',
+    //   backAudio: backAudioUrl ? 'Yes' : 'No',
+    //   setId,
+    //   title: title?.substring(0, 30),
+    //   userId: user?.id
+    // });
 
     const finalCardType = cardType || type;
     
@@ -163,29 +167,30 @@ export default function Flashcard() {
     const cleanFront = (front || '').replace(/<[^>]*>/g, '').trim();
     const cleanBack = (back || '').replace(/<[^>]*>/g, '').trim();
     
-    console.log('📝 Content validation:', {
-      finalCardType,
-      cleanFront: cleanFront.substring(0, 50),
-      cleanBack: cleanBack.substring(0, 50),
-      frontLength: cleanFront.length,
-      backLength: cleanBack.length,
-      frontAudio: frontAudioUrl ? 'Yes' : 'No',
-      backAudio: backAudioUrl ? 'Yes' : 'No'
-    });
+    // REMOVED: Sensitive content validation logging
+    // console.log('📝 Content validation:', {
+    //   finalCardType,
+    //   cleanFront: cleanFront.substring(0, 50),
+    //   cleanBack: cleanBack.substring(0, 50),
+    //   frontLength: cleanFront.length,
+    //   backLength: cleanBack.length,
+    //   frontAudio: frontAudioUrl ? 'Yes' : 'No',
+    //   backAudio: backAudioUrl ? 'Yes' : 'No'
+    // });
 
     // Type-specific validation with audio support
     if (finalCardType === 'Basic' && (!cleanFront && !frontAudioUrl) || (!cleanBack && !backAudioUrl)) {
-      console.warn('❌ Basic card validation failed');
+      console.warn('Basic card validation failed');
       alert('Please fill in both front and back content or add audio for Basic cards.');
       return;
     }
     if (finalCardType === 'Basic-Type' && (!cleanFront && !frontAudioUrl) || (!cleanBack && !backAudioUrl)) {
-      console.warn('❌ Basic-Type card validation failed');
+      console.warn('Basic-Type card validation failed');
       alert('Please fill in both front and back content or add audio for Basic-Type cards.');
       return;
     }
     if (finalCardType === 'Cloze' && (!cleanFront && !frontAudioUrl)) {
-      console.warn('❌ Cloze card validation failed');
+      console.warn('Cloze card validation failed');
       alert('Please add front content or audio for Cloze cards.');
       return;
     }
@@ -194,7 +199,8 @@ export default function Flashcard() {
 
     try {
       if (setId) {
-        console.log('📦 Adding card to existing set:', setId);
+        // REMOVED: Sensitive set ID logging
+        // console.log('📦 Adding card to existing set:', setId);
         
         const cardData = { 
           set_id: setId, 
@@ -206,7 +212,8 @@ export default function Flashcard() {
           user_id: user?.id || null
         };
         
-        console.log('📋 Inserting card data:', cardData);
+        // REMOVED: Sensitive card data logging
+        // console.log('📋 Inserting card data:', cardData);
         
         const { data, error } = await supabase
           .from('flashcard_cards')
@@ -214,33 +221,33 @@ export default function Flashcard() {
           .select();
 
         if (error) {
-          console.error('❌ Error adding card:', error);
+          console.error('Error adding card');
           alert(`Failed to add card: ${error.message}`);
           return;
         }
 
         if (!data || data.length === 0) {
-          console.error('❌ No data returned from insert');
+          console.error('No data returned from insert');
           alert('Card may not have been saved properly. Please refresh and try again.');
           return;
         }
 
-        console.log('✅ Card added successfully:', data[0]);
+        // REMOVED: Sensitive success logging
+        // console.log('✅ Card added successfully:', data[0]);
         
         // Update flashcards state
         setFlashcards(prev => {
-          console.log('📊 Current flashcards count:', prev.length);
+          // REMOVED: Sensitive state logging
+          // console.log('📊 Current flashcards count:', prev.length);
           const newList = [...prev, data[0]];
-          console.log('📊 New flashcards count:', newList.length);
-          console.log('🔄 Flashcards state updated');
+          // console.log('📊 New flashcards count:', newList.length);
+          // console.log('🔄 Flashcards state updated');
           return newList;
         });
-
-        // Track card creation in heatmap
-
         
       } else {
-        console.log('🆕 Creating new set and adding first card...');
+        // REMOVED: Sensitive creation logging
+        // console.log('🆕 Creating new set and adding first card...');
         
         if (!user) {
           alert('Please log in to create flashcard sets.');
@@ -253,7 +260,8 @@ export default function Flashcard() {
           user_id: user.id
         };
         
-        console.log('📋 Creating set with data:', setData);
+        // REMOVED: Sensitive set data logging
+        // console.log('📋 Creating set with data:', setData);
         
         const { data: newSetData, error: newSetErr } = await supabase
           .from('flashcard_sets')
@@ -262,12 +270,13 @@ export default function Flashcard() {
           .single();
 
         if (newSetErr) {
-          console.error('❌ Error creating set:', newSetErr);
+          console.error('Error creating set');
           alert(`Failed to create flashcard set: ${newSetErr.message}`);
           return;
         }
 
-        console.log('✅ New set created:', newSetData);
+        // REMOVED: Sensitive new set logging
+        // console.log('✅ New set created:', newSetData);
         setSetId(newSetData.id);
 
         const cardData = { 
@@ -280,7 +289,8 @@ export default function Flashcard() {
           user_id: user.id
         };
         
-        console.log('📋 Inserting first card:', cardData);
+        // REMOVED: Sensitive first card logging
+        // console.log('📋 Inserting first card:', cardData);
 
         const { data: insertedCard, error: cardErr } = await supabase
           .from('flashcard_cards')
@@ -289,21 +299,20 @@ export default function Flashcard() {
           .single();
 
         if (cardErr) {
-          console.error('❌ Error adding first card:', cardErr);
+          console.error('Error adding first card');
           alert(`Failed to add first card: ${cardErr.message}`);
           return;
         }
 
-        console.log('✅ First card added successfully:', insertedCard);
+        // REMOVED: Sensitive success logging
+        // console.log('✅ First card added successfully:', insertedCard);
         setFlashcards([insertedCard]);
-
-
         
         // Update URL to include the new set ID
         navigate(`/flashcards/${newSetData.id}`, { replace: true });
       }
     } catch (err) {
-      console.error("💥 Unexpected error saving flashcard:", err);
+      console.error("Unexpected error saving flashcard");
       alert(`An unexpected error occurred: ${err.message}`);
     }
   };
@@ -323,7 +332,7 @@ export default function Flashcard() {
         .eq('id', cardId);
 
       if (error) {
-        console.error("Error updating flashcard:", error);
+        console.error("Error updating flashcard");
       } 
     }
   };
@@ -340,13 +349,7 @@ export default function Flashcard() {
         .eq('id', cardToDelete.id);
       
       if (error) {
-        console.error("Error deleting card:", error);
-      } else {
-        // Optionally track card deletion (uncomment if desired)
-        // if (user?.id) {
-        //   console.log('📊 Tracking card deletion in heatmap');
-        //   await trackReviewEvent(user.id, cardToDelete.id, 'card-deletion');
-        // }
+        console.error("Error deleting card");
       }
     }
   };
