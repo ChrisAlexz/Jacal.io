@@ -1,6 +1,6 @@
-// src/components/Set.jsx - UPDATED: Cleaned Header Actions
-import React, { useEffect, useState, useContext } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+// src/components/Set.jsx - FIXED HIERARCHICAL TREE VIEW
+import React, { useEffect, useState, useContext, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
 import ClassDeckModal from './ClassDeckModal';
@@ -18,37 +18,375 @@ import {
   faSearch, 
   faBolt,
   faFileImport,
-  faArrowLeft,
   faHome,
   faFolder,
   faFolderOpen,
   faEllipsisH,
-  faTh,
   faList,
   faSortAmountDown,
   faSortAmountUp,
   faCalendarAlt,
   faEye,
-  faArchive
+  faArchive,
+  faBookOpen,
+  faLayerGroup
 } from '@fortawesome/free-solid-svg-icons';
 
-export default function Set() {
+// Helper function to build tree structure from flat data - FIXED
+const buildTree = (folders, sets) => {
+  try {
+    console.log('Building tree with folders:', folders?.length, 'sets:', sets?.length);
+    
+    if (!Array.isArray(folders) || !Array.isArray(sets)) {
+      console.error('Invalid input data for buildTree');
+      return [];
+    }
+    
+    const tree = [];
+    const folderMap = new Map();
+    
+    // First pass: Create all folder objects
+    folders.forEach(folder => {
+      if (folder?.id) {
+        folderMap.set(folder.id, {
+          id: folder.id,
+          name: folder.name,
+          type: 'folder',
+          created_at: folder.created_at,
+          children: [],
+          sets: [],
+          parent_id: folder.parent_id
+        });
+      }
+    });
+    
+    // Second pass: Add sets to their folders
+    sets.forEach(set => {
+      if (set?.id) {
+        const deckItem = {
+          id: set.id,
+          name: set.title || 'Untitled Deck',
+          type: 'deck',
+          created_at: set.created_at,
+          card_count: set.card_count || 0
+        };
+        
+        if (set.class_id && folderMap.has(set.class_id)) {
+          folderMap.get(set.class_id).sets.push(deckItem);
+        } else {
+          tree.push(deckItem);
+        }
+      }
+    });
+    
+    // Third pass: Build hierarchy (single pass to avoid recursion)
+    const rootFolders = [];
+    const childFolders = [];
+    
+    folders.forEach(folder => {
+      if (folder?.id && folderMap.has(folder.id)) {
+        if (folder.parent_id) {
+          childFolders.push(folder);
+        } else {
+          rootFolders.push(folder);
+        }
+      }
+    });
+    
+    // Add root folders to tree
+    rootFolders.forEach(folder => {
+      if (folderMap.has(folder.id)) {
+        tree.push(folderMap.get(folder.id));
+      }
+    });
+    
+    // Add child folders to their parents
+    childFolders.forEach(folder => {
+      if (folder.parent_id && folderMap.has(folder.parent_id) && folderMap.has(folder.id)) {
+        const parent = folderMap.get(folder.parent_id);
+        const child = folderMap.get(folder.id);
+        parent.children.push(child);
+        console.log('Added child folder', child.name, 'to parent', parent.name);
+      }
+    });
+    
+    // Sort tree
+    const sortItems = (items) => {
+      return items.sort((a, b) => {
+        if (a.type !== b.type) {
+          return a.type === 'folder' ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name);
+      });
+    };
+    
+    const sortRecursively = (nodes) => {
+      const sorted = sortItems(nodes);
+      sorted.forEach(node => {
+        if (node.type === 'folder') {
+          node.children = sortRecursively(node.children);
+          node.sets = sortItems(node.sets);
+        }
+      });
+      return sorted;
+    };
+    
+    const result = sortRecursively(tree);
+    console.log('Final tree structure:', JSON.stringify(result, null, 2));
+    console.log('Tree built successfully:', result.length, 'root items');
+    return result;
+    
+  } catch (error) {
+    console.error('Error building tree:', error);
+    return [];
+  }
+};
+
+// Tree Node Component - FIXED
+const TreeNode = React.memo(({ 
+  item, 
+  depth = 0, 
+  onToggleExpand, 
+  onDeleteItem, 
+  onCreateFolder, 
+  onCreateDeck, 
+  onImport,
+  onNavigate,
+  expandedFolders,
+  searchTerm 
+}) => {
+  // ALL HOOKS MUST BE AT THE TOP - BEFORE ANY EARLY RETURNS
+  const isFolder = item?.type === 'folder';
+  const isExpanded = expandedFolders.has(item?.id);
+  const hasChildren = isFolder && (
+    (item?.children?.length > 0) || 
+    (item?.sets?.length > 0)
+  );
+  
+  // Filter children based on search
+  const filteredChildren = useMemo(() => {
+    if (!isFolder || !item?.children) return [];
+    const filtered = item.children.filter(child => 
+      child?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    console.log('Filtered children for', item.name, ':', filtered);
+    return filtered;
+  }, [isFolder, item?.children, searchTerm, item?.name]);
+  
+  const filteredSets = useMemo(() => {
+    if (!isFolder || !item?.sets) return [];
+    const filtered = item.sets.filter(set => 
+      set?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    console.log('Filtered sets for', item.name, ':', filtered);
+    return filtered;
+  }, [isFolder, item?.sets, searchTerm, item?.name]);
+  
+  const handleItemClick = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (isFolder && hasChildren) {
+      onToggleExpand(item.id);
+    } else if (!isFolder) {
+      onNavigate(`/flashcards/${item.id}`);
+    }
+  }, [isFolder, hasChildren, item?.id, onToggleExpand, onNavigate]);
+  
+  const handleActionClick = useCallback((e, action) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    switch (action) {
+      case 'delete':
+        onDeleteItem(item.id, item.name, item.type, e);
+        break;
+      case 'createFolder':
+        onCreateFolder(item.id);
+        break;
+      case 'createDeck':
+        onCreateDeck(item.id);
+        break;
+      case 'import':
+        onImport(item.id);
+        break;
+      case 'study':
+        onNavigate(`/study/${item.id}`);
+        break;
+      case 'edit':
+        onNavigate(`/flashcards/${item.id}`);
+        break;
+    }
+  }, [item?.id, item?.name, item?.type, onDeleteItem, onCreateFolder, onCreateDeck, onImport, onNavigate]);
+  
+  // NOW WE CAN DO EARLY RETURNS AFTER ALL HOOKS
+  // Prevent deep nesting and validate item
+  if (depth > 8 || !item?.id) {
+    return null;
+  }
+  
+  const hasVisibleChildren = filteredChildren.length > 0 || filteredSets.length > 0;
+  
+  // Don't render if search doesn't match and no visible children
+  if (searchTerm && !item.name?.toLowerCase().includes(searchTerm.toLowerCase()) && !hasVisibleChildren) {
+    return null;
+  }
+  
+  return (
+    <div className="tree-node">
+      <div 
+        className={`tree-item ${isFolder ? 'tree-folder' : 'tree-deck'}`}
+        style={{ paddingLeft: `${Math.min(depth * 24 + 12, 240)}px` }}
+        onClick={handleItemClick}
+      >
+        {/* Expand/Collapse Icon */}
+        <div className="tree-icon">
+          {isFolder && hasChildren && (
+            <FontAwesomeIcon 
+              icon={isExpanded ? faChevronDown : faChevronRight}
+              className="expand-icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand(item.id);
+              }}
+            />
+          )}
+          {isFolder && !hasChildren && <div className="expand-placeholder" />}
+          
+          {/* Item Icon */}
+          <FontAwesomeIcon 
+            icon={isFolder ? (isExpanded ? faFolderOpen : faFolder) : faBookOpen}
+            className={`item-icon ${isFolder ? 'folder-icon' : 'deck-icon'}`}
+          />
+        </div>
+        
+        {/* Item Info */}
+        <div className="tree-item-info">
+          <span className="tree-item-name">{item.name || 'Unnamed Item'}</span>
+          <div className="tree-item-meta">
+            {isFolder ? (
+              <span className="item-count">
+                {(item.children?.length || 0) + (item.sets?.length || 0)} items
+              </span>
+            ) : (
+              <span className="card-count">
+                {item.card_count || 0} cards
+              </span>
+            )}
+            <span className="item-date">
+              {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Unknown date'}
+            </span>
+          </div>
+        </div>
+        
+        {/* Actions */}
+        <div className="tree-item-actions">
+          {isFolder ? (
+            <>
+              <button
+                className="tree-action-btn create-subfolder"
+                onClick={(e) => handleActionClick(e, 'createFolder')}
+                title="Create subfolder"
+              >
+                <FontAwesomeIcon icon={faFolder} />
+              </button>
+              <button
+                className="tree-action-btn create-deck"
+                onClick={(e) => handleActionClick(e, 'createDeck')}
+                title="Create deck"
+              >
+                <FontAwesomeIcon icon={faPlus} />
+              </button>
+              <button
+                className="tree-action-btn import-deck"
+                onClick={(e) => handleActionClick(e, 'import')}
+                title="Import deck"
+              >
+                <FontAwesomeIcon icon={faFileImport} />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className="tree-action-btn study-deck"
+                onClick={(e) => handleActionClick(e, 'study')}
+                title="Study deck"
+              >
+                Study
+              </button>
+              <button
+                className="tree-action-btn edit-deck"
+                onClick={(e) => handleActionClick(e, 'edit')}
+                title="Edit deck"
+              >
+                <FontAwesomeIcon icon={faEdit} />
+              </button>
+            </>
+          )}
+          <button
+            className="tree-action-btn delete-item"
+            onClick={(e) => handleActionClick(e, 'delete')}
+            title={`Delete ${isFolder ? 'folder' : 'deck'}`}
+          >
+            <FontAwesomeIcon icon={faTrash} />
+          </button>
+        </div>
+      </div>
+      
+      {/* Children - FIXED: Only render when expanded and has children */}
+      {isFolder && isExpanded && hasVisibleChildren && (
+        <div className="tree-children">
+          {filteredChildren.map(child => (
+            <TreeNode
+              key={`folder-${child.id}`}
+              item={child}
+              depth={depth + 1}
+              onToggleExpand={onToggleExpand}
+              onDeleteItem={onDeleteItem}
+              onCreateFolder={onCreateFolder}
+              onCreateDeck={onCreateDeck}
+              onImport={onImport}
+              onNavigate={onNavigate}
+              expandedFolders={expandedFolders}
+              searchTerm={searchTerm}
+            />
+          ))}
+          {filteredSets.map(set => (
+            <TreeNode
+              key={`deck-${set.id}`}
+              item={set}
+              depth={depth + 1}
+              onToggleExpand={onToggleExpand}
+              onDeleteItem={onDeleteItem}
+              onCreateFolder={onCreateFolder}
+              onCreateDeck={onCreateDeck}
+              onImport={onImport}
+              onNavigate={onNavigate}
+              expandedFolders={expandedFolders}
+              searchTerm={searchTerm}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
+
+// Main SetPage Component - RENAMED TO AVOID CONFLICT WITH JS SET
+export default function SetPage() {
   const { user } = useContext(UserAuthContext);
-  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   
-  const [items, setItems] = useState([]);
-  const [currentClassId, setCurrentClassId] = useState(null);
-  const [currentPath, setCurrentPath] = useState([]);
+  const [tree, setTree] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('recent');
-  const [viewMode, setViewMode] = useState('grid');
+  const [sortBy, setSortBy] = useState('alphabetical');
+  const [expandedFolders, setExpandedFolders] = useState(new Set());
   
   // Modal states
   const [showModal, setShowModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [selectedClassId, setSelectedClassId] = useState(null);
+  const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   
   // Delete modal state
@@ -60,241 +398,162 @@ export default function Set() {
     onConfirm: null
   });
 
-  useEffect(() => {
-    console.log('🔄 useEffect triggered - currentClassId changed to:', currentClassId);
-    if (user) {
-      fetchItems();
-    }
-  }, [user, currentClassId]);
+  // Memoized navigation function to prevent recreation
+  const handleNavigate = useCallback((path) => {
+    navigate(path);
+  }, [navigate]);
 
-  useEffect(() => {
-    const folderId = searchParams.get('folder');
-    console.log('🔗 URL changed - folder param:', folderId, 'current:', currentClassId);
+  const fetchAllData = useCallback(async () => {
+    if (!user?.id) return;
     
-    if (folderId && folderId !== currentClassId) {
-      console.log('📂 Navigating to folder:', folderId);
-      setCurrentClassId(folderId);
-      loadCurrentClassPath(folderId);
-    } else if (!folderId && currentClassId) {
-      console.log('🏠 Navigating to root');
-      setCurrentClassId(null);
-      setCurrentPath([]);
-    }
-  }, [searchParams]);
-
-  const loadCurrentClassPath = async (classId) => {
-    if (!classId) {
-      setCurrentPath([]);
-      return;
-    }
-
-    try {
-      const path = [];
-      let currentId = classId;
-      
-      while (currentId) {
-        const { data: classData, error } = await supabase
-          .from('classes')
-          .select('id, name, parent_id')
-          .eq('id', currentId)
-          .single();
-        
-        if (error || !classData) break;
-        
-        path.unshift({ id: classData.id, name: classData.name });
-        currentId = classData.parent_id;
-      }
-      
-      setCurrentPath(path);
-    } catch (error) {
-      console.error('Error loading class path:', error);
-      setCurrentPath([]);
-    }
-  };
-
-  const fetchItems = async () => {
     setLoading(true);
     
     try {
-      console.log('🔄 Fetching items for user:', user.id, 'currentClassId:', currentClassId);
+      console.log('Fetching all data...');
       
-      const allItems = [];
-
-      // STEP 1: Get child folders for current context
-      let foldersQuery = supabase
+      // Fetch all folders
+      const { data: foldersData, error: foldersError } = await supabase
         .from('classes')
         .select('*')
-        .eq('user_id', user.id);
-
-      if (currentClassId) {
-        foldersQuery = foldersQuery.eq('parent_id', currentClassId);
-      } else {
-        foldersQuery = foldersQuery.is('parent_id', null);
-      }
-
-      const { data: foldersData, error: foldersError } = await foldersQuery
+        .eq('user_id', user.id)
         .order('name', { ascending: true });
 
       if (foldersError) {
-        console.error('❌ Error fetching folders:', foldersError);
-        setLoading(false);
+        console.error('Error fetching folders:', foldersError);
+        setTree([]);
         return;
       }
 
-      console.log('📁 Child folders found:', foldersData?.length || 0);
-
-      // STEP 2: Process each child folder and add as individual item
-      for (const folder of foldersData || []) {
-        // Count contents of this folder
-        const { count: directSetsCount } = await supabase
-          .from('flashcard_sets')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('class_id', folder.id);
-
-        const { count: childFoldersCount } = await supabase
-          .from('classes')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('parent_id', folder.id);
-
-        allItems.push({
-          ...folder,
-          type: 'folder',
-          isFolder: true,
-          totalSets: directSetsCount || 0,
-          totalSubfolders: childFoldersCount || 0,
-          hasContent: (directSetsCount || 0) > 0 || (childFoldersCount || 0) > 0
-        });
-      }
-
-      // STEP 3: Get direct flashcard sets in current folder
-      let directSetsQuery = supabase
+      // Fetch all flashcard sets
+      const { data: setsData, error: setsError } = await supabase
         .from('flashcard_sets')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .order('title', { ascending: true });
 
-      if (currentClassId) {
-        directSetsQuery = directSetsQuery.eq('class_id', currentClassId);
-      } else {
-        directSetsQuery = directSetsQuery.is('class_id', null);
+      if (setsError) {
+        console.error('Error fetching sets:', setsError);
+        setTree([]);
+        return;
       }
 
-      const { data: directSets, error: directSetsError } = await directSetsQuery
-        .order('created_at', { ascending: false });
+      console.log('Fetched folders:', foldersData?.length || 0);
+      console.log('Fetched sets:', setsData?.length || 0);
 
-      if (directSetsError) {
-        console.error('❌ Error fetching direct sets:', directSetsError);
-      }
+      // Get card counts for all sets
+      const setsWithCounts = await Promise.all(
+        (setsData || []).map(async (set) => {
+          if (!set?.id) return null;
+          
+          try {
+            const { count, error: countError } = await supabase
+              .from('flashcard_cards')
+              .select('*', { count: 'exact', head: true })
+              .eq('set_id', set.id);
 
-      // Add direct sets as individual items
-      for (const set of directSets || []) {
-        const { count, error: countError } = await supabase
-          .from('flashcard_cards')
-          .select('*', { count: 'exact', head: true })
-          .eq('set_id', set.id);
+            if (countError) {
+              console.error('Error counting cards for set:', set.id, countError);
+            }
 
-        if (countError) {
-          console.error('❌ Error counting cards for set:', countError);
-        }
+            return {
+              ...set,
+              card_count: count || 0
+            };
+          } catch (error) {
+            console.error('Error processing set:', set.id, error);
+            return { ...set, card_count: 0 };
+          }
+        })
+      );
 
-        allItems.push({
-          ...set,
-          type: 'deck',
-          isDeck: true,
-          card_count: count || 0,
-          name: set.title
-        });
-      }
+      // Filter out null results
+      const validSets = setsWithCounts.filter(Boolean);
 
-      console.log('✅ Total items found:', allItems.length);
-      console.log('📊 Items breakdown:', allItems.map(item => ({
-        name: item.name,
-        type: item.type,
-        hasContent: item.hasContent,
-        totalSets: item.totalSets,
-        totalSubfolders: item.totalSubfolders
-      })));
-
-      setItems(allItems);
+      // Build tree structure
+      const treeData = buildTree(foldersData || [], validSets);
+      setTree(treeData);
       
     } catch (error) {
-      console.error('💥 Error in fetchItems:', error);
+      console.error('Error in fetchAllData:', error);
+      setTree([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
-  const navigateToClass = (classId) => {
-    console.log('🧭 navigateToClass called with:', classId);
-    if (classId) {
-      setSearchParams({ folder: classId });
-    } else {
-      setSearchParams({});
+  useEffect(() => {
+    if (user) {
+      fetchAllData();
     }
-  };
+  }, [user, fetchAllData]);
 
-  const navigateToPath = (targetId) => {
-    if (targetId) {
-      setSearchParams({ folder: targetId });
-    } else {
-      setSearchParams({});
-    }
-  };
+  const handleToggleExpand = useCallback((folderId) => {
+    setExpandedFolders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(folderId)) {
+        newSet.delete(folderId);
+      } else {
+        newSet.add(folderId);
+      }
+      return newSet;
+    });
+  }, []);
 
-  const createNewFolder = async (folderName) => {
+  const handleExpandAll = useCallback(() => {
+    const getAllFolderIds = (nodes) => {
+      const ids = [];
+      const traverse = (items) => {
+        items.forEach(item => {
+          if (item?.type === 'folder' && item.id) {
+            ids.push(item.id);
+            if (item.children) {
+              traverse(item.children);
+            }
+          }
+        });
+      };
+      traverse(nodes);
+      return ids;
+    };
+    
+    const folderIds = getAllFolderIds(tree);
+    setExpandedFolders(new Set(folderIds));
+  }, [tree]);
+
+  const handleCollapseAll = useCallback(() => {
+    setExpandedFolders(new Set());
+  }, []);
+
+  const createNewFolder = useCallback(async (folderName, parentId = null) => {
     if (!folderName.trim()) return;
 
     try {
-      console.log('🚀 Creating folder:', folderName, 'in parent:', currentClassId);
-      
       const folderData = {
         name: folderName.trim(),
         user_id: user.id,
-        parent_id: currentClassId || null
+        parent_id: parentId
       };
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('classes')
-        .insert([folderData])
-        .select()
-        .single();
+        .insert([folderData]);
 
       if (error) {
-        console.error('❌ Insert error:', error);
         throw new Error(error.message);
       }
 
-      console.log('✅ Folder created successfully:', data);
       setShowCreateFolderModal(false);
-      await fetchItems();
+      setSelectedFolderId(null);
+      await fetchAllData();
       
     } catch (error) {
-      console.error('💥 Error in createNewFolder:', error);
+      console.error('Error in createNewFolder:', error);
       throw error;
     }
-  };
+  }, [user?.id, fetchAllData]);
 
-  const handleItemClick = (item, e) => {
-    if (e.target.closest('.folder-actions') || e.target.closest('button')) {
-      console.log('🚫 Click on action button, ignoring item click');
-      return;
-    }
-    
-    console.log('📁 Item clicked:', item.name, 'Type:', item.type, 'ID:', item.id);
-    
-    if (item.type === 'folder') {
-      navigateToClass(item.id);
-    } else if (item.type === 'deck') {
-      navigate(`/flashcards/${item.id}`);
-    }
-  };
-
-  const handleDeleteItem = async (itemId, itemName, itemType, e) => {
+  const handleDeleteItem = useCallback((itemId, itemName, itemType, e) => {
     e.stopPropagation();
-    console.log('🗑️ Delete item clicked:', itemName, itemType);
-    
-    const item = items.find(i => i.id === itemId);
     
     setDeleteModal({
       isOpen: true,
@@ -304,12 +563,12 @@ export default function Set() {
       onConfirm: () => performDeleteItem(itemId, itemType),
       title: itemType === 'folder' ? 'Delete Folder' : 'Delete Deck',
       message: itemType === 'folder' 
-        ? `This will permanently delete the folder "${itemName}"${item?.hasContent ? ' and all its contents' : ''}. This action cannot be undone.`
+        ? `This will permanently delete the folder "${itemName}" and all its contents. This action cannot be undone.`
         : `This will permanently delete the deck "${itemName}" and all its cards. This action cannot be undone.`
     });
-  };
+  }, []);
 
-  const performDeleteItem = async (itemId, itemType) => {
+  const performDeleteItem = useCallback(async (itemId, itemType) => {
     try {
       const table = itemType === 'folder' ? 'classes' : 'flashcard_sets';
       const { error } = await supabase
@@ -318,14 +577,14 @@ export default function Set() {
         .eq('id', itemId);
 
       if (!error) {
-        setItems(prev => prev.filter(i => i.id !== itemId));
+        await fetchAllData();
       }
     } catch (err) {
       console.error('Error deleting item:', err);
     }
-  };
+  }, [fetchAllData]);
 
-  const closeDeleteModal = () => {
+  const closeDeleteModal = useCallback(() => {
     setDeleteModal({
       isOpen: false,
       type: '',
@@ -333,47 +592,28 @@ export default function Set() {
       name: '',
       onConfirm: null
     });
-  };
+  }, []);
 
-  const handleImportSuccess = (deckId) => {
-    fetchItems();
+  const handleImportSuccess = useCallback(() => {
+    fetchAllData();
     setShowImportModal(false);
-    setSelectedClassId(null);
-  };
+    setSelectedFolderId(null);
+  }, [fetchAllData]);
 
-  const getSortedAndFilteredItems = () => {
-    let filtered = items.filter(item => 
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const handleCreateFolder = useCallback((parentId = null) => {
+    setSelectedFolderId(parentId);
+    setShowCreateFolderModal(true);
+  }, []);
 
-    // Sort: folders first, then decks
-    filtered.sort((a, b) => {
-      if (a.type !== b.type) {
-        return a.type === 'folder' ? -1 : 1;
-      }
-      
-      switch (sortBy) {
-        case 'alphabetical':
-          return a.name.localeCompare(b.name);
-        case 'oldest':
-          return new Date(a.created_at) - new Date(b.created_at);
-        case 'recent':
-        default:
-          return new Date(b.created_at) - new Date(a.created_at);
-      }
-    });
+  const handleCreateDeck = useCallback((parentId = null) => {
+    setSelectedFolderId(parentId);
+    setShowModal(true);
+  }, []);
 
-    return filtered;
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Unknown';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
+  const handleImport = useCallback((parentId = null) => {
+    setSelectedFolderId(parentId);
+    setShowImportModal(true);
+  }, []);
 
   if (!user) {
     return (
@@ -397,8 +637,6 @@ export default function Set() {
     );
   }
 
-  const filteredItems = getSortedAndFilteredItems();
-
   return (
     <Layout>
       <div className="set-page">
@@ -411,9 +649,8 @@ export default function Set() {
                 <p>Organize and manage your flashcard collections</p>
               </div>
               <div className="header-actions">
-                {/* UPDATED: Always show Create Folder */}
                 <button 
-                  onClick={() => setShowCreateFolderModal(true)}
+                  onClick={() => handleCreateFolder()}
                   className="create-folder-btn"
                   title="Create New Folder"
                 >
@@ -421,9 +658,8 @@ export default function Set() {
                   New Folder
                 </button>
                 
-                {/* UPDATED: Always show Import */}
                 <button 
-                  onClick={() => setShowImportModal(true)}
+                  onClick={() => handleImport()}
                   className="import-btn"
                   title="Import from Anki or Quizlet"
                 >
@@ -431,62 +667,16 @@ export default function Set() {
                   Import
                 </button>
                 
-                {/* UPDATED: Only show Add Deck when inside a folder */}
-                {currentClassId && (
-                  <button 
-                    onClick={() => setShowModal(true)}
-                    className="create-set-btn"
-                    title="Add New Deck to this folder"
-                  >
-                    <span className="btn-icon">+</span>
-                    Add Deck
-                  </button>
-                )}
+                <button 
+                  onClick={() => handleCreateDeck()}
+                  className="create-set-btn"
+                  title="Create New Deck"
+                >
+                  <span className="btn-icon">+</span>
+                  New Deck
+                </button>
               </div>
             </div>
-            
-            {/* Breadcrumb Navigation */}
-            {currentPath.length > 0 && (
-              <div className="enhanced-breadcrumb">
-                <div className="breadcrumb-content">
-                  <button 
-                    className="breadcrumb-item root"
-                    onClick={() => navigateToPath(null)}
-                    title="Go to root"
-                  >
-                    <FontAwesomeIcon icon={faHome} />
-                    <span>Library</span>
-                  </button>
-                  {currentPath.map((pathItem, index) => (
-                    <React.Fragment key={pathItem.id}>
-                      <FontAwesomeIcon icon={faChevronRight} className="breadcrumb-separator" />
-                      <button 
-                        className={`breadcrumb-item ${index === currentPath.length - 1 ? 'current' : ''}`}
-                        onClick={() => navigateToPath(pathItem.id)}
-                        disabled={index === currentPath.length - 1}
-                        title={index === currentPath.length - 1 ? 'Current folder' : `Go to ${pathItem.name}`}
-                      >
-                        <FontAwesomeIcon icon={index === currentPath.length - 1 ? faFolderOpen : faFolder} />
-                        <span>{pathItem.name}</span>
-                      </button>
-                    </React.Fragment>
-                  ))}
-                </div>
-                <div className="breadcrumb-actions">
-                  <button 
-                    className="back-button"
-                    onClick={() => {
-                      const parentPath = currentPath.length > 1 ? currentPath[currentPath.length - 2].id : null;
-                      navigateToPath(parentPath);
-                    }}
-                    title="Go back"
-                  >
-                    <FontAwesomeIcon icon={faArrowLeft} />
-                    <span>Back</span>
-                  </button>
-                </div>
-              </div>
-            )}
             
             {/* Controls Bar */}
             <div className="enhanced-controls-bar">
@@ -508,27 +698,29 @@ export default function Set() {
                     onChange={(e) => setSortBy(e.target.value)}
                     className="sort-select"
                   >
+                    <option value="alphabetical">Alphabetical</option>
                     <option value="recent">Recently Modified</option>
-                    <option value="alphabetical">A to Z</option>
                     <option value="oldest">Oldest First</option>
                   </select>
                 </div>
               </div>
 
-              <div className="view-controls">
+              <div className="tree-controls">
                 <button
-                  className={`view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                  onClick={() => setViewMode('grid')}
-                  title="Grid View"
+                  className="tree-control-btn"
+                  onClick={handleExpandAll}
+                  title="Expand All"
                 >
-                  <FontAwesomeIcon icon={faTh} />
+                  <FontAwesomeIcon icon={faLayerGroup} />
+                  Expand All
                 </button>
                 <button
-                  className={`view-mode-btn ${viewMode === 'list' ? 'active' : ''}`}
-                  onClick={() => setViewMode('list')}
-                  title="List View"
+                  className="tree-control-btn"
+                  onClick={handleCollapseAll}
+                  title="Collapse All"
                 >
                   <FontAwesomeIcon icon={faList} />
+                  Collapse All
                 </button>
               </div>
             </div>
@@ -541,193 +733,50 @@ export default function Set() {
                 <div className="loading-spinner"></div>
                 <p>Loading your library...</p>
               </div>
-            ) : filteredItems.length === 0 ? (
+            ) : tree.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon">📚</div>
-                <h3>{searchTerm ? 'No items found' : currentPath.length > 0 ? 'Empty folder' : 'Welcome to your library'}</h3>
-                <p>
-                  {searchTerm 
-                    ? `No folders or decks match "${searchTerm}". Try a different search term.`
-                    : currentPath.length > 0
-                    ? 'This folder is empty. Create your first deck or subfolder to get started.'
-                    : 'Start building your learning library by creating folders and flashcard decks!'
-                  }
-                </p>
-                {!searchTerm && (
-                  <div className="empty-actions">
-                    <button 
-                      onClick={() => setShowCreateFolderModal(true)}
-                      className="empty-action-btn secondary"
-                    >
-                      <FontAwesomeIcon icon={faFolder} />
-                      Create Folder
-                    </button>
-                    {/* UPDATED: Only show Create Deck in empty state if in a folder */}
-                    {currentClassId && (
-                      <button 
-                        onClick={() => setShowModal(true)}
-                        className="empty-action-btn"
-                      >
-                        Add Deck
-                      </button>
-                    )}
-                    <button 
-                      onClick={() => setShowImportModal(true)}
-                      className="empty-action-btn secondary"
-                    >
-                      <FontAwesomeIcon icon={faFileImport} />
-                      Import Decks
-                    </button>
-                  </div>
-                )}
+                <h3>Welcome to your library</h3>
+                <p>Start building your learning library by creating folders and flashcard decks!</p>
+                <div className="empty-actions">
+                  <button 
+                    onClick={() => handleCreateFolder()}
+                    className="empty-action-btn secondary"
+                  >
+                    <FontAwesomeIcon icon={faFolder} />
+                    Create Folder
+                  </button>
+                  <button 
+                    onClick={() => handleCreateDeck()}
+                    className="empty-action-btn"
+                  >
+                    Create Deck
+                  </button>
+                  <button 
+                    onClick={() => handleImport()}
+                    className="empty-action-btn secondary"
+                  >
+                    <FontAwesomeIcon icon={faFileImport} />
+                    Import Decks
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className={`content-grid ${viewMode}-view`}>
-                {filteredItems.map(item => (
-                  <div 
-                    key={item.id} 
-                    className={`folder-card ${item.type === 'deck' ? 'deck-card' : ''} clickable-card`}
-                    onClick={(e) => handleItemClick(item, e)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {/* Item Header */}
-                    <div className="folder-header">
-                      <div className="folder-info">
-                        <div className="folder-icon-and-name">
-                          <FontAwesomeIcon 
-                            icon={item.type === 'folder' ? faFolder : faFileImport} 
-                            className="folder-icon"
-                            style={{ 
-                              color: item.type === 'folder' ? '#4facfe' : '#ff6b35',
-                              fontSize: '1.8rem'
-                            }}
-                          />
-                          <div className="folder-details">
-                            <h3 className="folder-name">{item.name}</h3>
-                            <div className="folder-meta">
-                              <span className="deck-count">
-                                {item.type === 'folder' 
-                                  ? item.hasContent
-                                    ? `${item.totalSubfolders || 0} folder${(item.totalSubfolders || 0) !== 1 ? 's' : ''}, ${item.totalSets || 0} deck${(item.totalSets || 0) !== 1 ? 's' : ''}`
-                                    : 'Empty folder'
-                                  : `${item.card_count || 0} cards`
-                                }
-                              </span>
-                              <span className="folder-date">
-                                Created {formatDate(item.created_at)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="folder-actions">
-                        {item.type === 'folder' ? (
-                          // Folder actions
-                          <>
-                            <button
-                              className="action-btn open-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                console.log('🔘 Open folder button clicked');
-                                navigateToClass(item.id);
-                              }}
-                              title="Open folder"
-                            >
-                              <FontAwesomeIcon icon={faFolderOpen} />
-                            </button>
-                            <button
-                              className="action-btn import-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedClassId(item.id);
-                                setShowImportModal(true);
-                              }}
-                              title="Import to this folder"
-                            >
-                              <FontAwesomeIcon icon={faFileImport} />
-                            </button>
-                            <button
-                              className="action-btn add-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedClassId(item.id);
-                                setShowModal(true);
-                              }}
-                              title="Add deck to folder"
-                            >
-                              <FontAwesomeIcon icon={faPlus} />
-                            </button>
-                            <button
-                              className="action-btn delete-btn"
-                              onClick={(e) => handleDeleteItem(item.id, item.name, item.type, e)}
-                              title="Delete folder"
-                            >
-                              <FontAwesomeIcon icon={faTrash} />
-                            </button>
-                          </>
-                        ) : (
-                          // Deck actions
-                          <>
-                            <button
-                              className="action-btn open-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/flashcards/${item.id}`);
-                              }}
-                              title="Edit deck"
-                            >
-                              <FontAwesomeIcon icon={faEdit} />
-                            </button>
-                            <button
-                              className="action-btn import-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/study/${item.id}`);
-                              }}
-                              title="Study deck"
-                              style={{ background: 'rgba(40, 167, 69, 0.1)', color: '#28a745', border: '1px solid rgba(40, 167, 69, 0.3)' }}
-                            >
-                              Study
-                            </button>
-                            <button
-                              className="action-btn delete-btn"
-                              onClick={(e) => handleDeleteItem(item.id, item.name, item.type, e)}
-                              title="Delete deck"
-                            >
-                              <FontAwesomeIcon icon={faTrash} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Simplified bottom section - no preview, just visual consistency */}
-                    <div className="item-summary">
-                      {item.type === 'folder' ? (
-                        <div className="folder-summary">
-                          <div className="summary-icon">
-                            📁
-                          </div>
-                          <p>
-                            {item.hasContent 
-                              ? `Contains ${item.totalSubfolders + item.totalSets} items`
-                              : 'Empty folder - click to add content'
-                            }
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="deck-summary">
-                          <div className="summary-icon">
-                            🗂️
-                          </div>
-                          <p>
-                            Ready to study • {item.card_count || 0} flashcards
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+              <div className="tree-view">
+                {tree.map(item => (
+                  <TreeNode
+                    key={item.id}
+                    item={item}
+                    depth={0}
+                    onToggleExpand={handleToggleExpand}
+                    onDeleteItem={handleDeleteItem}
+                    onCreateFolder={handleCreateFolder}
+                    onCreateDeck={handleCreateDeck}
+                    onImport={handleImport}
+                    onNavigate={handleNavigate}
+                    expandedFolders={expandedFolders}
+                    searchTerm={searchTerm}
+                  />
                 ))}
               </div>
             )}
@@ -739,14 +788,14 @@ export default function Set() {
           <ClassDeckModal
             onClose={() => {
               setShowModal(false);
-              setSelectedClassId(null);
+              setSelectedFolderId(null);
             }}
             onSuccess={() => {
-              fetchItems();
+              fetchAllData();
               setShowModal(false);
-              setSelectedClassId(null);
+              setSelectedFolderId(null);
             }}
-            preselectedClassId={selectedClassId || currentClassId}
+            preselectedClassId={selectedFolderId}
           />
         )}
 
@@ -754,18 +803,21 @@ export default function Set() {
           <ImportModal
             onClose={() => {
               setShowImportModal(false);
-              setSelectedClassId(null);
+              setSelectedFolderId(null);
             }}
             onSuccess={handleImportSuccess}
-            preselectedClassId={selectedClassId || currentClassId}
+            preselectedClassId={selectedFolderId}
           />
         )}
 
         {showCreateFolderModal && (
           <CreateFolderModal
-            onClose={() => setShowCreateFolderModal(false)}
-            onSuccess={createNewFolder}
-            currentPath={currentPath}
+            onClose={() => {
+              setShowCreateFolderModal(false);
+              setSelectedFolderId(null);
+            }}
+            onSuccess={(folderName) => createNewFolder(folderName, selectedFolderId)}
+            parentFolderId={selectedFolderId}
           />
         )}
 
@@ -784,12 +836,12 @@ export default function Set() {
 }
 
 // Create Folder Modal Component
-const CreateFolderModal = ({ onClose, onSuccess, currentPath }) => {
+const CreateFolderModal = React.memo(({ onClose, onSuccess, parentFolderId }) => {
   const [folderName, setFolderName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (!folderName.trim()) return;
 
@@ -802,7 +854,7 @@ const CreateFolderModal = ({ onClose, onSuccess, currentPath }) => {
       setError(err.message || 'Failed to create folder');
       setLoading(false);
     }
-  };
+  }, [folderName, onSuccess]);
 
   return (
     <div className="modal-overlay">
@@ -813,22 +865,15 @@ const CreateFolderModal = ({ onClose, onSuccess, currentPath }) => {
         </div>
         
         <form onSubmit={handleSubmit} className="modal-body">
-          <div className="current-location">
-            <span className="location-label">Creating in:</span>
-            <div className="location-path">
-              <FontAwesomeIcon icon={faHome} />
-              {currentPath.length > 0 ? (
-                currentPath.map((item, index) => (
-                  <React.Fragment key={item.id}>
-                    <FontAwesomeIcon icon={faChevronRight} className="path-separator" />
-                    <span>{item.name}</span>
-                  </React.Fragment>
-                ))
-              ) : (
-                <span>Library Root</span>
-              )}
+          {parentFolderId && (
+            <div className="current-location">
+              <span className="location-label">Creating in folder:</span>
+              <div className="location-path">
+                <FontAwesomeIcon icon={faFolder} />
+                <span>Selected Folder</span>
+              </div>
             </div>
-          </div>
+          )}
 
           {error && (
             <div className="error-message">
@@ -881,4 +926,4 @@ const CreateFolderModal = ({ onClose, onSuccess, currentPath }) => {
       </div>
     </div>
   );
-};
+});
