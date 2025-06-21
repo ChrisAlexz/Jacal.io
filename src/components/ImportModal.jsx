@@ -1,4 +1,4 @@
-// src/components/ImportModal.jsx - COMPLETE FIXED VERSION
+// src/components/ImportModal.jsx - UPDATED WITH CLEAR EXPORT INSTRUCTIONS
 import React, { useState, useContext } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
@@ -65,13 +65,16 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
     setFile(selectedFile);
     setError('');
     
-    // Auto-detect file type based on extension
+    // Validate file type - UPDATED: Only accept .txt and .csv
     const fileName = selectedFile.name.toLowerCase();
-    if (fileName.endsWith('.apkg') || fileName.endsWith('.colpkg')) {
-      setImportType('anki');
-    } else if (fileName.endsWith('.txt') || fileName.endsWith('.csv')) {
-      setImportType('quizlet');
+    if (!fileName.endsWith('.txt') && !fileName.endsWith('.csv')) {
+      setError('Please upload a .txt or .csv file. Use .txt files for best compatibility - see export instructions above.');
+      setFile(null);
+      return;
     }
+    
+    // Auto-detect file type - UPDATED: Default to quizlet for text files
+    setImportType('quizlet');
 
     // Generate preview
     try {
@@ -79,34 +82,19 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
       setParseProgress(0);
       let preview;
       
-      if (importType === 'anki' && (fileName.endsWith('.apkg') || fileName.endsWith('.colpkg'))) {
-        try {
-          preview = await parseAnkiFileWithFallback(selectedFile, { 
-            previewOnly: true, 
-            maxCards: 5,
-            onProgress: setParseProgress
-          });
-        } catch (ankiError) {
-          console.error('Anki preview failed:', ankiError);
-          setError(`Anki parsing failed: ${ankiError.message}`);
-          setImportPreview(null);
-          setLoading(false);
-          return;
-        }
-      } else if (importType === 'quizlet') {
-        try {
-          preview = await parseQuizletFile(selectedFile, { 
-            previewOnly: true, 
-            maxCards: 5,
-            onProgress: setParseProgress
-          });
-        } catch (quizletError) {
-          console.error('Quizlet preview failed:', quizletError);
-          setError(`Quizlet parsing failed: ${quizletError.message}`);
-          setImportPreview(null);
-          setLoading(false);
-          return;
-        }
+      // UPDATED: Only use quizlet parser for .txt/.csv files
+      try {
+        preview = await parseQuizletFile(selectedFile, { 
+          previewOnly: true, 
+          maxCards: 5,
+          onProgress: setParseProgress
+        });
+      } catch (quizletError) {
+        console.error('Text file preview failed:', quizletError);
+        setError(`File parsing failed: ${quizletError.message}`);
+        setImportPreview(null);
+        setLoading(false);
+        return;
       }
       
       setImportPreview(preview);
@@ -153,19 +141,11 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
       console.log('✅ Validation passed, starting full parse...');
       setParseProgress(10);
 
-      // Parse the full file
+      // Parse the full file - UPDATED: Only use quizlet parser
       let parsedData;
-      const fileName = file.name.toLowerCase();
-      
-      if (importType === 'anki' && (fileName.endsWith('.apkg') || fileName.endsWith('.colpkg'))) {
-        parsedData = await parseAnkiFileWithFallback(file, {
-          onProgress: (progress) => setParseProgress(10 + (progress * 0.3)) // 10-40%
-        });
-      } else {
-        parsedData = await parseQuizletFile(file, {
-          onProgress: (progress) => setParseProgress(10 + (progress * 0.3)) // 10-40%
-        });
-      }
+      parsedData = await parseQuizletFile(file, {
+        onProgress: (progress) => setParseProgress(10 + (progress * 0.3)) // 10-40%
+      });
 
       if (!parsedData.cards || parsedData.cards.length === 0) {
         throw new Error('No cards found in the file after full parsing.');
@@ -226,9 +206,8 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
       console.log('✅ Flashcard set created with ID:', setId);
       setParseProgress(60);
 
-      // Prepare cards for insertion - CRITICAL FIX: Include user_id
+      // Prepare cards for insertion
       const cardsToInsert = parsedData.cards.map((card, index) => {
-        // Ensure we have valid front and back content
         const frontContent = (card.front || '').toString().trim();
         const backContent = (card.back || '').toString().trim();
         
@@ -241,151 +220,51 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
           front: frontContent || `Card ${index + 1} Front`,
           back: backContent || `Card ${index + 1} Back`,
           card_type: card.cardType || 'Basic',
-          user_id: user.id // CRITICAL: Include user_id for proper foreign key relationship
+          user_id: user.id
         };
       });
 
       console.log(`📝 Prepared ${cardsToInsert.length} cards for insertion`);
-      console.log('📋 Sample card:', cardsToInsert[0]);
 
-      // Insert cards in smaller batches for better reliability
-      const batchSize = 20; // Smaller batches
+      // Insert cards in batches
+      const batchSize = 20;
       let totalInserted = 0;
-      const insertionErrors = [];
 
       for (let i = 0; i < cardsToInsert.length; i += batchSize) {
         const batch = cardsToInsert.slice(i, i + batchSize);
-        const batchNumber = Math.floor(i / batchSize) + 1;
-        const totalBatches = Math.ceil(cardsToInsert.length / batchSize);
         
-        console.log(`📦 Inserting batch ${batchNumber}/${totalBatches} (${batch.length} cards)...`);
-
         try {
           const { data: insertedCards, error: cardError } = await supabase
             .from('flashcard_cards')
             .insert(batch)
-            .select('id, front, back');
+            .select('id');
 
           if (cardError) {
-            console.error(`❌ Batch ${batchNumber} insertion error:`, cardError);
-            insertionErrors.push(`Batch ${batchNumber}: ${cardError.message}`);
-            
-            // Try to continue with smaller sub-batches
-            console.log(`🔄 Trying to insert cards individually for batch ${batchNumber}...`);
-            let individualInserts = 0;
-            for (const singleCard of batch) {
-              try {
-                const { error: singleError } = await supabase
-                  .from('flashcard_cards')
-                  .insert([singleCard]);
-                  
-                if (!singleError) {
-                  individualInserts++;
-                }
-              } catch (singleCardError) {
-                console.error('❌ Individual card insert failed:', singleCardError);
-              }
-            }
-            totalInserted += individualInserts;
-            console.log(`✅ Individual inserts: ${individualInserts}/${batch.length}`);
+            console.error(`❌ Batch insertion error:`, cardError);
           } else {
-            const insertedCount = insertedCards?.length || 0;
-            totalInserted += insertedCount;
-            console.log(`✅ Batch ${batchNumber} inserted: ${insertedCount} cards`);
-            
-            // Log first card of batch for verification
-            if (insertedCards && insertedCards.length > 0) {
-              console.log('🔍 First card in batch:', {
-                id: insertedCards[0].id,
-                front: insertedCards[0].front.substring(0, 50),
-                back: insertedCards[0].back.substring(0, 50)
-              });
-            }
+            totalInserted += insertedCards?.length || 0;
           }
         } catch (batchError) {
-          console.error(`💥 Batch ${batchNumber} threw error:`, batchError);
-          insertionErrors.push(`Batch ${batchNumber}: ${batchError.message}`);
+          console.error(`💥 Batch threw error:`, batchError);
         }
 
         // Update progress
         const progress = 60 + Math.round(((i + batch.length) / cardsToInsert.length) * 30);
         setParseProgress(progress);
         
-        // Small delay between batches to avoid overwhelming the database
+        // Small delay between batches
         if (i + batchSize < cardsToInsert.length) {
           await new Promise(resolve => setTimeout(resolve, 200));
         }
       }
 
-      console.log(`📊 Import summary: ${totalInserted}/${cardsToInsert.length} cards inserted`);
-      
-      if (insertionErrors.length > 0) {
-        console.warn('⚠️ Some insertion errors occurred:', insertionErrors);
-      }
-
-      setParseProgress(90);
-
-      // CRITICAL: Verify cards were actually inserted with timeout
-      console.log('🔍 Verifying card insertion...');
-      let verifyCount = 0;
-      let verifyError = null;
-      
-      try {
-        // Add timeout to verification
-        const verificationPromise = supabase
-          .from('flashcard_cards')
-          .select('*', { count: 'exact', head: true })
-          .eq('set_id', setId);
-          
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Verification timeout')), 5000);
-        });
-        
-        const result = await Promise.race([verificationPromise, timeoutPromise]);
-        verifyCount = result.count || 0;
-        verifyError = result.error;
-        
-        console.log(`✅ Verification: ${verifyCount} cards found in database`);
-        
-      } catch (error) {
-        console.warn('⚠️ Verification failed or timed out:', error);
-        // Don't fail the import if verification fails - we still inserted cards
-        verifyCount = totalInserted; // Assume success if we can't verify
-      }
-
       setParseProgress(95);
-
-      // More lenient final check - only fail if we know for sure there are no cards
-      if (verifyError && verifyError.message && !verifyError.message.includes('timeout')) {
-        console.warn(`⚠️ Database verification had issues: ${verifyError.message}`);
-      }
       
-      // Only throw error if we're absolutely sure no cards were inserted
-      if (verifyCount === 0 && totalInserted === 0) {
-        throw new Error(`No cards were successfully inserted. Please check your file format and try again.
-
-Debug info:
-- File: ${file.name} (${file.size} bytes)
-- Cards prepared: ${cardsToInsert.length}
-- Insertion errors: ${insertionErrors.length}
-
-This might be due to:
-1. Database permission issues
-2. Invalid card data format
-3. Foreign key constraint violations
-
-Please try with a smaller file first, or check the browser console for more details.`);
+      if (totalInserted === 0) {
+        throw new Error('No cards were successfully inserted. Please check your file format and try again.');
       }
 
-      if (verifyCount > 0 && verifyCount < totalInserted * 0.5) {
-        console.warn(`⚠️ Only ${verifyCount} cards verified out of ${totalInserted} inserted, but continuing...`);
-      }
-
-      setParseProgress(98);
-      
-      // Brief final pause to ensure everything is settled
       await new Promise(resolve => setTimeout(resolve, 500));
-      
       setParseProgress(100);
 
       console.log('🎉 Import completed successfully!');
@@ -393,14 +272,11 @@ Please try with a smaller file first, or check the browser console for more deta
       // Close modal and navigate
       onClose();
       
-      // Call success callback with proper data
       if (onSuccess) {
         onSuccess(setId);
       }
 
-      // Navigate with a slight delay to ensure modal closes
       setTimeout(() => {
-        console.log('🧭 Navigating to edit page...');
         navigate(`/flashcards/${setId}`);
       }, 300);
 
@@ -425,8 +301,59 @@ Please try with a smaller file first, or check the browser console for more deta
             <p className="modal-subtitle">Importing to "{selectedClass.name}"</p>
           )}
           <p className="import-description">
-            Import your existing flashcards from Anki (.apkg, .colpkg) or Quizlet (.txt, .csv) files
+            Import your existing flashcards from Quizlet or Anki. <strong>Important:</strong> Export as .txt files for best compatibility.
           </p>
+        </div>
+
+        {/* Export Instructions Section */}
+        <div className="export-instructions">
+          <div className="instruction-header">
+            <h3>📋 How to Export Your Cards</h3>
+            <p>Follow these steps to create compatible .txt files:</p>
+          </div>
+          
+          <div className="export-guides">
+            <div className="export-guide quizlet">
+              <div className="guide-header">
+                <div className="platform-logo">Q</div>
+                <h4>From Quizlet</h4>
+              </div>
+              <ol className="guide-steps">
+                <li>Go to your Quizlet study set</li>
+                <li>Click the <strong>3 dots menu</strong> (⋯) next to "Study"</li>
+                <li>Select <strong>"Export"</strong></li>
+                <li>Choose <strong>"Copy text"</strong> and save to a .txt file</li>
+                <li>Format: <code>Term [TAB] Definition</code> per line</li>
+              </ol>
+            </div>
+
+            <div className="export-guide anki">
+              <div className="guide-header">
+                <div className="platform-logo">A</div>
+                <h4>From Anki</h4>
+              </div>
+              <ol className="guide-steps">
+                <li>Open Anki and select your deck</li>
+                <li>Go to <strong>File → Export</strong></li>
+                <li>Choose <strong>"Notes in Plain Text (.txt)"</strong></li>
+                <li>Uncheck "Include HTML and media references"</li>
+                <li>Click <strong>"Export"</strong> and save the .txt file</li>
+              </ol>
+            </div>
+          </div>
+
+          <div className="format-requirements">
+            <div className="requirement-header">
+              <span className="requirement-icon">⚠️</span>
+              <h4>File Requirements</h4>
+            </div>
+            <ul className="requirements-list">
+              <li><strong>File type:</strong> Must be .txt (not .apkg, .csv, or other formats)</li>
+              <li><strong>Format:</strong> Each line: <code>Front[TAB]Back</code> or <code>Front,Back</code></li>
+              <li><strong>Encoding:</strong> UTF-8 text encoding (standard for exports)</li>
+              <li><strong>Content:</strong> One flashcard per line, no empty lines</li>
+            </ul>
+          </div>
         </div>
 
         {error && (
@@ -441,19 +368,22 @@ Please try with a smaller file first, or check the browser console for more deta
         <form onSubmit={handleImport}>
           {/* File Upload */}
           <div className="form-group">
-            <label>Select File</label>
+            <label>Select Your .txt File</label>
             <div className="file-upload-container">
               <input
                 type="file"
-                accept=".apkg,.colpkg,.txt,.csv"
+                accept=".txt,.csv"
                 onChange={handleFileChange}
                 disabled={loading}
                 className="file-input"
               />
               <div className="file-upload-info">
                 <span className="supported-formats">
-                  Supported: Anki (.apkg, .colpkg), Quizlet (.txt, .csv)
+                  Supported: .txt files (recommended) or .csv files
                 </span>
+                <div className="format-note">
+                  💡 <strong>Best practice:</strong> Export as .txt from Quizlet/Anki using instructions above
+                </div>
                 {file && (
                   <div style={{ marginTop: '8px', fontSize: '0.8rem', color: '#ccc' }}>
                     File: {file.name} ({file.size} bytes)
@@ -462,51 +392,6 @@ Please try with a smaller file first, or check the browser console for more deta
               </div>
             </div>
           </div>
-
-          {/* Import Type Selector */}
-          {file && (
-            <div className="form-group">
-              <label>Import Type</label>
-              <div className="import-type-container">
-                <label className="radio-option">
-                  <input
-                    type="radio"
-                    value="anki"
-                    checked={importType === 'anki'}
-                    onChange={(e) => {
-                      setImportType(e.target.value);
-                      setImportPreview(null);
-                      setError('');
-                    }}
-                    disabled={loading}
-                  />
-                  <span className="radio-label">
-                    <span className="format-icon">🅰️</span>
-                    Anki Format
-                    <small>(.apkg, .colpkg files)</small>
-                  </span>
-                </label>
-                <label className="radio-option">
-                  <input
-                    type="radio"
-                    value="quizlet"
-                    checked={importType === 'quizlet'}
-                    onChange={(e) => {
-                      setImportType(e.target.value);
-                      setImportPreview(null);
-                      setError('');
-                    }}
-                    disabled={loading}
-                  />
-                  <span className="radio-label">
-                    <span className="format-icon">🇶</span>
-                    Quizlet Format
-                    <small>(.txt, .csv files with "front,back" or "front\tback" format)</small>
-                  </span>
-                </label>
-              </div>
-            </div>
-          )}
 
           {/* Preview */}
           {importPreview && importPreview.totalCards > 0 && (
@@ -523,11 +408,6 @@ Please try with a smaller file first, or check the browser console for more deta
                       <strong>Back:</strong> {card.back.substring(0, 100)}
                       {card.back.length > 100 && '...'}
                     </div>
-                    {card.cardType && (
-                      <div className="preview-type">
-                        <span className="card-type-badge">{card.cardType}</span>
-                      </div>
-                    )}
                   </div>
                 ))}
                 {importPreview.totalCards > 5 && (
@@ -539,35 +419,17 @@ Please try with a smaller file first, or check the browser console for more deta
             </div>
           )}
 
-          {/* Failed preview with helpful suggestions */}
-          {file && !loading && !importPreview && (
-            <div className="import-help">
-              <h4>❌ No cards found in preview</h4>
-              <div className="help-content">
-                <p>If you're having trouble with an Anki file, try this:</p>
-                <ol>
-                  <li>Open Anki on your computer</li>
-                  <li>Select your deck</li>
-                  <li>Go to <strong>File → Export</strong></li>
-                  <li>Choose <strong>"Notes in Plain Text (*.txt)"</strong></li>
-                  <li>Import that .txt file using the <strong>Quizlet</strong> option above</li>
-                </ol>
-                <p>This method works with all Anki versions and preserves your cards perfectly!</p>
-              </div>
-            </div>
-          )}
-
           {/* Set Selection */}
           {!isAddingToDeck && (
             <div className="form-group">
-              <label>Set</label>
+              <label>Folder</label>
               <div className="select-container">
                 <select
                   value={selectedOption}
                   onChange={(e) => setSelectedOption(e.target.value)}
                   disabled={loading}
                 >
-                  <option value="new">Create New Set</option>
+                  <option value="new">Create New Folder</option>
                   {classes.map((cls) => (
                     <option key={cls.id} value={cls.id}>
                       {cls.name}
@@ -578,15 +440,15 @@ Please try with a smaller file first, or check the browser console for more deta
             </div>
           )}
 
-          {/* Set Name (if creating new) */}
+          {/* Folder Name (if creating new) */}
           {(selectedOption === 'new' && !isAddingToDeck) && (
             <div className="form-group">
-              <label>Set Name</label>
+              <label>Folder Name</label>
               <input
                 type="text"
                 value={className}
                 onChange={(e) => setClassName(e.target.value)}
-                placeholder="e.g., Imported Anki Deck, Quizlet Set"
+                placeholder="e.g., Imported Decks, Spanish Class"
                 disabled={loading}
               />
             </div>

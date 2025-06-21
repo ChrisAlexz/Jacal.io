@@ -1,11 +1,11 @@
-/* src/styles/ImportModal.css */
+/* src/styles/ImportModal.css - UPDATED WITH EXPORT INSTRUCTIONS STYLING */
 
 .import-modal {
   background-color: #1e1e1e;
   border-radius: 20px;
   padding: 0;
   width: 90%;
-  max-width: 700px;
+  max-width: 800px;
   color: white;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
   border: 1px solid #333;
@@ -68,8 +68,181 @@
   margin: 0;
   font-size: 0.9rem;
   line-height: 1.4;
-  max-width: 500px;
+  max-width: 600px;
   margin: 0 auto;
+}
+
+.import-description strong {
+  color: #ffc107;
+  font-weight: 600;
+}
+
+/* Export Instructions Section */
+.export-instructions {
+  background: rgba(79, 172, 254, 0.03);
+  border: 1px solid rgba(79, 172, 254, 0.1);
+  border-radius: 0;
+  padding: 25px 30px;
+  border-left: none;
+  border-right: none;
+}
+
+.instruction-header {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.instruction-header h3 {
+  color: #4facfe;
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.instruction-header p {
+  color: #aaa;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.export-guides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.export-guide {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.export-guide:hover {
+  border-color: #4facfe;
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.1);
+}
+
+.guide-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.platform-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.export-guide.quizlet .platform-logo {
+  background: linear-gradient(135deg, #4255ff 0%, #3742fa 100%);
+}
+
+.export-guide.anki .platform-logo {
+  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+}
+
+.guide-header h4 {
+  color: #fff;
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.guide-steps {
+  color: #ccc;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.guide-steps li {
+  margin-bottom: 8px;
+}
+
+.guide-steps strong {
+  color: #4facfe;
+  font-weight: 600;
+}
+
+.guide-steps code {
+  background: rgba(79, 172, 254, 0.15);
+  color: #4facfe;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  border: 1px solid rgba(79, 172, 254, 0.2);
+}
+
+.format-requirements {
+  background: rgba(255, 193, 7, 0.05);
+  border: 1px solid rgba(255, 193, 7, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  position: relative;
+}
+
+.requirement-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.requirement-icon {
+  font-size: 1.2rem;
+  /* REMOVED: animation that was causing scroll issues */
+}
+
+.requirement-header h4 {
+  color: #ffc107;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.requirements-list {
+  color: #ffdb66;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: 18px;
+  position: relative;
+}
+
+.requirements-list li {
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.requirements-list strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.requirements-list code {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  border: 1px solid rgba(255, 193, 7, 0.2);
+  position: relative;
+  display: inline;
 }
 
 /* Enhanced Form */
@@ -118,7 +291,7 @@
 }
 
 .file-upload-info {
-  margin-top: 8px;
+  margin-top: 10px;
   text-align: center;
 }
 
@@ -128,67 +301,20 @@
   font-style: italic;
 }
 
-/* Import Type Selection */
-.import-type-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.radio-option {
-  position: relative;
-  display: block;
-  padding: 16px;
-  border: 2px solid #333;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.radio-option:hover {
-  border-color: #4facfe;
-  background: rgba(79, 172, 254, 0.05);
-}
-
-.radio-option input[type="radio"] {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  margin: 0;
-  transform: scale(1.2);
-}
-
-.radio-option input[type="radio"]:checked + .radio-label {
-  color: #4facfe;
-}
-
-.radio-option:has(input[type="radio"]:checked) {
-  border-color: #4facfe;
+.format-note {
+  margin-top: 10px;
+  padding: 10px 16px;
   background: rgba(79, 172, 254, 0.1);
-  box-shadow: 0 0 0 1px rgba(79, 172, 254, 0.2);
+  border: 1px solid rgba(79, 172, 254, 0.2);
+  border-radius: 8px;
+  color: #4facfe;
+  font-size: 0.85rem;
+  text-align: center;
+  line-height: 1.4;
 }
 
-.radio-label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-weight: 600;
-  color: #ddd;
-  transition: color 0.3s ease;
-  padding-right: 30px;
-}
-
-.format-icon {
-  font-size: 1.8rem;
-  margin-bottom: 4px;
-}
-
-.radio-label small {
-  color: #888;
-  font-weight: 400;
-  font-size: 0.75rem;
-  line-height: 1.3;
+.format-note strong {
+  color: #00f2fe;
 }
 
 /* Import Preview */
@@ -208,11 +334,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.import-preview h4::before {
-  content: '👁️';
-  font-size: 1rem;
 }
 
 .preview-cards {
@@ -243,21 +364,6 @@
   letter-spacing: 0.5px;
 }
 
-.preview-type {
-  margin-top: 8px;
-}
-
-.card-type-badge {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
 .preview-more {
   text-align: center;
   color: #666;
@@ -284,6 +390,21 @@
   font-weight: 600;
   margin-bottom: 8px;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.progress-label::before {
+  content: '⏳';
+  font-size: 1rem;
+  animation: progressPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes progressPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
 }
 
 .progress-bar {
@@ -324,6 +445,55 @@
   color: #ccc;
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+/* Form inputs */
+.import-modal input[type="text"],
+.import-modal select {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 2px solid #333;
+  background-color: #2a2a2a;
+  color: white;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.import-modal input[type="text"]:focus,
+.import-modal select:focus {
+  outline: none;
+  border-color: #4facfe;
+  box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+  background-color: #333;
+  transform: translateY(-1px);
+}
+
+.import-modal input[type="text"]::placeholder {
+  color: #666;
+  font-style: italic;
+}
+
+.import-modal select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+.import-modal select:disabled,
+.import-modal input[type="text"]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Enhanced select container */
+.import-modal .select-container {
+  position: relative;
 }
 
 /* Enhanced Actions */
@@ -416,181 +586,6 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Regular form inputs */
-.import-modal input[type="text"],
-.import-modal select {
-  width: 100%;
-  padding: 14px 18px;
-  border-radius: 12px;
-  border: 2px solid #333;
-  background-color: #2a2a2a;
-  color: white;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  box-sizing: border-box;
-}
-
-.import-modal input[type="text"]:focus,
-.import-modal select:focus {
-  outline: none;
-  border-color: #4facfe;
-  box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
-  background-color: #333;
-  transform: translateY(-1px);
-}
-
-.import-modal input[type="text"]::placeholder {
-  color: #666;
-  font-style: italic;
-}
-
-.import-modal select {
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 16px;
-  padding-right: 40px;
-}
-
-.import-modal select:disabled,
-.import-modal input[type="text"]:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Enhanced select container */
-.import-modal .select-container {
-  position: relative;
-}
-
-.import-modal .select-container::after {
-  content: '';
-  position: absolute;
-  right: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 6px solid #666;
-  transition: all 0.2s ease;
-}
-
-.import-modal .select-container:has(select:focus)::after {
-  border-top-color: #4facfe;
-  transform: translateY(-50%) rotate(180deg);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .import-modal {
-    margin: 10px;
-    max-width: calc(100vw - 20px);
-    max-height: calc(100vh - 40px);
-  }
-  
-  .import-modal .modal-header {
-    padding: 25px 20px 20px 20px;
-  }
-  
-  .import-modal form {
-    padding: 25px 20px;
-  }
-  
-  .import-type-container {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  
-  .import-modal .modal-actions {
-    flex-direction: column;
-    gap: 12px;
-  }
-  
-  .import-modal .modal-actions button {
-    width: 100%;
-  }
-  
-  .import-modal .modal-header h2 {
-    font-size: 1.4rem;
-  }
-  
-  .import-description {
-    font-size: 0.85rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .import-modal .modal-header {
-    padding: 20px 15px 15px 15px;
-  }
-  
-  .import-modal form {
-    padding: 20px 15px;
-  }
-  
-  .radio-option {
-    padding: 12px;
-  }
-  
-  .format-icon {
-    font-size: 1.5rem;
-  }
-  
-  .radio-label small {
-    font-size: 0.7rem;
-  }
-  
-  .preview-card {
-    padding: 10px;
-    font-size: 0.85rem;
-  }
-  
-  .import-modal .modal-header h2 {
-    font-size: 1.2rem;
-  }
-}
-
-/* Focus and Accessibility */
-.import-modal {
-  outline: none;
-}
-
-.import-modal select:focus,
-.import-modal input:focus,
-.import-modal .cancel-btn:focus,
-.import-modal .import-btn:focus {
-  outline: 2px solid #4facfe;
-  outline-offset: 2px;
-}
-
-/* Dark theme file input styling */
-.import-modal input[type="file"] {
-  color: white;
-}
-
-.import-modal input[type="file"]::-webkit-file-upload-button {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 16px;
-  margin-right: 12px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
-}
-
-.import-modal input[type="file"]::-webkit-file-upload-button:hover {
-  background: linear-gradient(135deg, #45a0f5 0%, #00d4e7 100%);
-  transform: translateY(-1px);
-}
-
 /* Error message styling */
 .import-modal .error-message {
   display: flex;
@@ -627,9 +622,7 @@
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
 }
-/* Add these styles to src/styles/ImportModal.css */
 
-/* Enhanced error message styling */
 .error-content {
   display: flex;
   flex-direction: column;
@@ -643,140 +636,156 @@
   line-height: 1.4;
 }
 
-.debug-details {
-  margin-top: 8px;
+/* Dark theme file input styling */
+.import-modal input[type="file"] {
+  color: white;
 }
 
-.debug-details summary {
-  color: #ff8a8a;
-  font-size: 0.85rem;
+.import-modal input[type="file"]::-webkit-file-upload-button {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  margin-right: 12px;
   cursor: pointer;
-  padding: 4px 0;
-  border-bottom: 1px dashed rgba(255, 138, 138, 0.3);
-}
-
-.debug-details summary:hover {
-  color: #ffaaaa;
-}
-
-.debug-info {
-  background: rgba(0, 0, 0, 0.3);
-  color: #ccc;
-  padding: 8px;
-  margin-top: 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  line-height: 1.3;
-  white-space: pre-wrap;
-  word-break: break-word;
-  border: 1px solid rgba(255, 107, 107, 0.2);
-}
-
-/* Import help section */
-.import-help {
-  background: rgba(255, 193, 7, 0.1);
-  border: 1px solid rgba(255, 193, 7, 0.3);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
-
-.import-help h4 {
-  color: #ffc107;
-  margin: 0 0 12px 0;
-  font-size: 1rem;
   font-weight: 600;
-}
-
-.help-content {
-  color: #ffcc33;
   font-size: 0.9rem;
-  line-height: 1.5;
+  transition: all 0.3s ease;
 }
 
-.help-content p {
-  margin: 0 0 12px 0;
+.import-modal input[type="file"]::-webkit-file-upload-button:hover {
+  background: linear-gradient(135deg, #45a0f5 0%, #00d4e7 100%);
+  transform: translateY(-1px);
 }
 
-.help-content ol {
-  margin: 12px 0;
-  padding-left: 20px;
+/* Responsive Design */
+@media (max-width: 768px) {
+  .import-modal {
+    margin: 10px;
+    max-width: calc(100vw - 20px);
+    max-height: calc(100vh - 40px);
+  }
+  
+  .import-modal .modal-header {
+    padding: 25px 20px 20px 20px;
+  }
+  
+  .import-modal form {
+    padding: 25px 20px;
+  }
+
+  .export-instructions {
+    padding: 20px;
+  }
+  
+  .export-guides {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .export-guide {
+    padding: 16px;
+  }
+
+  .platform-logo {
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem;
+  }
+
+  .guide-steps {
+    font-size: 0.85rem;
+  }
+
+  .requirements-list {
+    font-size: 0.85rem;
+  }
+  
+  .import-modal .modal-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .import-modal .modal-actions button {
+    width: 100%;
+  }
+  
+  .import-modal .modal-header h2 {
+    font-size: 1.4rem;
+  }
+  
+  .import-description {
+    font-size: 0.85rem;
+  }
 }
 
-.help-content li {
-  margin-bottom: 4px;
-  color: #ffdb66;
+@media (max-width: 480px) {
+  .import-modal .modal-header {
+    padding: 20px 15px 15px 15px;
+  }
+  
+  .import-modal form {
+    padding: 20px 15px;
+  }
+
+  .export-instructions {
+    padding: 16px;
+  }
+
+  .export-guide {
+    padding: 12px;
+  }
+
+  .platform-logo {
+    width: 28px;
+    height: 28px;
+    font-size: 1rem;
+  }
+
+  .guide-header h4 {
+    font-size: 1rem;
+  }
+
+  .guide-steps {
+    font-size: 0.8rem;
+    padding-left: 14px;
+  }
+
+  .requirements-list {
+    font-size: 0.8rem;
+    padding-left: 14px;
+  }
+  
+  .preview-card {
+    padding: 10px;
+    font-size: 0.85rem;
+  }
+  
+  .import-modal .modal-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .instruction-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .requirement-header h4 {
+    font-size: 0.9rem;
+  }
 }
 
-.help-content strong {
-  color: #fff;
-  font-weight: 600;
+/* Focus and Accessibility */
+.import-modal {
+  outline: none;
 }
 
-/* Enhanced preview styling */
-.import-preview {
-  background: rgba(79, 172, 254, 0.05);
-  border: 1px solid rgba(79, 172, 254, 0.2);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
-
-.import-preview h4 {
-  color: #4facfe;
-  margin: 0 0 16px 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Better progress indicators */
-.progress-label {
-  color: #4facfe;
-  font-size: 0.9rem;
-  font-weight: 600;
-  margin-bottom: 8px;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.progress-label::before {
-  content: '⏳';
-  font-size: 1rem;
-  animation: progressPulse 1.5s ease-in-out infinite;
-}
-
-@keyframes progressPulse {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.1); }
-}
-
-/* Improved button states */
-.import-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.2);
-}
-
-.import-btn:disabled:hover {
-  transform: none;
-  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.2);
-}
-
-/* Enhanced radio options */
-.radio-option:has(input[type="radio"]:disabled) {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.radio-option input[type="radio"]:disabled {
-  cursor: not-allowed;
+.import-modal select:focus,
+.import-modal input:focus,
+.import-modal .cancel-btn:focus,
+.import-modal .import-btn:focus {
+  outline: 2px solid #4facfe;
+  outline-offset: 2px;
 }
 
 /* Loading states */
@@ -790,47 +799,4 @@
   opacity: 0.6;
   cursor: not-allowed;
   background-color: #1a1a1a;
-}
-
-/* Mobile responsiveness for new elements */
-@media (max-width: 768px) {
-  .import-help {
-    padding: 16px;
-    margin-bottom: 16px;
-  }
-  
-  .help-content ol {
-    padding-left: 16px;
-  }
-  
-  .debug-info {
-    font-size: 0.7rem;
-    padding: 6px;
-  }
-  
-  .error-content {
-    gap: 6px;
-  }
-}
-
-@media (max-width: 480px) {
-  .import-help {
-    padding: 12px;
-  }
-  
-  .import-help h4 {
-    font-size: 0.9rem;
-  }
-  
-  .help-content {
-    font-size: 0.85rem;
-  }
-  
-  .progress-label {
-    font-size: 0.8rem;
-  }
-  
-  .debug-info {
-    font-size: 0.65rem;
-  }
 }

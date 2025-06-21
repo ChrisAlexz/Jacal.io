@@ -1,4 +1,4 @@
-// Fixed FlashcardInput.jsx - FIXED UNDEFINED REPLACE ERROR
+// src/components/FlashcardInput.jsx - COMPLETE WITH ENHANCED IMAGE OCCLUSION
 import React, { useState, useContext } from 'react';
 import SimpleRichTextEditor from './SimpleRichTextEditor';
 import ImageOcclusionEditor from './ImageOcclusionEditor';

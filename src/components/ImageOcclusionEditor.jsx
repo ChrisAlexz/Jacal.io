@@ -1,4 +1,4 @@
-// src/components/ImageOcclusionEditor.jsx - FIXED DUPLICATE OCCLUSION ISSUE
+// src/components/ImageOcclusionEditor.jsx - ENHANCED WITH COPY/PASTE FUNCTIONALITY
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
@@ -22,28 +22,71 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
   const containerRef = useRef(null);
   const startPosRef = useRef({ x: 0, y: 0 });
 
+  // Enhanced image processing function used by both upload and paste
+  const processImageFile = async (file) => {
+    setImageFile(file);
+    const url = URL.createObjectURL(file);
+    setImageUrl(url);
+    
+    // Reset occlusions when new image is uploaded
+    setOcclusions([]);
+    setNextId(1);
+    
+    const img = new Image();
+    img.onload = () => {
+      setImage(img);
+      setupCanvas(img);
+    };
+    img.src = url;
+
+    await uploadImageToSupabase(file);
+  };
+
   // Load image and setup canvas
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
-      setImageFile(file);
-      const url = URL.createObjectURL(file);
-      setImageUrl(url);
-      
-      // Reset occlusions when new image is uploaded
-      setOcclusions([]);
-      setNextId(1);
-      
-      const img = new Image();
-      img.onload = () => {
-        setImage(img);
-        setupCanvas(img);
-      };
-      img.src = url;
-
-      await uploadImageToSupabase(file);
+      await processImageFile(file);
     }
   };
+
+  // Handle paste events for image pasting
+  const handlePaste = async (event) => {
+    const items = event.clipboardData.items;
+    
+    for (let item of items) {
+      if (item.type.indexOf('image') === 0) {
+        event.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          await processImageFile(file);
+          break;
+        }
+      }
+    }
+  };
+
+  // Add paste event listener
+  useEffect(() => {
+    const handleGlobalPaste = (e) => {
+      // Only handle paste if the editor is visible and no input is focused
+      const activeElement = document.activeElement;
+      const isInputFocused = activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.contentEditable === 'true'
+      );
+      
+      if (!isInputFocused) {
+        handlePaste(e);
+      }
+    };
+
+    document.addEventListener('paste', handleGlobalPaste);
+    return () => {
+      document.removeEventListener('paste', handleGlobalPaste);
+    };
+  }, []);
 
   const uploadImageToSupabase = async (file) => {
     if (!user || !file) return;
@@ -339,18 +382,23 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     <div className="image-occlusion-editor" ref={containerRef}>
       <div className="editor-header">
         <h3>Image Occlusion Editor</h3>
-        <p>Upload an image and draw rectangles to hide parts of it</p>
+        <p>Upload an image or paste one from your clipboard, then draw rectangles to hide parts of it</p>
       </div>
 
       <div className="editor-controls">
         <div className="control-group">
-          <label>Upload Image:</label>
+          <label>Upload or Paste Image:</label>
           <input
             type="file"
             accept="image/*"
             onChange={handleImageUpload}
             disabled={disabled || isUploading}
           />
+          <div className="paste-info">
+            <small style={{ color: '#4facfe', fontStyle: 'italic', display: 'block', marginTop: '8px' }}>
+              💡 Tip: You can also paste an image directly using Ctrl+V (Cmd+V on Mac)
+            </small>
+          </div>
           {isUploading && (
             <div style={{ marginTop: '8px', color: '#4facfe', fontSize: '0.9rem' }}>
               Uploading image... Please wait.
@@ -465,8 +513,18 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
       {!image && (
         <div className="upload-prompt">
           <div className="upload-icon">🖼️</div>
-          <h4>Upload an Image to Get Started</h4>
-          <p>Select an image file to begin creating image occlusion cards</p>
+          <h4>Upload or Paste an Image to Get Started</h4>
+          <p>Select an image file or paste one from your clipboard (Ctrl+V / Cmd+V)</p>
+          <div className="upload-methods">
+            <div className="upload-method">
+              <span className="method-icon">📁</span>
+              <span>Click "Choose File" to browse</span>
+            </div>
+            <div className="upload-method">
+              <span className="method-icon">📋</span>
+              <span>Copy an image and press Ctrl+V</span>
+            </div>
+          </div>
         </div>
       )}
     </div>

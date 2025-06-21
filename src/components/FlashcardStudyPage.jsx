@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - FIXED WITH PROPER HEATMAP TRACKING
+// src/components/FlashcardStudyPage.jsx - FIXED WITH CLEANED PROGRESS INFO
 import React, { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
@@ -78,15 +78,21 @@ export default function FlashcardStudyPage() {
       }
 
       const cards = data || [];
-      setAllCards(cards);
       
-      const sessionDueCards = getDueCards(cards, IMMEDIATE_REVIEW_SETTINGS);
-      const initialSessionCards = sessionDueCards.length > 0 ? sessionDueCards : cards;
+      // Initialize imported cards properly - they should NOT be considered mastered
+      const cardsWithMasteryStatus = cards.map(card => ({
+        ...card,
+        _mastered: false, // FIXED: All imported cards start as unmastered
+        _isImported: true // Track that these are imported cards
+      }));
       
-      setSessionCards(initialSessionCards);
+      setAllCards(cardsWithMasteryStatus);
+      
+      // For imported cards, ALL cards should be in the session initially
+      setSessionCards(cardsWithMasteryStatus);
       setCurrentIndex(0);
       
-      const stats = getStudyStats(cards);
+      const stats = getStudyStats(cardsWithMasteryStatus);
       setStudyStats(stats);
       
     } catch (error) {
@@ -105,6 +111,7 @@ export default function FlashcardStudyPage() {
     const resetCards = allCards.map(card => ({
       ...card,
       _masterAgainSession: true,
+      _mastered: false, // Reset mastery status for Master Again
       session_failures: 0,
       session_reviews: 0
     }));
@@ -269,8 +276,15 @@ export default function FlashcardStudyPage() {
       setAllCards(newAllCards);
 
       if (difficulty === 'easy') {
+        // Mark card as mastered and remove from session
         const newSessionCards = sessionCards.filter((_, index) => index !== currentIndex);
         setSessionCards(newSessionCards);
+        
+        // Update the card in allCards to mark it as mastered
+        const newAllCards = allCards.map(card => 
+          card.id === currentCardData.id ? { ...updatedCard, _mastered: true } : card
+        );
+        setAllCards(newAllCards);
         
         if (newSessionCards.length === 0) {
           console.log('🎉 SESSION COMPLETED!');
@@ -362,17 +376,6 @@ export default function FlashcardStudyPage() {
           <h1>{setTitle}</h1>
           <div className="progress-info">
             <span>{currentIndex + 1} / {sessionCards.length} cards remaining</span>
-            <span className="mastery-progress">
-              • {allCards.length - sessionCards.length} mastered • {sessionCards.length} to go
-            </span>
-            {studyStats && (
-              <span className="stats-preview">
-                • {studyStats.new} new • {studyStats.learning} learning • {studyStats.review} review
-              </span>
-            )}
-            <span className="session-reviews">
-              • {sessionReviewCount} reviews this session
-            </span>
           </div>
         </div>
         
@@ -386,7 +389,7 @@ export default function FlashcardStudyPage() {
             <span className="label">Remaining</span>
           </div>
           <div className="stat-item mastered">
-            <span className="count">{allCards.length - sessionCards.length}</span>
+            <span className="count">{allCards.filter(card => card._mastered === true).length}</span>
             <span className="label">Mastered</span>
           </div>
         </div>

@@ -1,4 +1,4 @@
-/* src/styles/ImageOcclusionEditor.css */
+/* src/styles/ImageOcclusionEditor.css - ENHANCED WITH COPY/PASTE FUNCTIONALITY */
 
 .image-occlusion-editor {
   background: #1e1e1e;
@@ -83,6 +83,22 @@
 
 .control-group input[type="file"]::-webkit-file-upload-button:hover {
   background: linear-gradient(135deg, #45a0f5 0%, #00d4e7 100%);
+}
+
+/* Paste Info Styling */
+.paste-info {
+  background: rgba(79, 172, 254, 0.1);
+  border: 1px solid rgba(79, 172, 254, 0.3);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-top: 8px;
+}
+
+.paste-info small {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Size Controls */
@@ -320,7 +336,7 @@
   box-shadow: none;
 }
 
-/* Upload Prompt */
+/* Upload Prompt - Enhanced with Copy/Paste Instructions */
 .upload-prompt {
   text-align: center;
   padding: 60px 20px;
@@ -373,9 +389,45 @@
 
 .upload-prompt p {
   color: #aaa;
-  margin: 0;
+  margin: 0 0 20px 0;
   font-size: 1rem;
   line-height: 1.5;
+}
+
+.upload-methods {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+.upload-method {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  background: rgba(79, 172, 254, 0.1);
+  border: 1px solid rgba(79, 172, 254, 0.2);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.upload-method:hover {
+  background: rgba(79, 172, 254, 0.15);
+  transform: translateY(-2px);
+}
+
+.method-icon {
+  font-size: 1.5rem;
+  margin-bottom: 4px;
+}
+
+.upload-method span:last-child {
+  color: #ccc;
+  font-size: 0.85rem;
+  text-align: center;
+  font-weight: 500;
 }
 
 /* Responsive Design */
@@ -414,6 +466,17 @@
   .upload-icon {
     font-size: 3rem;
   }
+  
+  .upload-methods {
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+  }
+  
+  .upload-method {
+    width: 100%;
+    max-width: 250px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -438,6 +501,22 @@
   .canvas-container {
     padding: 10px;
     max-height: 400px;
+  }
+  
+  .upload-prompt {
+    padding: 30px 12px;
+  }
+  
+  .upload-methods {
+    gap: 12px;
+  }
+  
+  .upload-method {
+    padding: 12px;
+  }
+  
+  .upload-method span:last-child {
+    font-size: 0.8rem;
   }
 }
 
@@ -470,4 +549,62 @@
 /* Enhanced visual feedback for drawing */
 .canvas-container canvas[style*="cursor: crosshair"] {
   border-color: rgba(79, 172, 254, 0.5) !important;
+}
+
+/* Accessibility and Focus States */
+.tool-btn:focus,
+.save-btn:focus,
+.preset-btn:focus {
+  outline: 2px solid #4facfe;
+  outline-offset: 2px;
+}
+
+.size-slider:focus {
+  outline: 2px solid #4facfe;
+  outline-offset: 2px;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .image-occlusion-editor {
+    border-width: 2px;
+  }
+  
+  .tool-btn,
+  .save-btn,
+  .preset-btn {
+    border-width: 2px;
+  }
+  
+  .canvas-container {
+    border-width: 3px;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .upload-prompt,
+  .upload-icon,
+  .upload-method,
+  .tool-btn,
+  .save-btn,
+  .preset-btn {
+    transition: none;
+  }
+  
+  .upload-prompt:hover,
+  .upload-method:hover,
+  .tool-btn:hover,
+  .save-btn:hover,
+  .preset-btn:hover {
+    transform: none;
+  }
+  
+  .canvas-loading::before {
+    animation: none;
+  }
+  
+  .save-btn::before {
+    transition: none;
+  }
 }

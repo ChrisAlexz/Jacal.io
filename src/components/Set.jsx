@@ -1,4 +1,4 @@
-// src/components/Set.jsx - Shows subfolders as individual visual items
+// src/components/Set.jsx - UPDATED: Cleaned Header Actions
 import React, { useEffect, useState, useContext } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabase';
@@ -411,6 +411,7 @@ export default function Set() {
                 <p>Organize and manage your flashcard collections</p>
               </div>
               <div className="header-actions">
+                {/* UPDATED: Always show Create Folder */}
                 <button 
                   onClick={() => setShowCreateFolderModal(true)}
                   className="create-folder-btn"
@@ -419,6 +420,8 @@ export default function Set() {
                   <FontAwesomeIcon icon={faFolder} className="btn-icon" />
                   New Folder
                 </button>
+                
+                {/* UPDATED: Always show Import */}
                 <button 
                   onClick={() => setShowImportModal(true)}
                   className="import-btn"
@@ -427,13 +430,18 @@ export default function Set() {
                   <FontAwesomeIcon icon={faFileImport} className="btn-icon" />
                   Import
                 </button>
-                <button 
-                  onClick={() => setShowModal(true)}
-                  className="create-set-btn"
-                >
-                  <span className="btn-icon">+</span>
-                  Create Deck
-                </button>
+                
+                {/* UPDATED: Only show Add Deck when inside a folder */}
+                {currentClassId && (
+                  <button 
+                    onClick={() => setShowModal(true)}
+                    className="create-set-btn"
+                    title="Add New Deck to this folder"
+                  >
+                    <span className="btn-icon">+</span>
+                    Add Deck
+                  </button>
+                )}
               </div>
             </div>
             
@@ -554,12 +562,15 @@ export default function Set() {
                       <FontAwesomeIcon icon={faFolder} />
                       Create Folder
                     </button>
-                    <button 
-                      onClick={() => setShowModal(true)}
-                      className="empty-action-btn"
-                    >
-                      Create Deck
-                    </button>
+                    {/* UPDATED: Only show Create Deck in empty state if in a folder */}
+                    {currentClassId && (
+                      <button 
+                        onClick={() => setShowModal(true)}
+                        className="empty-action-btn"
+                      >
+                        Add Deck
+                      </button>
+                    )}
                     <button 
                       onClick={() => setShowImportModal(true)}
                       className="empty-action-btn secondary"
@@ -735,7 +746,7 @@ export default function Set() {
               setShowModal(false);
               setSelectedClassId(null);
             }}
-            preselectedClassId={selectedClassId}
+            preselectedClassId={selectedClassId || currentClassId}
           />
         )}
 
@@ -746,7 +757,7 @@ export default function Set() {
               setSelectedClassId(null);
             }}
             onSuccess={handleImportSuccess}
-            preselectedClassId={selectedClassId}
+            preselectedClassId={selectedClassId || currentClassId}
           />
         )}
 
