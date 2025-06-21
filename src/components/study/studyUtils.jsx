@@ -1,10 +1,18 @@
-// src/components/study/studyUtils.js - Utility functions for study logic
+// src/components/study/studyUtils.js - FIXED: Null Safe Utility Functions
 export const getCardType = (card, deckType) => {
-  return card.card_type || deckType;
+  // FIXED: Null safety check
+  if (!card || typeof card !== 'object') {
+    return deckType || 'Basic';
+  }
+  
+  return card.card_type || deckType || 'Basic';
 };
 
 export const processClozeText = (text, isRevealed, activeClozeDeletion = 1) => {
-  if (!text) return '';
+  // FIXED: Null safety check
+  if (!text || typeof text !== 'string') {
+    return '';
+  }
   
   let processedText = text;
   const clozePattern = /{{c(\d+)::(.*?)}}/g;
@@ -31,15 +39,29 @@ export const processClozeText = (text, isRevealed, activeClozeDeletion = 1) => {
 };
 
 export const checkIsImageOcclusionCard = (card) => {
-  return card.front && (
-    card.front.includes('image-occlusion-card') || 
-    card.front.includes('occlusion-') ||
-    card.card_type === 'Image-Occlusion'
-  );
+  // FIXED: Null safety check
+  if (!card || typeof card !== 'object') {
+    return false;
+  }
+  
+  const front = card.front || '';
+  const cardType = card.card_type || '';
+  
+  return front.includes('image-occlusion-card') || 
+         front.includes('occlusion-') ||
+         cardType === 'Image-Occlusion';
 };
 
 export const hasCustomBackContent = (card, cardType) => {
+  // FIXED: Null safety check
+  if (!card || typeof card !== 'object' || !cardType) {
+    return false;
+  }
+  
+  const front = card.front || '';
+  const back = card.back || '';
+  
   return cardType === "Cloze" &&
-    card.back !== card.front &&
-    card.back.trim() !== "";
+         back !== front &&
+         back.trim() !== "";
 };

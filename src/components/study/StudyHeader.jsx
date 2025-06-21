@@ -1,4 +1,4 @@
-// src/components/study/StudyHeader.jsx - Study session header with stats
+// src/components/study/StudyHeader.jsx - SIMPLE VERSION - Only button replacement
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,6 +12,10 @@ const StudyHeader = ({
   const navigate = useNavigate();
 
   const masteredCount = allCards.filter(card => card._mastered === true).length;
+
+  // Check if spaced learning is active and get info
+  const isSpacedLearning = window.spacedLearningEnabled;
+  const batchInfo = window.spacedLearningRef?.current?.getCurrentBatchInfo?.() || {};
 
   return (
     <>
@@ -40,13 +44,26 @@ const StudyHeader = ({
       </div>
 
       <div className="study-mode-selector">
-        <button 
-          className="speed-focus-btn"
-          onClick={() => navigate(`/speed/${id}`)}
-          title="Speed Focus Mode - Test your knowledge under time pressure!"
-        >
-          ⚡ Speed Focus Mode
-        </button>
+        {isSpacedLearning && batchInfo.totalBatches > 1 ? (
+          <button 
+            className="speed-focus-btn"
+            style={{ 
+              background: 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)',
+              cursor: 'default'
+            }}
+            title="Spaced Learning Mode - Complete batches of 20 cards"
+          >
+            📚 Session {batchInfo.currentBatchIndex + 1} of {batchInfo.totalBatches} ({batchInfo.sessionProgress?.cardsCompleted || 0}/{batchInfo.sessionProgress?.totalCards || 0})
+          </button>
+        ) : (
+          <button 
+            className="speed-focus-btn"
+            onClick={() => navigate(`/speed/${id}`)}
+            title="Speed Focus Mode - Test your knowledge under time pressure!"
+          >
+            ⚡ Speed Focus Mode
+          </button>
+        )}
       </div>
     </>
   );
