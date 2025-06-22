@@ -1815,3 +1815,401 @@
     font-size: 0.75rem;
   }
 }
+/* Add these styles to your FlashcardStudyPage.css file */
+
+/* FIXED: Reset Session Button to Match Other Stats */
+.stat-item.reset-session {
+  position: relative;
+  text-align: center;
+  padding: 16px 20px;
+  border-radius: 12px;
+  min-width: 80px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  backdrop-filter: blur(5px);
+  overflow: hidden;
+  
+  /* Match the orange theme */
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.15) 0%, rgba(247, 147, 30, 0.15) 100%);
+  border: 2px solid rgba(255, 107, 53, 0.4);
+  box-shadow: 0 0 15px rgba(255, 107, 53, 0.2);
+}
+
+.stat-item.reset-session::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.1;
+  border-radius: 12px;
+  transition: opacity 0.3s ease;
+  background: radial-gradient(circle, rgba(255, 107, 53, 0.3) 0%, transparent 70%);
+}
+
+.stat-item.reset-session:hover::before {
+  opacity: 0.2;
+}
+
+.stat-item.reset-session:hover {
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.25) 0%, rgba(247, 147, 30, 0.25) 100%);
+  border-color: rgba(255, 107, 53, 0.6);
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
+}
+
+/* Reset Session Button (inherits stat-item styling) */
+.reset-session-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  position: relative;
+  z-index: 10;
+}
+
+.reset-session-btn .count {
+  display: block;
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 4px;
+  text-shadow: 0 0 10px currentColor;
+  color: #ff6b35;
+  animation: resetIconFloat 2s ease-in-out infinite;
+}
+
+@keyframes resetIconFloat {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(5deg) scale(1.05); }
+}
+
+.stat-item.reset-session:hover .count {
+  animation: resetIconSpin 0.6s ease-in-out;
+}
+
+@keyframes resetIconSpin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+.reset-session-btn .label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  opacity: 0.9;
+  color: #ff8c00;
+}
+
+.stat-item.reset-session:hover .label {
+  color: #ff6b35;
+  opacity: 1;
+}
+
+/* BEAUTIFUL CUSTOM RESET MODAL */
+.reset-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(10px);
+  animation: resetModalFadeIn 0.3s ease-out;
+}
+
+@keyframes resetModalFadeIn {
+  0% { opacity: 0; backdrop-filter: blur(0px); }
+  100% { opacity: 1; backdrop-filter: blur(10px); }
+}
+
+.reset-modal-content {
+  background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+  border: 1px solid #444;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: resetModalSlideIn 0.4s ease-out;
+  overflow: hidden;
+  position: relative;
+}
+
+@keyframes resetModalSlideIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.reset-modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ff6b35 0%, #f7931e 100%);
+  animation: resetModalGlow 2s ease-in-out infinite;
+}
+
+@keyframes resetModalGlow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.reset-modal-header {
+  padding: 30px 30px 20px 30px;
+  text-align: center;
+  border-bottom: 1px solid #333;
+}
+
+.reset-modal-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  animation: resetModalIconPulse 2s ease-in-out infinite;
+  filter: drop-shadow(0 4px 12px rgba(255, 193, 7, 0.3));
+}
+
+@keyframes resetModalIconPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.reset-modal-header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.reset-modal-body {
+  padding: 25px 30px;
+  color: #ccc;
+  line-height: 1.6;
+}
+
+.reset-modal-body p {
+  margin: 0 0 16px 0;
+  font-size: 1rem;
+}
+
+.reset-modal-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+  background: rgba(255, 107, 53, 0.1);
+  border-radius: 12px;
+  padding: 16px 20px;
+  border: 1px solid rgba(255, 107, 53, 0.3);
+}
+
+.reset-modal-list li {
+  position: relative;
+  padding-left: 24px;
+  margin: 8px 0;
+  font-size: 0.95rem;
+  color: #ff8c00;
+  font-weight: 500;
+}
+
+.reset-modal-list li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #ff6b35;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.reset-modal-warning {
+  background: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 16px 0 0 0;
+  color: #ff6b6b;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.reset-modal-warning strong {
+  color: #ff4757;
+}
+
+.reset-modal-actions {
+  display: flex;
+  gap: 16px;
+  padding: 20px 30px 30px 30px;
+  justify-content: center;
+}
+
+.reset-modal-cancel,
+.reset-modal-confirm {
+  padding: 14px 28px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+  position: relative;
+  overflow: hidden;
+}
+
+.reset-modal-cancel {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ccc;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.reset-modal-cancel:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
+}
+
+.reset-modal-confirm {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  color: white;
+  border: 2px solid transparent;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+}
+
+.reset-modal-confirm::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.reset-modal-confirm:hover::before {
+  left: 100%;
+}
+
+.reset-modal-confirm:hover {
+  background: linear-gradient(135deg, #f7931e 0%, #ff6b35 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .reset-modal-content {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .reset-modal-header,
+  .reset-modal-body,
+  .reset-modal-actions {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  
+  .reset-modal-header {
+    padding-top: 25px;
+    padding-bottom: 15px;
+  }
+  
+  .reset-modal-body {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+  
+  .reset-modal-actions {
+    flex-direction: column;
+    padding-bottom: 25px;
+  }
+  
+  .reset-modal-cancel,
+  .reset-modal-confirm {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .reset-modal-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+  }
+  
+  .reset-modal-header h3 {
+    font-size: 1.2rem;
+  }
+  
+  .reset-modal-body {
+    font-size: 0.9rem;
+  }
+  
+  .reset-modal-list li {
+    font-size: 0.85rem;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .reset-modal-content {
+    border: 3px solid #fff;
+  }
+  
+  .reset-modal-cancel {
+    border-color: #fff;
+  }
+  
+  .reset-modal-confirm {
+    background: #ff4500;
+    border-color: #ff4500;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .reset-modal-overlay,
+  .reset-modal-content,
+  .reset-modal-icon,
+  .reset-modal-content::before,
+  .reset-session-btn .count,
+  .reset-modal-confirm::before {
+    animation: none;
+  }
+  
+  .stat-item.reset-session:hover .count {
+    animation: none;
+    transform: scale(1.05);
+  }
+  
+  .reset-modal-cancel:hover,
+  .reset-modal-confirm:hover {
+    transform: none;
+  }
+}
