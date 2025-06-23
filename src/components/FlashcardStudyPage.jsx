@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - FIXED: Persistent Mastered Cards
+// src/components/FlashcardStudyPage.jsx - FIXED: Properly Restore Mastered Cards on Refresh
 import React, { useState, useEffect, useContext, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
@@ -84,7 +84,7 @@ export default function FlashcardStudyPage() {
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
 
-  // NEW: Add mastered cards tracking
+  // FIXED: Add mastered cards tracking with proper restoration
   const [masteredCardIds, setMasteredCardIds] = useState(new Set());
 
   useEffect(() => {
@@ -93,57 +93,57 @@ export default function FlashcardStudyPage() {
     }
   }, [id]);
 
-  // NEW: Save study progress with mastered cards to database
- const saveStudyProgress = async (cards, currentIdx, completedCardIds = []) => {
-  if (!user?.id || !id) return;
+  // FIXED: Save study progress with mastered cards to database
+  const saveStudyProgress = useCallback(async (cards, currentIdx, completedCardIds = []) => {
+    if (!user?.id || !id) return;
 
-  try {
-    const progressData = {
-      user_id: user.id,
-      set_id: id,
-      session_cards: cards.map(card => card.id), // These are UUIDs
-      current_index: currentIdx,
-      completed_cards: completedCardIds, // These are UUIDs
-      batch_index: currentBatchIndex,
-      is_spaced_learning: spacedLearningEnabled,
-      // FIXED: Store mastered card UUIDs (not bigints)
-      mastered_cards: Array.from(masteredCardIds), // Convert Set to Array of UUIDs
-      updated_at: new Date().toISOString()
-    };
+    try {
+      const progressData = {
+        user_id: user.id,
+        set_id: id,
+        session_cards: cards.map(card => card.id), // These are UUIDs
+        current_index: currentIdx,
+        completed_cards: completedCardIds, // These are UUIDs
+        batch_index: currentBatchIndex,
+        is_spaced_learning: spacedLearningEnabled,
+        // FIXED: Store mastered card UUIDs (not bigints)
+        mastered_cards: Array.from(masteredCardIds), // Convert Set to Array of UUIDs
+        updated_at: new Date().toISOString()
+      };
 
-    if (studySessionId) {
-      // Update existing session
-      const { error } = await supabase
-        .from('study_sessions')
-        .update(progressData)
-        .eq('id', studySessionId);
+      if (studySessionId) {
+        // Update existing session
+        const { error } = await supabase
+          .from('study_sessions')
+          .update(progressData)
+          .eq('id', studySessionId);
 
-      if (error) {
-        console.error('Error updating study progress:', error);
+        if (error) {
+          console.error('Error updating study progress:', error);
+        } else {
+          console.log('✅ Study progress updated with', masteredCardIds.size, 'mastered cards');
+        }
       } else {
-        console.log('✅ Study progress updated with', masteredCardIds.size, 'mastered cards');
-      }
-    } else {
-      // Create new session
-      const { data, error } = await supabase
-        .from('study_sessions')
-        .insert([progressData])
-        .select()
-        .single();
+        // Create new session
+        const { data, error } = await supabase
+          .from('study_sessions')
+          .insert([progressData])
+          .select()
+          .single();
 
-      if (error) {
-        console.error('Error creating study session:', error);
-      } else if (data) {
-        setStudySessionId(data.id);
-        console.log('✅ New study session created with', masteredCardIds.size, 'mastered cards');
+        if (error) {
+          console.error('Error creating study session:', error);
+        } else if (data) {
+          setStudySessionId(data.id);
+          console.log('✅ New study session created with', masteredCardIds.size, 'mastered cards');
+        }
       }
+    } catch (error) {
+      console.error('Error saving study progress:', error);
     }
-  } catch (error) {
-    console.error('Error saving study progress:', error);
-  }
-};
+  }, [user?.id, id, currentBatchIndex, spacedLearningEnabled, masteredCardIds, studySessionId]);
 
-  // NEW: Load study progress from database with mastered cards
+  // FIXED: Load study progress from database with mastered cards
   const loadStudyProgress = async () => {
     if (!user?.id || !id) return null;
 
@@ -189,6 +189,7 @@ export default function FlashcardStudyPage() {
     }
   }, [studySessionId]);
 
+  // FIXED: Fetch flashcard set with proper mastered cards restoration
   const fetchFlashcardSet = async (setId) => {
     try {
       setLoading(true);
@@ -221,37 +222,37 @@ export default function FlashcardStudyPage() {
 
       const cards = data || [];
       
-      // Initialize cards
+      // Initialize cards with default state
       const cardsWithMasteryStatus = cards.map(card => ({
         ...card,
         _mastered: false,
         _isImported: true
       }));
       
-      setAllCards(cardsWithMasteryStatus);
-
-      // NEW: Try to load saved progress with mastered cards
+      // FIXED: Try to load saved progress with mastered cards FIRST
       const savedProgress = await loadStudyProgress();
       
       if (savedProgress && savedProgress.session_cards?.length > 0) {
         console.log('📖 Loading saved study progress...');
+        console.log('🎯 Saved mastered cards:', savedProgress.mastered_cards?.length || 0);
         
-        // NEW: Restore mastered cards from saved progress
+        // FIXED: Restore mastered cards from saved progress
         const savedMasteredCards = new Set(savedProgress.mastered_cards || []);
         setMasteredCardIds(savedMasteredCards);
         
-        // Restore session from saved progress
-        const savedSessionCards = cardsWithMasteryStatus.filter(card => 
+        // CRITICAL FIX: Mark cards as mastered in allCards based on saved progress
+        const restoredAllCards = cardsWithMasteryStatus.map(card => ({
+          ...card,
+          _mastered: savedMasteredCards.has(card.id)
+        }));
+        
+        // CRITICAL FIX: Filter out mastered cards from session cards
+        const unmastered = restoredAllCards.filter(card => !savedMasteredCards.has(card.id));
+        const savedSessionCards = unmastered.filter(card => 
           savedProgress.session_cards.includes(card.id)
         );
         
-        // Mark completed and mastered cards
-        const restoredCards = cardsWithMasteryStatus.map(card => ({
-          ...card,
-          _mastered: savedMasteredCards.has(card.id) || savedProgress.completed_cards?.includes(card.id) || false
-        }));
-        
-        setAllCards(restoredCards);
+        setAllCards(restoredAllCards);
         setSessionCards(savedSessionCards);
         setCurrentIndex(Math.min(savedProgress.current_index || 0, savedSessionCards.length - 1));
         setStudySessionId(savedProgress.id);
@@ -260,21 +261,25 @@ export default function FlashcardStudyPage() {
           setSpacedLearningEnabled(true);
           setCurrentBatchIndex(savedProgress.batch_index || 0);
           
-          // Recreate batches
+          // Recreate batches with unmastered cards only
           const batches = [];
-          for (let i = 0; i < restoredCards.length; i += 20) {
-            batches.push(restoredCards.slice(i, i + 20));
+          for (let i = 0; i < unmastered.length; i += 20) {
+            batches.push(unmastered.slice(i, i + 20));
           }
           setSpacedLearningBatches(batches);
         }
         
-        console.log('✅ Study progress restored with mastered cards:', savedMasteredCards.size);
+        console.log('✅ Study progress restored:');
+        console.log(`   - Total cards: ${restoredAllCards.length}`);
+        console.log(`   - Mastered cards: ${savedMasteredCards.size}`);
+        console.log(`   - Session cards remaining: ${savedSessionCards.length}`);
       } else {
         // Start new session
         console.log('🆕 Starting new study session...');
         
         // Initialize empty mastered cards set
         setMasteredCardIds(new Set());
+        setAllCards(cardsWithMasteryStatus);
         
         // SIMPLE: If 20+ cards, enable spaced learning and create batches
         if (cardsWithMasteryStatus.length >= 20) {
@@ -334,7 +339,7 @@ export default function FlashcardStudyPage() {
       
       setAllCards(resetCards);
       
-      // NEW: Clear mastered cards set
+      // FIXED: Clear mastered cards set
       setMasteredCardIds(new Set());
       
       // Reset spaced learning if enabled
@@ -399,7 +404,7 @@ export default function FlashcardStudyPage() {
     
     setAllCards(resetCards);
     
-    // NEW: Clear mastered cards for master again session
+    // FIXED: Clear mastered cards for master again session
     setMasteredCardIds(new Set());
     
     // SIMPLE: Reset spaced learning
@@ -450,7 +455,7 @@ export default function FlashcardStudyPage() {
     setShowCorrectAnswer(true);
   };
 
-  // ENHANCED: handleDifficultyChoice with persistent mastered cards
+  // FIXED: handleDifficultyChoice with proper mastered cards persistence
   const handleDifficultyChoice = async (difficulty) => {
     if (!sessionCards[currentIndex] || !user?.id) {
       console.error('Missing card or user for difficulty choice');
@@ -502,7 +507,7 @@ export default function FlashcardStudyPage() {
       let newMasteredCardIds = new Set(masteredCardIds);
 
       if (difficulty === 'easy') {
-        // Mark card as mastered and remove from session
+        // CRITICAL FIX: Mark card as mastered and remove from session
         newSessionCards = sessionCards.filter((_, index) => index !== currentIndex);
         
         // Update the card in allCards to mark it as mastered
@@ -510,14 +515,16 @@ export default function FlashcardStudyPage() {
           card.id === currentCardData.id ? { ...updatedCard, _mastered: true } : card
         );
         
-        // NEW: Add to persistent mastered cards set
+        // FIXED: Add to persistent mastered cards set
         newMasteredCardIds.add(currentCardData.id);
         setMasteredCardIds(newMasteredCardIds);
         
         setAllCards(newAllCards);
         setSessionCards(newSessionCards);
         
-        // NEW: Save progress with updated mastered cards
+        console.log(`✅ Card mastered! Total mastered: ${newMasteredCardIds.size}`);
+        
+        // FIXED: Save progress with updated mastered cards
         const completedCardIds = Array.from(newMasteredCardIds);
         await saveStudyProgress(newSessionCards, currentIndex, completedCardIds);
         
@@ -555,7 +562,7 @@ export default function FlashcardStudyPage() {
         const nextIndex = currentIndex >= newSessionCards.length ? 0 : currentIndex;
         setCurrentIndex(nextIndex);
         
-        // NEW: Save progress after again
+        // FIXED: Save progress after again
         const completedCardIds = Array.from(newMasteredCardIds);
         await saveStudyProgress(newSessionCards, nextIndex, completedCardIds);
         
@@ -563,7 +570,7 @@ export default function FlashcardStudyPage() {
         const nextIndex = (currentIndex + 1) % sessionCards.length;
         setCurrentIndex(nextIndex);
         
-        // NEW: Save progress after hard/good
+        // FIXED: Save progress after hard/good
         const completedCardIds = Array.from(newMasteredCardIds);
         await saveStudyProgress(newSessionCards, nextIndex, completedCardIds);
       }
@@ -594,7 +601,7 @@ export default function FlashcardStudyPage() {
     setUserAnswer('');
     setBatchCompletionModal(null);
     
-    // NEW: Save progress for new batch with mastered cards
+    // FIXED: Save progress for new batch with mastered cards
     const completedCardIds = Array.from(masteredCardIds);
     await saveStudyProgress(spacedLearningBatches[nextBatchIndex], 0, completedCardIds);
   };
