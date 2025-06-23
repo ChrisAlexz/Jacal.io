@@ -1,5 +1,5 @@
-// src/components/FlashcardStudyPage.jsx - ENHANCED WITH PROGRESS PERSISTENCE
-import React, { useState, useEffect, useContext } from "react";
+// src/components/FlashcardStudyPage.jsx - COMPLETE WITH FIXED UNIQUE MODAL
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import AudioPlayer from "./AudioPlayer";
@@ -160,7 +160,7 @@ export default function FlashcardStudyPage() {
   };
 
   // NEW: Clear study progress (when session is complete)
-  const clearStudyProgress = async () => {
+  const clearStudyProgress = useCallback(async () => {
     if (!studySessionId) return;
 
     try {
@@ -177,7 +177,7 @@ export default function FlashcardStudyPage() {
     } catch (error) {
       console.error('Error in clearStudyProgress:', error);
     }
-  };
+  }, [studySessionId]);
 
   const fetchFlashcardSet = async (setId) => {
     try {
@@ -285,6 +285,95 @@ export default function FlashcardStudyPage() {
       setLoading(false);
     }
   };
+
+  // FIXED: Modal management functions with unique class names
+  const handleResetSession = useCallback(() => {
+    setShowResetModal(true);
+    // Use unique body class name
+    document.body.classList.add('study-modal-open');
+  }, []);
+
+  const handleCloseResetModal = useCallback(() => {
+    setShowResetModal(false);
+    // Use unique body class name
+    document.body.classList.remove('study-modal-open');
+  }, []);
+
+  const confirmResetSession = useCallback(async () => {
+    try {
+      // Clear saved progress from database
+      await clearStudyProgress();
+      
+      // Reset all cards to unmastered state and clear session tracking
+      const resetCards = allCards.map(card => ({
+        ...card,
+        _mastered: false,
+        _isImported: true,
+        session_failures: 0,
+        session_reviews: 0,
+        _masterAgainSession: false
+      }));
+      
+      setAllCards(resetCards);
+      
+      // Reset spaced learning if enabled
+      if (spacedLearningEnabled) {
+        const batches = [];
+        for (let i = 0; i < resetCards.length; i += 20) {
+          batches.push(resetCards.slice(i, i + 20));
+        }
+        setSpacedLearningBatches(batches);
+        setCurrentBatchIndex(0);
+        setSessionCards(batches[0]);
+      } else {
+        setSessionCards(resetCards);
+      }
+      
+      // Reset UI state
+      setCurrentIndex(0);
+      setShowBack(false);
+      setShowCorrectAnswer(false);
+      setIsAnswerCorrect(null);
+      setUserAnswer('');
+      setSessionReviewCount(0);
+      setIsMasterAgainSession(false);
+      setBatchCompletionModal(null);
+      setStudySessionId(null);
+      
+      // Close modal and restore scroll
+      handleCloseResetModal();
+      
+      console.log('✅ Session reset successfully');
+      
+      // Show brief confirmation
+      setShowCompletionPopup(true);
+      setTimeout(() => setShowCompletionPopup(false), 1500);
+      
+    } catch (error) {
+      console.error('Error resetting session:', error);
+      alert('Failed to reset session. Please try again.');
+      handleCloseResetModal();
+    }
+  }, [allCards, spacedLearningEnabled, clearStudyProgress, handleCloseResetModal]);
+
+  // Cleanup effect and escape key handling with unique class names
+  useEffect(() => {
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape' && showResetModal) {
+        handleCloseResetModal();
+      }
+    };
+
+    if (showResetModal) {
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+      // Use unique body class name
+      document.body.classList.remove('study-modal-open');
+    };
+  }, [showResetModal, handleCloseResetModal]);
 
   const handleMasterAgain = async (e) => {
     e.preventDefault();
@@ -500,64 +589,57 @@ export default function FlashcardStudyPage() {
     await saveStudyProgress(spacedLearningBatches[nextBatchIndex], 0, completedCardIds);
   };
 
-  // NEW: Reset Session function - clears all progress and starts fresh
-  const handleResetSession = async () => {
-    setShowResetModal(true);
-  };
+  // FIXED: Reset Modal Component with completely unique class names
+  const StudyResetModal = () => {
+    if (!showResetModal) return null;
 
-  // NEW: Confirm reset function
-  const confirmResetSession = async () => {
-    try {
-      // Clear saved progress from database
-      await clearStudyProgress();
-      
-      // Reset all cards to unmastered state and clear session tracking
-      const resetCards = allCards.map(card => ({
-        ...card,
-        _mastered: false,
-        _isImported: true,
-        session_failures: 0,
-        session_reviews: 0,
-        _masterAgainSession: false
-      }));
-      
-      setAllCards(resetCards);
-      
-      // Reset spaced learning if enabled
-      if (spacedLearningEnabled) {
-        const batches = [];
-        for (let i = 0; i < resetCards.length; i += 20) {
-          batches.push(resetCards.slice(i, i + 20));
-        }
-        setSpacedLearningBatches(batches);
-        setCurrentBatchIndex(0);
-        setSessionCards(batches[0]);
-      } else {
-        setSessionCards(resetCards);
-      }
-      
-      // Reset UI state
-      setCurrentIndex(0);
-      setShowBack(false);
-      setShowCorrectAnswer(false);
-      setIsAnswerCorrect(null);
-      setUserAnswer('');
-      setSessionReviewCount(0);
-      setIsMasterAgainSession(false);
-      setBatchCompletionModal(null);
-      setStudySessionId(null);
-      setShowResetModal(false);
-      
-      console.log('✅ Session reset successfully');
-      
-      // Optional: Show brief confirmation
-      setShowCompletionPopup(true);
-      setTimeout(() => setShowCompletionPopup(false), 1500);
-      
-    } catch (error) {
-      console.error('Error resetting session:', error);
-      alert('Failed to reset session. Please try again.');
-    }
+    return (
+      <div 
+        className="study-reset-modal-overlay"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            handleCloseResetModal();
+          }
+        }}
+      >
+        <div className="study-reset-modal-container">
+          <div className="study-reset-modal-header">
+            <div className="study-reset-modal-icon">⚠️</div>
+            <h3 className="study-reset-modal-title">Reset Study Session</h3>
+          </div>
+          
+          <div className="study-reset-modal-body">
+            <p className="study-reset-modal-description">This will permanently reset your progress:</p>
+            <ul className="study-reset-modal-list">
+              <li className="study-reset-modal-list-item">Clear all mastered cards</li>
+              <li className="study-reset-modal-list-item">Reset session statistics</li>
+              <li className="study-reset-modal-list-item">Return to the first card</li>
+              <li className="study-reset-modal-list-item">Delete saved progress</li>
+            </ul>
+            <p className="study-reset-modal-warning">
+              <strong className="study-reset-modal-warning-text">This action cannot be undone.</strong>
+            </p>
+          </div>
+          
+          <div className="study-reset-modal-actions">
+            <button 
+              className="study-reset-modal-cancel-btn"
+              onClick={handleCloseResetModal}
+              type="button"
+            >
+              Cancel
+            </button>
+            <button 
+              className="study-reset-modal-confirm-btn"
+              onClick={confirmResetSession}
+              type="button"
+            >
+              Reset Session
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // SIMPLE: Batch completion modal
@@ -769,41 +851,47 @@ export default function FlashcardStudyPage() {
             <span className="count">{allCards.filter(card => card._mastered === true).length}</span>
             <span className="label">Mastered</span>
           </div>
-          
-          {/* Reset Session Button */}
-          <div className="stat-item reset-session">
-            <button 
-              className="reset-session-btn"
-              onClick={handleResetSession}
-              title="Reset all progress and start fresh"
-            >
-              <span className="count">🔄</span>
-              <span className="label">Reset</span>
-            </button>
-          </div>
         </div>
       </div>
 
       <div className="study-mode-selector">
         {spacedLearningEnabled ? (
-          <button 
-            className="speed-focus-btn"
-            style={{ 
-              background: 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)',
-              cursor: 'default'
-            }}
-            title="Spaced Learning Mode - Complete batches of 20 cards"
-          >
-            📚 Session {currentBatchIndex + 1} of {spacedLearningBatches.length} (20 cards per session)
-          </button>
+          <div className="study-mode-with-reset">
+            <button 
+              className="speed-focus-btn"
+              style={{ 
+                background: 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)',
+                cursor: 'default'
+              }}
+              title="Spaced Learning Mode - Complete batches of 20 cards"
+            >
+              📚 Session {currentBatchIndex + 1} of {spacedLearningBatches.length} (20 cards per session)
+            </button>
+            <button 
+              className="reset-session-mode-btn"
+              onClick={handleResetSession}
+              title="Reset all progress and start fresh"
+            >
+              🔄 Reset Session
+            </button>
+          </div>
         ) : (
-          <button 
-            className="speed-focus-btn"
-            onClick={() => navigate(`/speed/${id}`)}
-            title="Speed Focus Mode - Test your knowledge under time pressure!"
-          >
-            ⚡ Speed Focus Mode
-          </button>
+          <div className="study-mode-with-reset">
+            <button 
+              className="speed-focus-btn"
+              onClick={() => navigate(`/speed/${id}`)}
+              title="Speed Focus Mode - Test your knowledge under time pressure!"
+            >
+              ⚡ Speed Focus Mode
+            </button>
+            <button 
+              className="reset-session-mode-btn"
+              onClick={handleResetSession}
+              title="Reset all progress and start fresh"
+            >
+              🔄 Reset Session
+            </button>
+          </div>
         )}
       </div>
 
@@ -1003,45 +1091,8 @@ export default function FlashcardStudyPage() {
         )}
       </div>
 
-      {/* Custom Reset Confirmation Modal */}
-      {showResetModal && (
-        <div className="reset-modal-overlay">
-          <div className="reset-modal-content">
-            <div className="reset-modal-header">
-              <div className="reset-modal-icon">⚠️</div>
-              <h3>Reset Study Session</h3>
-            </div>
-            
-            <div className="reset-modal-body">
-              <p>This will permanently reset your progress:</p>
-              <ul className="reset-modal-list">
-                <li>Clear all mastered cards</li>
-                <li>Reset session statistics</li>
-                <li>Return to the first card</li>
-                <li>Delete saved progress</li>
-              </ul>
-              <p className="reset-modal-warning">
-                <strong>This action cannot be undone.</strong>
-              </p>
-            </div>
-            
-            <div className="reset-modal-actions">
-              <button 
-                className="reset-modal-cancel"
-                onClick={() => setShowResetModal(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className="reset-modal-confirm"
-                onClick={confirmResetSession}
-              >
-                Reset Session
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* FIXED: Use the new unique modal component */}
+      <StudyResetModal />
     </div>
   );
 }
