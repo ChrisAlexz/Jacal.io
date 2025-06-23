@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - COMPLETE WITH NEW STANDALONE RESET MODAL
+// src/components/FlashcardStudyPage.jsx - FIXED: Persistent Mastered Cards
 import React, { useState, useEffect, useContext, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
@@ -78,11 +78,14 @@ export default function FlashcardStudyPage() {
   const [spacedLearningEnabled, setSpacedLearningEnabled] = useState(false);
   const [batchCompletionModal, setBatchCompletionModal] = useState(null);
 
-  // NEW: Study session persistence state
+  // Study session persistence state
   const [studySessionId, setStudySessionId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+
+  // NEW: Add mastered cards tracking
+  const [masteredCardIds, setMasteredCardIds] = useState(new Set());
 
   useEffect(() => {
     if (id) {
@@ -90,52 +93,57 @@ export default function FlashcardStudyPage() {
     }
   }, [id]);
 
-  // NEW: Save study progress to database
-  const saveStudyProgress = async (cards, currentIdx, completedCardIds = []) => {
-    if (!user?.id || !id) return;
+  // NEW: Save study progress with mastered cards to database
+ const saveStudyProgress = async (cards, currentIdx, completedCardIds = []) => {
+  if (!user?.id || !id) return;
 
-    try {
-      const progressData = {
-        user_id: user.id,
-        set_id: id,
-        session_cards: cards.map(card => card.id),
-        current_index: currentIdx,
-        completed_cards: completedCardIds,
-        batch_index: currentBatchIndex,
-        is_spaced_learning: spacedLearningEnabled,
-        updated_at: new Date().toISOString()
-      };
+  try {
+    const progressData = {
+      user_id: user.id,
+      set_id: id,
+      session_cards: cards.map(card => card.id), // These are UUIDs
+      current_index: currentIdx,
+      completed_cards: completedCardIds, // These are UUIDs
+      batch_index: currentBatchIndex,
+      is_spaced_learning: spacedLearningEnabled,
+      // FIXED: Store mastered card UUIDs (not bigints)
+      mastered_cards: Array.from(masteredCardIds), // Convert Set to Array of UUIDs
+      updated_at: new Date().toISOString()
+    };
 
-      if (studySessionId) {
-        // Update existing session
-        const { error } = await supabase
-          .from('study_sessions')
-          .update(progressData)
-          .eq('id', studySessionId);
+    if (studySessionId) {
+      // Update existing session
+      const { error } = await supabase
+        .from('study_sessions')
+        .update(progressData)
+        .eq('id', studySessionId);
 
-        if (error) {
-          console.error('Error updating study progress:', error);
-        }
+      if (error) {
+        console.error('Error updating study progress:', error);
       } else {
-        // Create new session
-        const { data, error } = await supabase
-          .from('study_sessions')
-          .insert([progressData])
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Error creating study session:', error);
-        } else if (data) {
-          setStudySessionId(data.id);
-        }
+        console.log('✅ Study progress updated with', masteredCardIds.size, 'mastered cards');
       }
-    } catch (error) {
-      console.error('Error saving study progress:', error);
-    }
-  };
+    } else {
+      // Create new session
+      const { data, error } = await supabase
+        .from('study_sessions')
+        .insert([progressData])
+        .select()
+        .single();
 
-  // NEW: Load study progress from database
+      if (error) {
+        console.error('Error creating study session:', error);
+      } else if (data) {
+        setStudySessionId(data.id);
+        console.log('✅ New study session created with', masteredCardIds.size, 'mastered cards');
+      }
+    }
+  } catch (error) {
+    console.error('Error saving study progress:', error);
+  }
+};
+
+  // NEW: Load study progress from database with mastered cards
   const loadStudyProgress = async () => {
     if (!user?.id || !id) return null;
 
@@ -161,7 +169,7 @@ export default function FlashcardStudyPage() {
     }
   };
 
-  // NEW: Clear study progress (when session is complete)
+  // Clear study progress (when session is complete)
   const clearStudyProgress = useCallback(async () => {
     if (!studySessionId) return;
 
@@ -213,7 +221,7 @@ export default function FlashcardStudyPage() {
 
       const cards = data || [];
       
-      // Initialize cards with mastery status
+      // Initialize cards
       const cardsWithMasteryStatus = cards.map(card => ({
         ...card,
         _mastered: false,
@@ -222,21 +230,25 @@ export default function FlashcardStudyPage() {
       
       setAllCards(cardsWithMasteryStatus);
 
-      // NEW: Try to load saved progress
+      // NEW: Try to load saved progress with mastered cards
       const savedProgress = await loadStudyProgress();
       
       if (savedProgress && savedProgress.session_cards?.length > 0) {
         console.log('📖 Loading saved study progress...');
+        
+        // NEW: Restore mastered cards from saved progress
+        const savedMasteredCards = new Set(savedProgress.mastered_cards || []);
+        setMasteredCardIds(savedMasteredCards);
         
         // Restore session from saved progress
         const savedSessionCards = cardsWithMasteryStatus.filter(card => 
           savedProgress.session_cards.includes(card.id)
         );
         
-        // Mark completed cards as mastered
+        // Mark completed and mastered cards
         const restoredCards = cardsWithMasteryStatus.map(card => ({
           ...card,
-          _mastered: savedProgress.completed_cards?.includes(card.id) || false
+          _mastered: savedMasteredCards.has(card.id) || savedProgress.completed_cards?.includes(card.id) || false
         }));
         
         setAllCards(restoredCards);
@@ -256,10 +268,13 @@ export default function FlashcardStudyPage() {
           setSpacedLearningBatches(batches);
         }
         
-        console.log('✅ Study progress restored');
+        console.log('✅ Study progress restored with mastered cards:', savedMasteredCards.size);
       } else {
         // Start new session
         console.log('🆕 Starting new study session...');
+        
+        // Initialize empty mastered cards set
+        setMasteredCardIds(new Set());
         
         // SIMPLE: If 20+ cards, enable spaced learning and create batches
         if (cardsWithMasteryStatus.length >= 20) {
@@ -288,7 +303,7 @@ export default function FlashcardStudyPage() {
     }
   };
 
-  // SIMPLIFIED: Modal management functions
+  // Modal management functions
   const handleResetSession = useCallback(() => {
     console.log('🔄 Opening reset modal...');
     setShowResetModal(true);
@@ -318,6 +333,9 @@ export default function FlashcardStudyPage() {
       }));
       
       setAllCards(resetCards);
+      
+      // NEW: Clear mastered cards set
+      setMasteredCardIds(new Set());
       
       // Reset spaced learning if enabled
       if (spacedLearningEnabled) {
@@ -381,6 +399,9 @@ export default function FlashcardStudyPage() {
     
     setAllCards(resetCards);
     
+    // NEW: Clear mastered cards for master again session
+    setMasteredCardIds(new Set());
+    
     // SIMPLE: Reset spaced learning
     if (spacedLearningEnabled) {
       const batches = [];
@@ -429,7 +450,7 @@ export default function FlashcardStudyPage() {
     setShowCorrectAnswer(true);
   };
 
-  // ENHANCED: handleDifficultyChoice with progress persistence
+  // ENHANCED: handleDifficultyChoice with persistent mastered cards
   const handleDifficultyChoice = async (difficulty) => {
     if (!sessionCards[currentIndex] || !user?.id) {
       console.error('Missing card or user for difficulty choice');
@@ -466,7 +487,7 @@ export default function FlashcardStudyPage() {
         }
       }
 
-      // STEP 3: Session management
+      // STEP 3: Session management with persistent mastered cards
       const updatedCard = {
         ...currentCardData,
         last_reviewed: now,
@@ -478,7 +499,7 @@ export default function FlashcardStudyPage() {
       );
       
       let newSessionCards = [...sessionCards];
-      let completedCardIds = allCards.filter(card => card._mastered).map(card => card.id);
+      let newMasteredCardIds = new Set(masteredCardIds);
 
       if (difficulty === 'easy') {
         // Mark card as mastered and remove from session
@@ -489,13 +510,15 @@ export default function FlashcardStudyPage() {
           card.id === currentCardData.id ? { ...updatedCard, _mastered: true } : card
         );
         
-        // Add to completed cards
-        completedCardIds.push(currentCardData.id);
+        // NEW: Add to persistent mastered cards set
+        newMasteredCardIds.add(currentCardData.id);
+        setMasteredCardIds(newMasteredCardIds);
         
         setAllCards(newAllCards);
         setSessionCards(newSessionCards);
         
-        // NEW: Save progress after marking as easy
+        // NEW: Save progress with updated mastered cards
+        const completedCardIds = Array.from(newMasteredCardIds);
         await saveStudyProgress(newSessionCards, currentIndex, completedCardIds);
         
         // SIMPLE: Check if batch is complete
@@ -533,6 +556,7 @@ export default function FlashcardStudyPage() {
         setCurrentIndex(nextIndex);
         
         // NEW: Save progress after again
+        const completedCardIds = Array.from(newMasteredCardIds);
         await saveStudyProgress(newSessionCards, nextIndex, completedCardIds);
         
       } else {
@@ -540,6 +564,7 @@ export default function FlashcardStudyPage() {
         setCurrentIndex(nextIndex);
         
         // NEW: Save progress after hard/good
+        const completedCardIds = Array.from(newMasteredCardIds);
         await saveStudyProgress(newSessionCards, nextIndex, completedCardIds);
       }
 
@@ -569,8 +594,8 @@ export default function FlashcardStudyPage() {
     setUserAnswer('');
     setBatchCompletionModal(null);
     
-    // NEW: Save progress for new batch
-    const completedCardIds = allCards.filter(card => card._mastered).map(card => card.id);
+    // NEW: Save progress for new batch with mastered cards
+    const completedCardIds = Array.from(masteredCardIds);
     await saveStudyProgress(spacedLearningBatches[nextBatchIndex], 0, completedCardIds);
   };
 
@@ -605,8 +630,8 @@ export default function FlashcardStudyPage() {
           </h2>
           <p style={{ margin: '0 0 30px 0', color: '#666', lineHeight: '1.5' }}>
             {isLast 
-              ? `You've completed all ${batchCompletionModal.total} sessions!`
-              : `Session ${batchCompletionModal.completed} of ${batchCompletionModal.total} complete. Ready for the next 20 cards?`
+              ? `You've completed all ${batchCompletionModal.total} sessions! Mastered ${masteredCardIds.size} cards.`
+              : `Session ${batchCompletionModal.completed} of ${batchCompletionModal.total} complete. Mastered ${masteredCardIds.size} cards so far. Ready for the next 20 cards?`
             }
           </p>
           
@@ -687,7 +712,7 @@ export default function FlashcardStudyPage() {
         <div className="study-completion">
           <div className="completion-icon">🎉</div>
           <h2>Perfect! All Cards Mastered!</h2>
-          <p>Congratulations! You've marked every single card as "Easy" - you've truly mastered this deck! All {allCards.length} cards have been successfully completed.</p>
+          <p>Congratulations! You've marked every single card as "Easy" - you've truly mastered this deck! All {allCards.length} cards have been successfully completed. You mastered {masteredCardIds.size} cards in this session!</p>
          
           <div className="completion-actions">
             <button 
@@ -780,7 +805,7 @@ export default function FlashcardStudyPage() {
             <span className="label">Remaining</span>
           </div>
           <div className="stat-item mastered">
-            <span className="count">{allCards.filter(card => card._mastered === true).length}</span>
+            <span className="count">{masteredCardIds.size}</span>
             <span className="label">Mastered</span>
           </div>
         </div>
@@ -1023,7 +1048,7 @@ export default function FlashcardStudyPage() {
         )}
       </div>
 
-      {/* NEW: Standalone Reset Modal */}
+      {/* Reset Modal */}
       <ResetSessionModal
         isOpen={showResetModal}
         onClose={handleCloseResetModal}

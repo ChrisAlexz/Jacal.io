@@ -1,4 +1,4 @@
-// src/components/ResetSessionModal.jsx - Standalone Reset Modal Component
+// src/components/ResetSessionModal.jsx - REDESIGNED: Card-Based Layout
 import React, { useEffect } from 'react';
 import '../styles/ResetSessionModal.css';
 
@@ -51,21 +51,38 @@ const ResetSessionModal = ({
 
         {/* Body */}
         <div className="reset-modal-body">
-          <div className="reset-warning-box">
-            <div className="warning-icon">🔄</div>
-            <div className="warning-text">
-              <p><strong>What will be reset:</strong></p>
-              <ul className="reset-list">
-                <li>All mastered cards will be unmarked</li>
-                <li>Session statistics will be cleared</li>
-                <li>You'll return to the first card</li>
-                <li>Saved progress will be deleted</li>
-              </ul>
+          {/* Info Cards */}
+          <div className="reset-info-cards">
+            <div className="reset-info-card">
+              <div className="reset-info-icon">🎯</div>
+              <p className="reset-info-text">All mastered cards will be unmarked</p>
+            </div>
+            
+            <div className="reset-info-card">
+              <div className="reset-info-icon">📊</div>
+              <p className="reset-info-text">Session statistics will be cleared</p>
+            </div>
+            
+            <div className="reset-info-card">
+              <div className="reset-info-icon">🔄</div>
+              <p className="reset-info-text">You'll return to the first card</p>
+            </div>
+            
+            <div className="reset-info-card">
+              <div className="reset-info-icon">💾</div>
+              <p className="reset-info-text">Saved progress will be deleted</p>
             </div>
           </div>
           
-          <div className="reset-confirm-text">
-            <strong>This action cannot be undone.</strong> Are you sure you want to reset your study session?
+          {/* Warning Section */}
+          <div className="reset-warning-section">
+            <div className="reset-warning-header">
+              <div className="reset-warning-icon">⚠️</div>
+              <h3 className="reset-warning-title">Important</h3>
+            </div>
+            <p className="reset-warning-text">
+              This action cannot be undone. Are you sure you want to reset your study session?
+            </p>
           </div>
         </div>
 

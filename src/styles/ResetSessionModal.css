@@ -1,4 +1,4 @@
-/* src/components/ResetSessionModal.css - FIXED: Modal Styles Without Layout Conflicts */
+/* src/components/ResetSessionModal.css - REDESIGNED: Clean, Spacious Layout */
 
 /* Backdrop - Highest z-index to ensure it's on top */
 .reset-modal-backdrop {
@@ -12,7 +12,7 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  z-index: 999999 !important; /* Maximum z-index */
+  z-index: 999999 !important;
   padding: 20px !important;
   box-sizing: border-box !important;
   animation: resetModalFadeIn 0.3s ease-out !important;
@@ -29,20 +29,21 @@
   }
 }
 
-/* Modal Container */
+/* Modal Container - Clean Design */
 .reset-modal-container {
   background: #1a1a1a !important;
-  border-radius: 16px !important;
-  max-width: 500px !important;
+  border-radius: 20px !important;
+  max-width: 480px !important;
   width: 100% !important;
-  max-height: 90vh !important;
+  max-height: 85vh !important;
   overflow-y: auto !important;
-  box-shadow: 0 25px 75px rgba(255, 107, 53, 0.3) !important;
+  box-shadow: 0 25px 75px rgba(255, 107, 53, 0.4) !important;
   border: 2px solid #ff6b35 !important;
   animation: resetModalSlideIn 0.4s ease-out !important;
   position: relative !important;
-  z-index: 1000000 !important; /* Even higher than backdrop */
-  display: block !important; /* Force block layout */
+  z-index: 1000000 !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 @keyframes resetModalSlideIn {
@@ -56,22 +57,21 @@
   }
 }
 
-/* Header */
+/* Header - Simplified */
 .reset-modal-header {
   padding: 30px 30px 20px 30px !important;
   text-align: center !important;
   background: linear-gradient(135deg, #2a1f1a 0%, #1a1a1a 100%) !important;
-  border-radius: 16px 16px 0 0 !important;
+  border-radius: 20px 20px 0 0 !important;
   border-bottom: 1px solid #333 !important;
-  display: block !important;
+  flex-shrink: 0 !important;
 }
 
 .reset-modal-icon {
-  font-size: 3rem !important;
-  margin: 0 0 15px 0 !important;
+  font-size: 3.5rem !important;
+  margin: 0 0 20px 0 !important;
   animation: resetIconPulse 2s ease-in-out infinite !important;
   display: block !important;
-  text-align: center !important;
 }
 
 @keyframes resetIconPulse {
@@ -87,12 +87,10 @@
 
 .reset-modal-title {
   color: #ff6b35 !important;
-  font-size: 1.6rem !important;
+  font-size: 1.8rem !important;
   font-weight: 700 !important;
-  margin: 0 0 8px 0 !important;
+  margin: 0 0 10px 0 !important;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
-  text-align: center !important;
-  display: block !important;
   line-height: 1.2 !important;
 }
 
@@ -101,112 +99,119 @@
   font-size: 1rem !important;
   margin: 0 !important;
   opacity: 0.9 !important;
-  text-align: center !important;
-  display: block !important;
   line-height: 1.4 !important;
 }
 
-/* Body */
+/* Body - Redesigned with Cards */
 .reset-modal-body {
-  padding: 25px 30px !important;
-  display: block !important;
+  padding: 25px 30px 30px 30px !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
 }
 
-.reset-warning-box {
-  background: rgba(255, 107, 53, 0.1) !important;
-  border: 1px solid rgba(255, 107, 53, 0.3) !important;
+/* Info Cards Layout */
+.reset-info-cards {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 15px !important;
+}
+
+.reset-info-card {
+  background: rgba(255, 107, 53, 0.08) !important;
+  border: 1px solid rgba(255, 107, 53, 0.25) !important;
   border-radius: 12px !important;
-  padding: 20px !important;
-  margin: 0 0 20px 0 !important;
-  display: block !important;
-  position: relative !important;
+  padding: 16px 20px !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  transition: all 0.3s ease !important;
 }
 
-.warning-icon {
-  font-size: 1.5rem !important;
-  margin: 0 0 15px 0 !important;
-  text-align: center !important;
-  display: block !important;
+.reset-info-card:hover {
+  background: rgba(255, 107, 53, 0.12) !important;
+  border-color: rgba(255, 107, 53, 0.35) !important;
+  transform: translateY(-1px) !important;
 }
 
-.warning-text {
-  display: block !important;
-}
-
-.warning-text p {
-  color: #ff8c66 !important;
-  font-size: 1rem !important;
-  font-weight: 600 !important;
-  margin: 0 0 12px 0 !important;
-  text-align: center !important;
-  display: block !important;
-  line-height: 1.4 !important;
-}
-
-.reset-list {
-  list-style: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  display: block !important;
-}
-
-.reset-list li {
-  color: #ff8c66 !important;
-  font-size: 0.9rem !important;
-  margin: 0 0 8px 0 !important;
-  padding: 0 0 0 20px !important;
-  position: relative !important;
-  line-height: 1.4 !important;
-  display: block !important;
-}
-
-.reset-list li::before {
-  content: '•' !important;
-  color: #ff6b35 !important;
-  font-weight: bold !important;
-  position: absolute !important;
-  left: 0 !important;
-  top: 0 !important;
+.reset-info-icon {
   font-size: 1.2rem !important;
+  color: #ff6b35 !important;
+  margin-top: 2px !important;
+  flex-shrink: 0 !important;
 }
 
-.reset-confirm-text {
+.reset-info-text {
+  color: #ff8c66 !important;
+  font-size: 0.95rem !important;
+  line-height: 1.5 !important;
+  margin: 0 !important;
+  font-weight: 500 !important;
+}
+
+/* Warning Section */
+.reset-warning-section {
   background: rgba(255, 107, 53, 0.15) !important;
-  border: 1px solid rgba(255, 107, 53, 0.4) !important;
-  border-radius: 8px !important;
-  padding: 15px !important;
+  border: 2px solid rgba(255, 107, 53, 0.4) !important;
+  border-radius: 16px !important;
+  padding: 20px !important;
   text-align: center !important;
+  margin-top: 10px !important;
+}
+
+.reset-warning-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  margin-bottom: 12px !important;
+}
+
+.reset-warning-icon {
+  font-size: 1.4rem !important;
+}
+
+.reset-warning-title {
+  color: #ff6b35 !important;
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  margin: 0 !important;
+}
+
+.reset-warning-text {
   color: #ff6b35 !important;
   font-size: 1rem !important;
   line-height: 1.5 !important;
   margin: 0 !important;
-  display: block !important;
+  font-weight: 600 !important;
 }
 
-/* Footer */
+/* Footer - Clean Button Layout */
 .reset-modal-footer {
   padding: 20px 30px 30px 30px !important;
   display: flex !important;
   gap: 15px !important;
   justify-content: flex-end !important;
   border-top: 1px solid #333 !important;
-  flex-wrap: nowrap !important;
-  align-items: center !important;
+  flex-shrink: 0 !important;
+  background: #1a1a1a !important;
+  border-radius: 0 0 20px 20px !important;
 }
 
-/* Buttons */
+/* Buttons - Enhanced Design */
 .reset-cancel-btn,
 .reset-confirm-btn {
-  padding: 12px 24px !important;
+  padding: 14px 28px !important;
   border: none !important;
-  border-radius: 10px !important;
+  border-radius: 12px !important;
   font-size: 1rem !important;
   font-weight: 600 !important;
   cursor: pointer !important;
   transition: all 0.3s ease !important;
   position: relative !important;
   overflow: hidden !important;
-  min-width: 120px !important;
+  min-width: 130px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -217,23 +222,25 @@
 }
 
 .reset-cancel-btn {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
   color: #ccc !important;
-  border: 2px solid rgba(255, 255, 255, 0.2) !important;
+  border: 2px solid rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(10px) !important;
 }
 
 .reset-cancel-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.15) !important;
   color: white !important;
-  border-color: rgba(255, 255, 255, 0.4) !important;
-  transform: translateY(-1px) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.1) !important;
 }
 
 .reset-confirm-btn {
   background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%) !important;
   color: white !important;
   border: 2px solid transparent !important;
-  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4) !important;
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4) !important;
 }
 
 .reset-confirm-btn::before {
@@ -252,22 +259,22 @@
 }
 
 .reset-confirm-btn:hover:not(:disabled) {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.6) !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 12px 30px rgba(255, 107, 53, 0.6) !important;
   background: linear-gradient(135deg, #f7931e 0%, #ff6b35 100%) !important;
 }
 
 .reset-confirm-btn:disabled {
-  opacity: 0.7 !important;
+  opacity: 0.6 !important;
   cursor: not-allowed !important;
   transform: none !important;
-  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.2) !important;
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.2) !important;
 }
 
 /* Loading Spinner */
 .reset-spinner {
-  width: 16px !important;
-  height: 16px !important;
+  width: 18px !important;
+  height: 18px !important;
   border: 2px solid rgba(255, 255, 255, 0.3) !important;
   border-top: 2px solid white !important;
   border-radius: 50% !important;
@@ -281,7 +288,7 @@
 }
 
 .reset-icon {
-  font-size: 1rem !important;
+  font-size: 1.1rem !important;
   display: inline-block !important;
 }
 
@@ -293,21 +300,22 @@
   
   .reset-modal-container {
     max-width: 100% !important;
-    border-radius: 12px !important;
+    border-radius: 16px !important;
+    max-height: 90vh !important;
   }
   
   .reset-modal-header {
-    padding: 25px 20px 15px 20px !important;
-    border-radius: 12px 12px 0 0 !important;
+    padding: 25px 20px 20px 20px !important;
+    border-radius: 16px 16px 0 0 !important;
   }
   
   .reset-modal-icon {
-    font-size: 2.5rem !important;
-    margin: 0 0 12px 0 !important;
+    font-size: 3rem !important;
+    margin: 0 0 16px 0 !important;
   }
   
   .reset-modal-title {
-    font-size: 1.4rem !important;
+    font-size: 1.6rem !important;
   }
   
   .reset-modal-subtitle {
@@ -316,27 +324,37 @@
   
   .reset-modal-body {
     padding: 20px !important;
+    gap: 16px !important;
   }
   
-  .reset-warning-box {
-    padding: 15px !important;
+  .reset-info-cards {
+    gap: 12px !important;
   }
   
-  .warning-icon {
-    font-size: 2rem !important;
-    margin: 0 0 10px 0 !important;
+  .reset-info-card {
+    padding: 14px 16px !important;
+  }
+  
+  .reset-info-text {
+    font-size: 0.9rem !important;
+  }
+  
+  .reset-warning-section {
+    padding: 16px !important;
   }
   
   .reset-modal-footer {
-    padding: 15px 20px 25px 20px !important;
+    padding: 16px 20px 25px 20px !important;
     flex-direction: column !important;
     gap: 12px !important;
+    border-radius: 0 0 16px 16px !important;
   }
   
   .reset-cancel-btn,
   .reset-confirm-btn {
     width: 100% !important;
-    padding: 14px 20px !important;
+    padding: 16px 24px !important;
+    min-width: unset !important;
   }
 }
 
@@ -346,43 +364,56 @@
   }
   
   .reset-modal-container {
-    border-radius: 10px !important;
+    border-radius: 12px !important;
   }
   
   .reset-modal-header {
-    padding: 20px 15px 12px 15px !important;
-    border-radius: 10px 10px 0 0 !important;
+    padding: 20px 16px 16px 16px !important;
+    border-radius: 12px 12px 0 0 !important;
   }
   
   .reset-modal-icon {
-    font-size: 2rem !important;
-    margin: 0 0 10px 0 !important;
+    font-size: 2.5rem !important;
+    margin: 0 0 14px 0 !important;
   }
   
   .reset-modal-title {
-    font-size: 1.3rem !important;
+    font-size: 1.4rem !important;
   }
   
   .reset-modal-body {
-    padding: 15px !important;
+    padding: 16px !important;
+    gap: 14px !important;
   }
   
-  .reset-warning-box {
-    padding: 12px !important;
+  .reset-info-card {
+    padding: 12px 14px !important;
+    gap: 10px !important;
   }
   
-  .reset-list li {
+  .reset-info-icon {
+    font-size: 1.1rem !important;
+  }
+  
+  .reset-info-text {
     font-size: 0.85rem !important;
-    margin: 0 0 6px 0 !important;
   }
   
-  .reset-confirm-text {
-    padding: 12px !important;
+  .reset-warning-section {
+    padding: 14px !important;
+  }
+  
+  .reset-warning-title {
+    font-size: 1rem !important;
+  }
+  
+  .reset-warning-text {
     font-size: 0.9rem !important;
   }
   
   .reset-modal-footer {
-    padding: 12px 15px 20px 15px !important;
+    padding: 14px 16px 20px 16px !important;
+    border-radius: 0 0 12px 12px !important;
   }
 }
 
@@ -394,14 +425,13 @@
   }
   
   .reset-modal-title,
-  .warning-text p,
-  .reset-list li,
-  .reset-confirm-text {
+  .reset-info-text,
+  .reset-warning-text {
     color: #fff !important;
   }
   
-  .reset-warning-box,
-  .reset-confirm-text {
+  .reset-info-card,
+  .reset-warning-section {
     background: #333 !important;
     border-color: #fff !important;
   }
@@ -417,7 +447,8 @@
   }
   
   .reset-cancel-btn:hover,
-  .reset-confirm-btn:hover {
+  .reset-confirm-btn:hover,
+  .reset-info-card:hover {
     transform: none !important;
   }
   
