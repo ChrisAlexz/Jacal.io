@@ -1,0 +1,427 @@
+/* src/components/ResetSessionModal.css - FIXED: Modal Styles Without Layout Conflicts */
+
+/* Backdrop - Highest z-index to ensure it's on top */
+.reset-modal-backdrop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(8px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 999999 !important; /* Maximum z-index */
+  padding: 20px !important;
+  box-sizing: border-box !important;
+  animation: resetModalFadeIn 0.3s ease-out !important;
+}
+
+@keyframes resetModalFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+  }
+}
+
+/* Modal Container */
+.reset-modal-container {
+  background: #1a1a1a !important;
+  border-radius: 16px !important;
+  max-width: 500px !important;
+  width: 100% !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  box-shadow: 0 25px 75px rgba(255, 107, 53, 0.3) !important;
+  border: 2px solid #ff6b35 !important;
+  animation: resetModalSlideIn 0.4s ease-out !important;
+  position: relative !important;
+  z-index: 1000000 !important; /* Even higher than backdrop */
+  display: block !important; /* Force block layout */
+}
+
+@keyframes resetModalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header */
+.reset-modal-header {
+  padding: 30px 30px 20px 30px !important;
+  text-align: center !important;
+  background: linear-gradient(135deg, #2a1f1a 0%, #1a1a1a 100%) !important;
+  border-radius: 16px 16px 0 0 !important;
+  border-bottom: 1px solid #333 !important;
+  display: block !important;
+}
+
+.reset-modal-icon {
+  font-size: 3rem !important;
+  margin: 0 0 15px 0 !important;
+  animation: resetIconPulse 2s ease-in-out infinite !important;
+  display: block !important;
+  text-align: center !important;
+}
+
+@keyframes resetIconPulse {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% { 
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+.reset-modal-title {
+  color: #ff6b35 !important;
+  font-size: 1.6rem !important;
+  font-weight: 700 !important;
+  margin: 0 0 8px 0 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+  text-align: center !important;
+  display: block !important;
+  line-height: 1.2 !important;
+}
+
+.reset-modal-subtitle {
+  color: #ccc !important;
+  font-size: 1rem !important;
+  margin: 0 !important;
+  opacity: 0.9 !important;
+  text-align: center !important;
+  display: block !important;
+  line-height: 1.4 !important;
+}
+
+/* Body */
+.reset-modal-body {
+  padding: 25px 30px !important;
+  display: block !important;
+}
+
+.reset-warning-box {
+  background: rgba(255, 107, 53, 0.1) !important;
+  border: 1px solid rgba(255, 107, 53, 0.3) !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  margin: 0 0 20px 0 !important;
+  display: block !important;
+  position: relative !important;
+}
+
+.warning-icon {
+  font-size: 1.5rem !important;
+  margin: 0 0 15px 0 !important;
+  text-align: center !important;
+  display: block !important;
+}
+
+.warning-text {
+  display: block !important;
+}
+
+.warning-text p {
+  color: #ff8c66 !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  margin: 0 0 12px 0 !important;
+  text-align: center !important;
+  display: block !important;
+  line-height: 1.4 !important;
+}
+
+.reset-list {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: block !important;
+}
+
+.reset-list li {
+  color: #ff8c66 !important;
+  font-size: 0.9rem !important;
+  margin: 0 0 8px 0 !important;
+  padding: 0 0 0 20px !important;
+  position: relative !important;
+  line-height: 1.4 !important;
+  display: block !important;
+}
+
+.reset-list li::before {
+  content: '•' !important;
+  color: #ff6b35 !important;
+  font-weight: bold !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  font-size: 1.2rem !important;
+}
+
+.reset-confirm-text {
+  background: rgba(255, 107, 53, 0.15) !important;
+  border: 1px solid rgba(255, 107, 53, 0.4) !important;
+  border-radius: 8px !important;
+  padding: 15px !important;
+  text-align: center !important;
+  color: #ff6b35 !important;
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+  margin: 0 !important;
+  display: block !important;
+}
+
+/* Footer */
+.reset-modal-footer {
+  padding: 20px 30px 30px 30px !important;
+  display: flex !important;
+  gap: 15px !important;
+  justify-content: flex-end !important;
+  border-top: 1px solid #333 !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+}
+
+/* Buttons */
+.reset-cancel-btn,
+.reset-confirm-btn {
+  padding: 12px 24px !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+  overflow: hidden !important;
+  min-width: 120px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.reset-cancel-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #ccc !important;
+  border: 2px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.reset-cancel-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+.reset-confirm-btn {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%) !important;
+  color: white !important;
+  border: 2px solid transparent !important;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4) !important;
+}
+
+.reset-confirm-btn::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent) !important;
+  transition: left 0.5s !important;
+}
+
+.reset-confirm-btn:hover:not(:disabled)::before {
+  left: 100% !important;
+}
+
+.reset-confirm-btn:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.6) !important;
+  background: linear-gradient(135deg, #f7931e 0%, #ff6b35 100%) !important;
+}
+
+.reset-confirm-btn:disabled {
+  opacity: 0.7 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.2) !important;
+}
+
+/* Loading Spinner */
+.reset-spinner {
+  width: 16px !important;
+  height: 16px !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  border-top: 2px solid white !important;
+  border-radius: 50% !important;
+  animation: resetSpinnerRotate 1s linear infinite !important;
+  display: inline-block !important;
+}
+
+@keyframes resetSpinnerRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.reset-icon {
+  font-size: 1rem !important;
+  display: inline-block !important;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .reset-modal-backdrop {
+    padding: 15px !important;
+  }
+  
+  .reset-modal-container {
+    max-width: 100% !important;
+    border-radius: 12px !important;
+  }
+  
+  .reset-modal-header {
+    padding: 25px 20px 15px 20px !important;
+    border-radius: 12px 12px 0 0 !important;
+  }
+  
+  .reset-modal-icon {
+    font-size: 2.5rem !important;
+    margin: 0 0 12px 0 !important;
+  }
+  
+  .reset-modal-title {
+    font-size: 1.4rem !important;
+  }
+  
+  .reset-modal-subtitle {
+    font-size: 0.9rem !important;
+  }
+  
+  .reset-modal-body {
+    padding: 20px !important;
+  }
+  
+  .reset-warning-box {
+    padding: 15px !important;
+  }
+  
+  .warning-icon {
+    font-size: 2rem !important;
+    margin: 0 0 10px 0 !important;
+  }
+  
+  .reset-modal-footer {
+    padding: 15px 20px 25px 20px !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  
+  .reset-cancel-btn,
+  .reset-confirm-btn {
+    width: 100% !important;
+    padding: 14px 20px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .reset-modal-backdrop {
+    padding: 10px !important;
+  }
+  
+  .reset-modal-container {
+    border-radius: 10px !important;
+  }
+  
+  .reset-modal-header {
+    padding: 20px 15px 12px 15px !important;
+    border-radius: 10px 10px 0 0 !important;
+  }
+  
+  .reset-modal-icon {
+    font-size: 2rem !important;
+    margin: 0 0 10px 0 !important;
+  }
+  
+  .reset-modal-title {
+    font-size: 1.3rem !important;
+  }
+  
+  .reset-modal-body {
+    padding: 15px !important;
+  }
+  
+  .reset-warning-box {
+    padding: 12px !important;
+  }
+  
+  .reset-list li {
+    font-size: 0.85rem !important;
+    margin: 0 0 6px 0 !important;
+  }
+  
+  .reset-confirm-text {
+    padding: 12px !important;
+    font-size: 0.9rem !important;
+  }
+  
+  .reset-modal-footer {
+    padding: 12px 15px 20px 15px !important;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .reset-modal-container {
+    border: 3px solid #ff6b35 !important;
+    background: #000 !important;
+  }
+  
+  .reset-modal-title,
+  .warning-text p,
+  .reset-list li,
+  .reset-confirm-text {
+    color: #fff !important;
+  }
+  
+  .reset-warning-box,
+  .reset-confirm-text {
+    background: #333 !important;
+    border-color: #fff !important;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .reset-modal-backdrop,
+  .reset-modal-container,
+  .reset-modal-icon,
+  .reset-spinner {
+    animation: none !important;
+  }
+  
+  .reset-cancel-btn:hover,
+  .reset-confirm-btn:hover {
+    transform: none !important;
+  }
+  
+  .reset-confirm-btn::before {
+    display: none !important;
+  }
+}
