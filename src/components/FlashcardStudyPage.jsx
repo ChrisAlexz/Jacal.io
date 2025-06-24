@@ -786,7 +786,7 @@ export default function FlashcardStudyPage() {
               onClick={handleResetSession}
               title="Reset all progress and start fresh"
             >
-              🔄 Reset Session
+               Reset Session
             </button>
           </div>
         ) : (

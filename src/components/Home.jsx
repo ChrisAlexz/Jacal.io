@@ -29,7 +29,7 @@ export default function Home() {
     return 'Good Evening';
   };
 
-  // FIXED: Enhanced fetchStats with proper last studied tracking
+  // FIXED: Enhanced fetchStats with proper last studied tracking AND studied today count
   const fetchStats = async () => {
     if (!user?.id) {
       setLoading(false);
@@ -40,7 +40,7 @@ export default function Home() {
       // Get cards first, then fetch sets
       const { data: userCards, error: cardsError } = await supabase
         .from('flashcard_cards')
-        .select('set_id, id, user_id')
+        .select('set_id, id, user_id, last_reviewed')
         .eq('user_id', user.id);
 
       if (cardsError) {
@@ -58,11 +58,22 @@ export default function Home() {
         return;
       }
 
+      // ADDED: Calculate cards studied today
+      const today = new Date();
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+      
+      const studiedTodayCount = userCards.filter(card => {
+        if (!card.last_reviewed) return false;
+        const reviewDate = new Date(card.last_reviewed);
+        return reviewDate >= todayStart && reviewDate < todayEnd;
+      }).length;
+
       // Get unique set IDs
       const setIds = [...new Set(userCards.map(card => card.set_id))].filter(Boolean);
 
       if (setIds.length === 0) {
-        setStats({ totalSets: 0, totalCards: userCards.length, studiedToday: 0 });
+        setStats({ totalSets: 0, totalCards: userCards.length, studiedToday: studiedTodayCount });
         setRecentSets([]);
         setLastStudiedSet(null);
         setLoading(false);
@@ -95,7 +106,7 @@ export default function Home() {
       }
 
       if (setsData.length === 0) {
-        setStats({ totalSets: 0, totalCards: userCards.length, studiedToday: 0 });
+        setStats({ totalSets: 0, totalCards: userCards.length, studiedToday: studiedTodayCount });
         setRecentSets([]);
         setLastStudiedSet(null);
         setLoading(false);
@@ -129,11 +140,11 @@ export default function Home() {
         })
       );
 
-      // Update stats
+      // FIXED: Update stats with actual studied today count
       setStats({
         totalSets: setsWithCounts.length,
         totalCards: userCards.length,
-        studiedToday: 0 // TODO: Calculate actual studied today count if needed
+        studiedToday: studiedTodayCount
       });
 
       // Sort by updated_at and set recent sets
