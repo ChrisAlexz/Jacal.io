@@ -1,4 +1,4 @@
-// src/components/Home.jsx - Production-safe version with no sensitive logging
+// src/components/Home.jsx - FIXED: Quick Study Button with Actual Study Tracking
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
@@ -29,7 +29,7 @@ export default function Home() {
     return 'Good Evening';
   };
 
-  // Improved fetchStats with secure logging
+  // FIXED: Enhanced fetchStats with proper last studied tracking
   const fetchStats = async () => {
     if (!user?.id) {
       setLoading(false);
@@ -37,9 +37,6 @@ export default function Home() {
     }
 
     try {
-      // REMOVED: Sensitive user ID logging
-      // console.log('📊 Fetching stats for user:', user.id);
-
       // Get cards first, then fetch sets
       const { data: userCards, error: cardsError } = await supabase
         .from('flashcard_cards')
@@ -53,9 +50,6 @@ export default function Home() {
         return;
       }
 
-      // REMOVED: Sensitive card count logging that could expose scale
-      // console.log('✅ Found', userCards?.length || 0, 'cards for user');
-
       if (!userCards || userCards.length === 0) {
         setStats({ totalSets: 0, totalCards: 0, studiedToday: 0 });
         setRecentSets([]);
@@ -66,9 +60,6 @@ export default function Home() {
 
       // Get unique set IDs
       const setIds = [...new Set(userCards.map(card => card.set_id))].filter(Boolean);
-      
-      // REMOVED: Sensitive set IDs logging
-      // console.log('📦 Found', setIds.length, 'unique set IDs:', setIds);
 
       if (setIds.length === 0) {
         setStats({ totalSets: 0, totalCards: userCards.length, studiedToday: 0 });
@@ -102,9 +93,6 @@ export default function Home() {
           continue;
         }
       }
-
-      // REMOVED: Sensitive sets count logging
-      // console.log('✅ Successfully fetched', setsData.length, 'sets');
 
       if (setsData.length === 0) {
         setStats({ totalSets: 0, totalCards: userCards.length, studiedToday: 0 });
@@ -155,20 +143,8 @@ export default function Home() {
 
       setRecentSets(sortedSets);
       
-      // Set last studied (most recently updated set with cards)
-      const setsWithCards = setsWithCounts.filter(set => set.card_count > 0);
-      if (setsWithCards.length > 0) {
-        const mostRecentSet = setsWithCards
-          .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))[0];
-        setLastStudiedSet(mostRecentSet);
-      }
-
-      // REMOVED: Sensitive stats logging that could expose user data patterns
-      // console.log('✅ Stats updated successfully:', {
-      //   totalSets: setsWithCounts.length,
-      //   totalCards: userCards.length,
-      //   recentSetsCount: sortedSets.length
-      // });
+      // FIXED: Get the actual last studied set from study sessions
+      await getLastStudiedSet(setsWithCounts);
 
     } catch (error) {
       console.error('Error in fetchStats');
@@ -177,6 +153,100 @@ export default function Home() {
       setLastStudiedSet(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // NEW: Function to get the actual last studied set from study history
+  const getLastStudiedSet = async (availableSets) => {
+    if (!user?.id || availableSets.length === 0) {
+      setLastStudiedSet(null);
+      return;
+    }
+
+    try {
+      // First, try to get the most recent study session
+      const { data: recentSession, error: sessionError } = await supabase
+        .from('study_sessions')
+        .select('set_id, updated_at')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!sessionError && recentSession) {
+        // Find the set that matches this session
+        const lastStudiedSetData = availableSets.find(set => set.id === recentSession.set_id);
+        if (lastStudiedSetData && lastStudiedSetData.card_count > 0) {
+          setLastStudiedSet({
+            ...lastStudiedSetData,
+            last_studied_at: recentSession.updated_at
+          });
+          return;
+        }
+      }
+
+      // Fallback: Look for the most recently reviewed cards to infer last studied set
+      const { data: recentCards, error: cardsError } = await supabase
+        .from('flashcard_cards')
+        .select('set_id, last_reviewed')
+        .eq('user_id', user.id)
+        .not('last_reviewed', 'is', null)
+        .order('last_reviewed', { ascending: false })
+        .limit(10);
+
+      if (!cardsError && recentCards && recentCards.length > 0) {
+        // Group by set_id and find the set with the most recent review
+        const setReviewDates = {};
+        recentCards.forEach(card => {
+          if (!setReviewDates[card.set_id] || card.last_reviewed > setReviewDates[card.set_id]) {
+            setReviewDates[card.set_id] = card.last_reviewed;
+          }
+        });
+
+        // Find the set with the most recent review date
+        let mostRecentSetId = null;
+        let mostRecentDate = null;
+        
+        Object.entries(setReviewDates).forEach(([setId, reviewDate]) => {
+          if (!mostRecentDate || reviewDate > mostRecentDate) {
+            mostRecentDate = reviewDate;
+            mostRecentSetId = setId;
+          }
+        });
+
+        if (mostRecentSetId) {
+          const lastStudiedSetData = availableSets.find(set => set.id === mostRecentSetId);
+          if (lastStudiedSetData && lastStudiedSetData.card_count > 0) {
+            setLastStudiedSet({
+              ...lastStudiedSetData,
+              last_studied_at: mostRecentDate
+            });
+            return;
+          }
+        }
+      }
+
+      // Final fallback: Use the most recently updated set with cards
+      const setsWithCards = availableSets.filter(set => set.card_count > 0);
+      if (setsWithCards.length > 0) {
+        const mostRecentSet = setsWithCards
+          .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))[0];
+        setLastStudiedSet(mostRecentSet);
+      } else {
+        setLastStudiedSet(null);
+      }
+
+    } catch (error) {
+      console.error('Error getting last studied set:', error);
+      // Fallback to most recently updated set
+      const setsWithCards = availableSets.filter(set => set.card_count > 0);
+      if (setsWithCards.length > 0) {
+        const mostRecentSet = setsWithCards
+          .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))[0];
+        setLastStudiedSet(mostRecentSet);
+      } else {
+        setLastStudiedSet(null);
+      }
     }
   };
 
@@ -355,6 +425,7 @@ export default function Home() {
             </div>
           </button>
 
+          {/* FIXED: Enhanced Quick Study Button */}
           <button 
             className="action-card"
             onClick={() => {
@@ -374,10 +445,22 @@ export default function Home() {
             <div className="action-content">
               <h3>Quick Study</h3>
               <p>
-                {lastStudiedSet 
-                  ? `Continue studying "${lastStudiedSet.title}"` 
-                  : 'No sets available to study'
-                }
+                {lastStudiedSet ? (
+                  <>
+                    Continue studying "{lastStudiedSet.title}"
+                    {lastStudiedSet.last_studied_at && (
+                      <span style={{ 
+                        display: 'block', 
+                        fontSize: '0.8rem', 
+                        color: '#4facfe', 
+                        marginTop: '4px',
+                        fontWeight: '500'
+                      }}>
+                        Last studied: {new Date(lastStudiedSet.last_studied_at).toLocaleDateString()}
+                      </span>
+                    )}
+                  </>
+                ) : 'No sets available to study'}
               </p>
             </div>
           </button>

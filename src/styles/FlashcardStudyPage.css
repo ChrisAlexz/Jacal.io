@@ -1,1919 +1,815 @@
-/* FlashcardStudyPage.css - FIXED: Reset Button Styling */
+/* src/styles/FlashcardStudyPage.css - REMOVED: Speed Focus Mode styles */
+
 .study-container {
-    min-height: 100vh;
-    width: 100vw;
-    background: #121212;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 120px 20px 40px 20px;
-    position: relative;
-    overflow-x: hidden;
-    margin: 0;
-    box-sizing: border-box;
-  }
-  
-  /* ANIMATED BACKGROUND EFFECTS - Same as Home, About, and Set Pages */
-  .study-container::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: 
-      radial-gradient(circle at 20% 30%, rgba(79, 172, 254, 0.04) 0%, transparent 50%),
-      radial-gradient(circle at 80% 20%, rgba(0, 242, 254, 0.03) 0%, transparent 40%),
-      radial-gradient(circle at 30% 80%, rgba(79, 172, 254, 0.02) 0%, transparent 60%);
-    animation: subtleFloat 15s ease-in-out infinite;
-    pointer-events: none;
-    z-index: 0;
-  }
-  
-  @keyframes subtleFloat {
-    0%, 100% {
-      background: 
-        radial-gradient(circle at 20% 30%, rgba(79, 172, 254, 0.04) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(0, 242, 254, 0.03) 0%, transparent 40%),
-        radial-gradient(circle at 30% 80%, rgba(79, 172, 254, 0.02) 0%, transparent 60%);
-    }
-    33% {
-      background: 
-        radial-gradient(circle at 25% 35%, rgba(79, 172, 254, 0.05) 0%, transparent 55%),
-        radial-gradient(circle at 75% 25%, rgba(0, 242, 254, 0.04) 0%, transparent 45%),
-        radial-gradient(circle at 35% 75%, rgba(79, 172, 254, 0.03) 0%, transparent 65%);
-    }
-    66% {
-      background: 
-        radial-gradient(circle at 15% 25%, rgba(79, 172, 254, 0.03) 0%, transparent 45%),
-        radial-gradient(circle at 85% 30%, rgba(0, 242, 254, 0.05) 0%, transparent 50%),
-        radial-gradient(circle at 25% 85%, rgba(79, 172, 254, 0.04) 0%, transparent 70%);
-    }
-  }
-  
-  /* FLOATING PARTICLES BACKGROUND - Same as Home, About, and Set Pages */
-  .study-container::after {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: 
-      /* Large slow particles */
-      radial-gradient(circle at 10% 20%, rgba(79, 172, 254, 0.08) 2px, transparent 2px),
-      radial-gradient(circle at 90% 40%, rgba(0, 242, 254, 0.06) 1.5px, transparent 1.5px),
-      radial-gradient(circle at 50% 80%, rgba(79, 172, 254, 0.05) 2.5px, transparent 2.5px),
-      /* Medium particles */
-      radial-gradient(circle at 30% 10%, rgba(0, 242, 254, 0.07) 1px, transparent 1px),
-      radial-gradient(circle at 70% 60%, rgba(79, 172, 254, 0.09) 1.5px, transparent 1.5px),
-      radial-gradient(circle at 20% 70%, rgba(0, 242, 254, 0.04) 1px, transparent 1px),
-      /* Small fast particles */
-      radial-gradient(circle at 80% 10%, rgba(79, 172, 254, 0.06) 0.5px, transparent 0.5px),
-      radial-gradient(circle at 15% 45%, rgba(0, 242, 254, 0.08) 0.8px, transparent 0.8px),
-      radial-gradient(circle at 60% 25%, rgba(79, 172, 254, 0.05) 0.5px, transparent 0.5px),
-      radial-gradient(circle at 40% 90%, rgba(0, 242, 254, 0.07) 0.8px, transparent 0.8px);
-    background-size: 
-      400px 400px, 350px 350px, 500px 500px,
-      250px 250px, 300px 300px, 280px 280px,
-      150px 150px, 180px 180px, 160px 160px, 200px 200px;
-    animation: 
-      moveParticles1 35s linear infinite,
-      moveParticles2 28s linear infinite,
-      moveParticles3 42s linear infinite;
-    pointer-events: none;
-    z-index: 0;
-  }
-  
-  @keyframes moveParticles1 {
-    0% {
-      background-position: 0% 0%, 50% 50%, 100% 0%, 25% 75%, 75% 25%, 0% 100%, 80% 10%, 15% 45%, 60% 25%, 40% 90%;
-      transform: translateY(0px) translateX(0px);
-    }
-    25% {
-      background-position: 10% 15%, 60% 40%, 90% 25%, 15% 85%, 85% 15%, 10% 80%, 75% 20%, 25% 55%, 50% 35%, 30% 80%;
-      transform: translateY(-8px) translateX(5px);
-    }
-    50% {
-      background-position: 20% 30%, 70% 30%, 80% 50%, 5% 95%, 95% 5%, 20% 60%, 70% 30%, 35% 65%, 40% 45%, 20% 70%;
-      transform: translateY(-12px) translateX(-3px);
-    }
-    75% {
-      background-position: 10% 45%, 60% 70%, 90% 75%, 15% 5%, 85% 85%, 30% 40%, 65% 40%, 45% 75%, 30% 55%, 10% 60%;
-      transform: translateY(-5px) translateX(8px);
-    }
-    100% {
-      background-position: 0% 60%, 50% 90%, 100% 100%, 25% 15%, 75% 95%, 40% 20%, 60% 50%, 55% 85%, 20% 65%, 0% 50%;
-      transform: translateY(0px) translateX(0px);
-    }
-  }
-  
-  @keyframes moveParticles2 {
-    0% {
-      background-position: 20% 10%, 80% 30%, 40% 70%, 60% 20%, 30% 80%, 70% 40%, 90% 60%, 10% 30%, 50% 10%, 80% 85%;
-    }
-    33% {
-      background-position: 30% 25%, 70% 45%, 50% 85%, 50% 35%, 40% 65%, 80% 25%, 85% 75%, 20% 45%, 40% 25%, 70% 70%;
-    }
-    66% {
-      background-position: 40% 40%, 60% 60%, 60% 100%, 40% 50%, 50% 50%, 90% 10%, 80% 90%, 30% 60%, 30% 40%, 60% 55%;
-    }
-    100% {
-      background-position: 20% 55%, 80% 75%, 40% 15%, 60% 65%, 30% 35%, 70% 85%, 90% 5%, 10% 75%, 50% 55%, 80% 40%;
-    }
-  }
-  
-  @keyframes moveParticles3 {
-    0% {
-      transform: translateY(0px) translateX(0px) rotate(0deg);
-    }
-    25% {
-      transform: translateY(-3px) translateX(2px) rotate(0.5deg);
-    }
-    50% {
-      transform: translateY(-6px) translateX(-1px) rotate(-0.3deg);
-    }
-    75% {
-      transform: translateY(-2px) translateX(4px) rotate(0.8deg);
-    }
-    100% {
-      transform: translateY(0px) translateX(0px) rotate(0deg);
-    }
-  }
-  
-  /* FIXED: Study Mode Selector with Better Layout and Reset Button */
-  .study-mode-selector {
-    margin-bottom: 30px;
-    display: flex;
-    gap: 20px;
-    justify-content: center;
-    align-items: center;
-    z-index: 1;
-    position: relative;
-    flex-wrap: wrap;
-  }
-  
-  /* FIXED: Study Mode with Reset Container */
-  .study-mode-with-reset {
-    display: flex;
-    gap: 15px;
-    align-items: center;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  
-  /* FIXED: Speed Focus Button - Enhanced Styling */
-  .speed-focus-btn {
-    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    padding: 14px 28px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 107, 53, 0.3);
-    position: relative;
-    overflow: hidden;
-    min-width: 200px;
-    white-space: nowrap;
-    text-decoration: none;
-  }
-  
-  .speed-focus-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(255, 107, 53, 0.5);
-    border-color: rgba(255, 107, 53, 0.6);
-  }
-  
-  .speed-focus-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.2);
-  }
-  
-  /* FIXED: Reset Session Button - Proper Styling */
-  .reset-session-mode-btn {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    padding: 14px 28px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(220, 53, 69, 0.3);
-    position: relative;
-    overflow: hidden;
-    min-width: 160px;
-    white-space: nowrap;
-    z-index: 10;
-    /* CRITICAL: Ensure button is interactive */
-    pointer-events: auto;
-    user-select: none;
-  }
-  
-  .reset-session-mode-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s ease;
-    z-index: -1;
-  }
-  
-  .reset-session-mode-btn:hover::before {
-    left: 100%;
-  }
-  
-  .reset-session-mode-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(220, 53, 69, 0.5);
-    border-color: rgba(220, 53, 69, 0.6);
-    background: linear-gradient(135deg, #c82333 0%, #dc3545 100%);
-  }
-  
-  .reset-session-mode-btn:active {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
-  }
-  
-  .reset-session-mode-btn:focus {
-    outline: 2px solid rgba(220, 53, 69, 0.6);
-    outline-offset: 2px;
-  }
-  
-  .reset-session-mode-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.2);
-  }
-  
-  /* CRITICAL FIX: Main Study Card - Prevent front card shrinking */
-  .flashcard-study-box {
-    background: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(20px);
-    border-radius: 24px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    width: 100%;
-    max-width: 900px;
-    display: flex;
-    flex-direction: column;
-    text-align: center;
-    position: relative;
-    z-index: 1;
-    border: 1px solid rgba(200, 200, 200, 0.3);
-    overflow: hidden;
-    min-height: auto;
-  }
-  
-  .flashcard-study-box::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(135deg, #333 0%, #555 100%);
-  }
-  
-  /* Progress Indicator */
-  .study-progress {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: rgba(100, 100, 100, 0.15);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 8px 16px;
-    font-size: 0.9rem;
-    color: #666;
-    font-weight: 600;
-    border: 1px solid rgba(150, 150, 150, 0.2);
-  }
-  
-  /* CRITICAL FIX: Front card maintains fixed size regardless of other content */
-  .flashcard-front {
-    padding: 60px 40px;
-    font-size: 2.2rem;
-    font-weight: 600;
-    color: #2c3e50;
-    line-height: 1.4;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 300px;
-    flex-shrink: 0;
-    flex-grow: 0;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    overflow-y: auto;
-  }
-  
-  /* FIXED: Special handling for image occlusion cards - allow flexible height */
-  .flashcard-front:has(.image-occlusion-card) {
-    font-size: 1rem;
-    padding: 20px;
-    height: auto;
-    min-height: 300px;
-    flex-shrink: 0;
-    flex-grow: 0;
-  }
-  
-  /* FIXED: Back card doesn't affect front card size, but maintains image positioning */
-  .flashcard-back {
-    border-top: 3px solid #666;
-    background: linear-gradient(135deg, rgba(240, 240, 240, 0.8) 0%, rgba(250, 250, 250, 0.8) 100%);
-    padding: 40px;
-    font-size: 1.8rem;
-    font-weight: 600;
-    color: #2c3e50;
-    line-height: 1.4;
-    flex-shrink: 0;
-    flex-grow: 0;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    min-height: auto;
-  }
-  
-  /* CRITICAL: Special handling for image occlusion back cards */
-  .flashcard-back:has(.image-occlusion-card) {
-    padding: 20px;
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  /* Image Occlusion Specific Styles - Only in Study Context */
-  .study-container .flashcard-front .image-occlusion-card,
-  .study-container .flashcard-back .image-occlusion-card {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    max-width: 100%;
-    height: auto;
-    margin: 0 auto;
-    padding: 0;
-    width: fit-content;
-  }
-  
-  .study-container .flashcard-front .occlusion-image,
-  .study-container .flashcard-back .occlusion-image {
-    max-width: 100%;
-    max-height: 450px;
-    height: auto;
-    width: auto;
-    border-radius: 8px;
-    display: block;
-    object-fit: contain;
-    margin: 0 auto;
-    image-rendering: auto;
-  }
-  
-  .study-container .flashcard-front .occlusion-overlay,
-  .study-container .flashcard-back .occlusion-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    transform: none;
-    margin: 0;
-    padding: 0;
-  }
-  
-  /* Occlusion elements - Only visible in study context */
-  .study-container .flashcard-front .occlusion-question-active,
-  .study-container .flashcard-back .occlusion-question-active,
-  .study-container .flashcard-front .occlusion-blocked,
-  .study-container .flashcard-back .occlusion-blocked,
-  .study-container .flashcard-front .occlusion-answer-revealed,
-  .study-container .flashcard-back .occlusion-answer-revealed {
-    position: absolute;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    border-radius: 4px;
-    box-sizing: border-box;
-    min-height: 20px;
-    min-width: 20px;
-    font-size: 14px;
-    line-height: 1;
-    text-align: center;
-    transform: none;
-    margin: 0;
-    image-rendering: auto;
-  }
-  
-  /* Active question styling (front card) */
-  .study-container .flashcard-front .occlusion-question-active {
-    background: rgb(79, 172, 254);
-    border: 3px solid #4facfe;
-    color: white;
-    box-shadow: 0 0 15px rgba(79, 172, 254, 0.6);
-    animation: activeQuestion 2s ease-in-out infinite;
-    z-index: 10;
-  }
-  
-  /* Blocked areas styling */
-  .study-container .flashcard-front .occlusion-blocked,
-  .study-container .flashcard-back .occlusion-blocked {
-    background: rgb(0, 0, 0);
-    border: 2px solid #444;
-    color: #666;
-    z-index: 5;
-  }
-  
-  /* Revealed answer styling (back card) */
-  .study-container .flashcard-back .occlusion-answer-revealed {
-    border: 3px solid #28a745;
-    background: rgba(40, 167, 69, 0.2);
-    color: #28a745;
-    box-shadow: 0 0 15px rgba(40, 167, 69, 0.5);
-    animation: answerRevealed 1.5s ease-in-out;
-    z-index: 10;
-  }
-  
-  /* Hide occlusion overlays in non-study contexts */
-  .flashcard-page .occlusion-question-active,
-  .flashcard-page .occlusion-blocked,
-  .flashcard-page .occlusion-answer-revealed,
-  .flashcard-list .occlusion-question-active,
-  .flashcard-list .occlusion-blocked,
-  .flashcard-list .occlusion-answer-revealed,
-  .editor-content .occlusion-question-active,
-  .editor-content .occlusion-blocked,
-  .editor-content .occlusion-answer-revealed {
-    display: none !important;
-  }
-  
-  /* Show only the image in edit contexts */
-  .flashcard-page .image-occlusion-card,
-  .flashcard-list .image-occlusion-card,
-  .editor-content .image-occlusion-card {
-    position: relative;
-    display: inline-block;
-  }
-  
-  .flashcard-page .occlusion-image,
-  .flashcard-list .occlusion-image,
-  .editor-content .occlusion-image {
-    max-width: 100%;
-    max-height: 200px;
-    height: auto;
-    width: auto;
-    border-radius: 4px;
-    display: block;
-    object-fit: contain;
-  }
-  
-  .flashcard-page .occlusion-overlay,
-  .flashcard-list .occlusion-overlay,
-  .editor-content .occlusion-overlay {
-    display: none;
-  }
-  
-  /* FIXED: Type Answer Section doesn't affect front card */
-  .type-answer-section {
-    padding: 40px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    align-items: center;
-    background: linear-gradient(135deg, rgba(245, 245, 245, 0.8) 0%, rgba(250, 250, 250, 0.8) 100%);
-    border-radius: 0 0 24px 24px;
-    flex-shrink: 0;
-    flex-grow: 0;
-  }
-  
-  .answer-input {
-    width: 100%;
-    max-width: 500px;
-    padding: 20px 24px;
-    font-size: 1.4rem;
-    border: 3px solid #e1e8ed;
-    border-radius: 16px;
-    background: white;
-    color: #2c3e50;
-    text-align: center;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 20px rgba(79, 172, 254, 0.1);
-  }
-  
-  .answer-input:focus {
-    outline: none;
-    border-color: #666;
-    box-shadow: 0 0 0 4px rgba(100, 100, 100, 0.2);
-    transform: scale(1.02);
-  }
-  
-  .submit-answer-btn {
-    padding: 16px 40px;
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 1.2rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
-  }
-  
-  .submit-answer-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
-  }
-  
-  .submit-answer-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-  }
-  
-  /* FIXED: Answer Results Section doesn't affect front card */
-  .answer-results {
-    padding: 40px;
-    display: flex;
-    flex-direction: column;
-    gap: 25px;
-    flex-shrink: 0;
-    flex-grow: 0;
-  }
-  
-  .answer-feedback {
-    font-size: 1.8rem;
-    font-weight: bold;
-    padding: 20px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    backdrop-filter: blur(10px);
-  }
-  
-  .answer-feedback.correct {
-    background: linear-gradient(135deg, rgba(40, 167, 69, 0.15) 0%, rgba(32, 201, 151, 0.15) 100%);
-    color: #28a745;
-    border: 2px solid rgba(40, 167, 69, 0.3);
-    box-shadow: 0 4px 20px rgba(40, 167, 69, 0.2);
-  }
-  
-  .answer-feedback.incorrect {
-    background: linear-gradient(135deg, rgba(220, 53, 69, 0.15) 0%, rgba(255, 107, 107, 0.15) 100%);
-    color: #dc3545;
-    border: 2px solid rgba(220, 53, 69, 0.3);
-    box-shadow: 0 4px 20px rgba(220, 53, 69, 0.2);
-  }
-  
-  .answer-comparison {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border-radius: 16px;
-    padding: 30px;
-    text-align: left;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  }
-  
-  .user-answer, .correct-answer {
-    margin-bottom: 20px;
-    padding: 20px;
-    border-radius: 12px;
-    position: relative;
-  }
-  
-  .user-answer {
-    background: linear-gradient(135deg, rgba(108, 117, 125, 0.1) 0%, rgba(108, 117, 125, 0.05) 100%);
-    border-left: 5px solid #6c757d;
-  }
-  
-  .correct-answer {
-    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%);
-    border-left: 5px solid #28a745;
-  }
-  
-  .user-answer strong, .correct-answer strong {
-    display: block;
-    margin-bottom: 12px;
-    color: #2c3e50;
-    font-size: 1.1rem;
-  }
-  
-  /* FIXED: Show Answer Button doesn't affect front card */
-  .show-answer-btn {
-    margin: 40px;
-    padding: 20px 40px;
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-    color: white;
-    border: none;
-    border-radius: 16px;
-    cursor: pointer;
-    font-size: 1.3rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(44, 62, 80, 0.3);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    flex-shrink: 0;
-    flex-grow: 0;
-  }
-  
-  .show-answer-btn:hover {
-    background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(44, 62, 80, 0.4);
-  }
-  
-  /* FIXED: Difficulty Buttons don't affect front card */
-  .difficulty-buttons {
-    padding: 40px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-    background: linear-gradient(135deg, rgba(245, 245, 245, 0.8) 0%, rgba(250, 250, 250, 0.8) 100%);
-    border-radius: 0 0 24px 24px;
-    flex-shrink: 0;
-    flex-grow: 0;
-  }
-  
-  /* FIXED: Always Show Interval Preview */
-  .interval-preview {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    width: 100%;
-    max-width: 600px;
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 12px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-  }
-  
-  .interval-item {
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .interval-item button.preview {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    opacity: 0.8;
-    cursor: default;
-    color: white;
-  }
-  
-  .interval-item button.again-btn.preview {
-    background: #dc3545;
-    border-color: #dc3545;
-  }
-  
-  .interval-item button.hard-btn.preview {
-    background: #ffc107;
-    color: #333;
-    border-color: #ffc107;
-  }
-  
-  .interval-item button.good-btn.preview {
-    background: #17a2b8;
-    border-color: #17a2b8;
-  }
-  
-  .interval-item button.easy-btn.preview {
-    background: #28a745;
-    border-color: #28a745;
-  }
-  
-  .interval-text {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: #333;
-    background: rgba(255, 255, 255, 0.8);
-    padding: 4px 8px;
-    border-radius: 6px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-  }
-  
-  /* Button Row */
-  .button-row {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-    width: 100%;
-    max-width: 600px;
-  }
-  
-  .difficulty-buttons button {
-    padding: 16px 28px;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: white;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    min-width: 120px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    flex: 1;
-  }
-  
-  .again-btn { 
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); 
-  }
-  .hard-btn { 
-    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); 
-    color: #2c3e50;
-  }
-  .good-btn { 
-    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); 
-  }
-  .easy-btn { 
-    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); 
-  }
-  
-  .again-btn:hover { 
-    background: linear-gradient(135deg, #c82333 0%, #dc3545 100%); 
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
-  }
-  .hard-btn:hover { 
-    background: linear-gradient(135deg, #e0a800 0%, #ffc107 100%); 
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4);
-  }
-  .good-btn:hover { 
-    background: linear-gradient(135deg, #138496 0%, #17a2b8 100%); 
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(23, 162, 184, 0.4);
-  }
-  .easy-btn:hover { 
-    background: linear-gradient(135deg, #1e7e34 0%, #28a745 100%); 
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
-  }
-  
-  /* Cloze deletion styling */
-  .cloze-revealed {
-    background: linear-gradient(135deg, #333 0%, #555 100%);
-    color: white;
-    padding: 4px 12px;
-    border-radius: 8px;
-    font-weight: bold;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  }
-  
-  .loading-study {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 400px;
-    color: white;
-  }
-  
-  .loading-spinner {
-    width: 60px;
-    height: 60px;
-    border: 4px solid rgba(255, 255, 255, 0.2);
-    border-top: 4px solid #fff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 20px;
-  }
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  
-  .loading-study p {
-    font-size: 1.2rem;
-    color: rgba(255, 255, 255, 0.8);
-  }
-  
-  /* Animations for image occlusion */
-  @keyframes activeQuestion {
-    0%, 100% { 
-      box-shadow: 0 0 15px rgba(79, 172, 254, 0.6);
-      transform: scale(1);
-    }
-    50% { 
-      box-shadow: 0 0 25px rgba(79, 172, 254, 0.8);
-      transform: scale(1.02);
-    }
-  }
-  
-  @keyframes answerRevealed {
-    0% { 
-      transform: scale(0.9);
-      opacity: 0;
-    }
-    50% { 
-      transform: scale(1.05);
-      opacity: 1;
-    }
-    100% { 
-      transform: scale(1);
-      opacity: 1;
-    }
-  }
-  
-  /* Completion Popup - Brief 2-second notification */
-  .completion-popup {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-    animation: popupFadeIn 0.3s ease-out;
-  }
-  
-  @keyframes popupFadeIn {
-    from {
-      opacity: 0;
-      backdrop-filter: blur(0px);
-    }
-    to {
-      opacity: 1;
-      backdrop-filter: blur(5px);
-    }
-  }
-  
-  .completion-popup-content {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    border-radius: 20px;
-    padding: 40px 50px;
-    text-align: center;
-    color: white;
-    box-shadow: 0 20px 60px rgba(79, 172, 254, 0.4);
-    animation: popupBounce 0.4s ease-out;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-  }
-  
-  @keyframes popupBounce {
-    0% {
-      transform: scale(0.8) translateY(-20px);
-      opacity: 0;
-    }
-    60% {
-      transform: scale(1.05) translateY(0);
-      opacity: 1;
-    }
-    100% {
-      transform: scale(1) translateY(0);
-      opacity: 1;
-    }
-  }
-  
-  .completion-popup-icon {
-    font-size: 3rem;
-    margin-bottom: 15px;
-    animation: iconSpin 0.6s ease-out;
-  }
-  
-  @keyframes iconSpin {
-    0% { transform: rotate(-180deg) scale(0.5); }
-    100% { transform: rotate(0deg) scale(1); }
-  }
-  
-  .completion-popup-text h3 {
-    margin: 0 0 8px 0;
-    font-size: 1.5rem;
-    font-weight: 700;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-  
-  .completion-popup-text p {
-    margin: 0;
-    font-size: 1.1rem;
-    opacity: 0.9;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  }
-  
-  /* Mobile popup adjustments */
-  @media (max-width: 480px) {
-    .completion-popup-content {
-      padding: 30px 40px;
-      margin: 20px;
-    }
-    
-    .completion-popup-icon {
-      font-size: 2.5rem;
-    }
-    
-    .completion-popup-text h3 {
-      font-size: 1.3rem;
-    }
-    
-    .completion-popup-text p {
-      font-size: 1rem;
-    }
-  }
-  
-  .study-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    padding: 25px 30px;
-    background: linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(40, 40, 40, 0.95) 100%);
-    border-radius: 16px;
-    border: 1px solid rgba(79, 172, 254, 0.2);
-    backdrop-filter: blur(10px);
-    position: relative;
-    overflow: hidden;
-    width: 100%;
-    max-width: 900px;
-    z-index: 1;
-  }
-  
-  .study-header::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 50%, #4facfe 100%);
-    animation: headerGlow 3s ease-in-out infinite;
-  }
-  
-  @keyframes headerGlow {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-  }
-  
-  .study-info h1 {
-    margin: 0 0 8px 0;
-    color: white;
-    font-size: 1.8rem;
-    font-weight: 700;
-  }
-  
-  .progress-info {
-    color: #4facfe;
-    font-size: 1rem;
-    font-weight: 500;
-  }
-  
-  /* FIXED: Better spacing for stats */
-  .study-stats-header {
-    display: flex;
-    gap: 20px;
-  }
-  
-  .stat-item {
-    position: relative;
-    text-align: center;
-    padding: 16px 20px;
-    border-radius: 12px;
-    min-width: 80px;
-    transition: all 0.3s ease;
-    cursor: default;
-    backdrop-filter: blur(5px);
-    overflow: hidden;
-  }
-  
-  .stat-item::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    opacity: 0.1;
-    border-radius: 12px;
-    transition: opacity 0.3s ease;
-  }
-  
-  .stat-item:hover::before {
-    opacity: 0.2;
-  }
-  
-  /* FIXED: Better color schemes with more spacing */
-  .stat-item.total-cards {
-    background: linear-gradient(135deg, rgba(79, 172, 254, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
-    border: 2px solid rgba(79, 172, 254, 0.4);
-    box-shadow: 0 0 15px rgba(79, 172, 254, 0.2);
-  }
-  
-  .stat-item.total-cards::before {
-    background: radial-gradient(circle, rgba(79, 172, 254, 0.3) 0%, transparent 70%);
-  }
-  
-  .stat-item.remaining {
-    background: linear-gradient(135deg, rgba(255, 140, 0, 0.15) 0%, rgba(255, 69, 0, 0.15) 100%);
-    border: 2px solid rgba(255, 140, 0, 0.4);
-    box-shadow: 0 0 15px rgba(255, 140, 0, 0.2);
-  }
-  
-  .stat-item.remaining::before {
-    background: radial-gradient(circle, rgba(255, 140, 0, 0.3) 0%, transparent 70%);
-  }
-  
-  .stat-item.mastered {
-    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%);
-    border: 2px solid rgba(34, 197, 94, 0.4);
-    box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
-  }
-  
-  .stat-item.mastered::before {
-    background: radial-gradient(circle, rgba(34, 197, 94, 0.3) 0%, transparent 70%);
-  }
-  
-  .stat-item .count {
-    display: block;
-    font-size: 1.6rem;
-    font-weight: 800;
-    margin-bottom: 4px;
-    text-shadow: 0 0 10px currentColor;
-  }
-  
-  .stat-item.total-cards .count {
-    color: #4facfe;
-  }
-  
-  .stat-item.remaining .count {
-    color: #ff8c00;
-  }
-  
-  .stat-item.mastered .count {
-    color: #22c55e;
-  }
-  
-  .stat-item .label {
-    display: block;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 600;
-    opacity: 0.9;
-  }
-  
-  .stat-item.total-cards .label {
-    color: #87ceeb;
-  }
-  
-  .stat-item.remaining .label {
-    color: #ffb347;
-  }
-  
-  .stat-item.mastered .label {
-    color: #86efac;
-  }
-  
-  /* CRITICAL FIX: Study Completion - Ensure buttons are clickable */
-  .study-completion {
-    text-align: center;
-    padding: 80px 40px;
-    max-width: 600px;
-    margin: 0 auto;
-    background: linear-gradient(135deg, rgba(30, 30, 30, 0.98) 0%, rgba(40, 40, 40, 0.98) 100%);
-    border-radius: 24px;
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(79, 172, 254, 0.2);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-    position: relative;
-    z-index: 1;
-    overflow: hidden;
-    isolation: isolate;
-  }
-  
-  .study-completion::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 50%, #4facfe 100%);
-    animation: shimmer 2s ease-in-out infinite;
-  }
-  
-  @keyframes shimmer {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-  }
-  
-  .completion-icon {
-    font-size: 5rem;
-    margin-bottom: 24px;
-    animation: bounce 2s ease-in-out infinite;
-    filter: drop-shadow(0 4px 12px rgba(255, 193, 7, 0.3));
-  }
-  
-  @keyframes bounce {
-    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-    40% { transform: translateY(-10px); }
-    60% { transform: translateY(-5px); }
-  }
-  
-  .study-completion h2 {
-    color: white;
-    font-size: 2.2rem;
-    font-weight: 700;
-    margin: 0 0 12px 0;
-    background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  .study-completion p {
-    color: #aaa;
-    font-size: 1.1rem;
-    margin: 0 0 40px 0;
-    line-height: 1.6;
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-    margin-bottom: 40px;
-  }
-  
-  /* CRITICAL FIX: Ensure completion actions are clickable */
-  .completion-actions {
-    display: flex;
-    gap: 20px;
-    justify-content: center;
-    flex-wrap: wrap;
-    position: relative;
-    z-index: 100;
-    isolation: isolate;
-  }
-  
-  /* CRITICAL FIX: Ensure buttons are fully clickable */
-  .back-button, .restart-button {
-    padding: 16px 32px;
-    border: none;
-    border-radius: 16px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    text-decoration: none;
-    min-width: 160px;
-    position: relative;
-    overflow: hidden;
-    z-index: 1000;
-    user-select: none;
-    -webkit-user-select: none;
-    pointer-events: auto;
-    isolation: isolate;
-    background-clip: padding-box;
-  }
-  
-  .back-button {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ddd;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-  }
-  
-  .back-button::before {
-    content: '←';
-    font-size: 1.2rem;
-    margin-right: 4px;
-  }
-  
-  .back-button:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.3);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.1);
-  }
-  
-  /* CRITICAL FIX: Restart button with proper z-index and isolation */
-  .restart-button {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    color: white;
-    border: 2px solid transparent;
-    box-shadow: 0 4px 20px rgba(79, 172, 254, 0.3);
-    transform: translateZ(0);
-    will-change: transform;
-  }
-  
-  .restart-button::before {
-    content: '🔄';
-    font-size: 1.1rem;
-    margin-right: 4px;
-  }
-  
-  .restart-button::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s;
-    z-index: -1;
-  }
-  
-  .restart-button:hover::after {
-    left: 100%;
-  }
-  
-  .restart-button:hover {
-    transform: translateY(-3px) translateZ(0);
-    box-shadow: 0 12px 35px rgba(79, 172, 254, 0.4);
-    border-color: rgba(79, 172, 254, 0.5);
-  }
-  
-  .restart-button:active {
-    transform: translateY(-1px) translateZ(0);
-  }
-  
-  .restart-button:focus {
-    outline: 2px solid #4facfe;
-    outline-offset: 2px;
-  }
-  
-  .restart-button:focus-visible,
-  .back-button:focus-visible {
-    outline: 2px solid currentColor;
-    outline-offset: 2px;
-  }
-  
-  /* Cloze styles */
-  .cloze-question-active {
-    background: rgba(79, 172, 254, 0.2);
-    color: #4facfe;
-    padding: 4px 12px;
-    border-radius: 8px;
-    font-weight: bold;
-    border: 2px solid #4facfe;
-  }
-  
-  .cloze-hidden-inactive {
-    background: rgba(100, 100, 100, 0.2);
-    color: #666;
-    padding: 4px 12px;
-    border-radius: 8px;
-    font-weight: bold;
-    border: 2px solid #666;
-  }
-  
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .study-container {
-      padding: 100px 15px 20px 15px;
-    }
-    
-    .flashcard-study-box {
-      max-width: 95%;
-    }
-    
-    /* FIXED: Study Mode Selector on Mobile */
-    .study-mode-selector {
-      margin-bottom: 20px;
-      gap: 15px;
-    }
-    
-    .study-mode-with-reset {
-      flex-direction: column;
-      gap: 12px;
-      width: 100%;
-    }
-    
-    .speed-focus-btn,
-    .reset-session-mode-btn {
-      width: 100%;
-      max-width: 300px;
-      padding: 12px 20px;
-      font-size: 0.9rem;
-      min-width: unset;
-      justify-content: center;
-    }
-    
-    /* CRITICAL: Maintain fixed heights on mobile, but flexible for images */
-    .flashcard-front {
-      padding: 40px 30px;
-      font-size: 1.8rem;
-      height: 250px;
-    }
-    
-    .flashcard-front:has(.image-occlusion-card) {
-      padding: 15px;
-      height: auto;
-      min-height: 250px;
-    }
-    
-    .flashcard-back {
-      padding: 30px;
-      font-size: 1.5rem;
-    }
-    
-    .answer-input {
-      font-size: 1.2rem;
-      padding: 16px 20px;
-    }
-    
-    .answer-comparison {
-      padding: 20px;
-    }
-    
-    .difficulty-buttons {
-      padding: 30px 20px;
-      gap: 15px;
-    }
-    
-    .difficulty-buttons button {
-      padding: 14px 20px;
-      font-size: 1rem;
-      min-width: 100px;
-    }
-  
-    .study-container .flashcard-front .occlusion-image,
-    .study-container .flashcard-back .occlusion-image {
-      max-height: 350px;
-    }
-    
-    .study-container .flashcard-front .occlusion-question-active,
-    .study-container .flashcard-back .occlusion-question-active,
-    .study-container .flashcard-front .occlusion-blocked,
-    .study-container .flashcard-back .occlusion-blocked,
-    .study-container .flashcard-front .occlusion-answer-revealed,
-    .study-container .flashcard-back .occlusion-answer-revealed {
-      font-size: 12px;
-      min-height: 18px;
-      min-width: 18px;
-    }
-    
-    .study-header {
-      flex-direction: column;
-      gap: 15px;
-      padding: 20px;
-    }
-    
-    .study-stats-header {
-      gap: 15px;
-    }
-    
-    .interval-preview {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-
-    /* Reduce animation intensity on mobile for performance */
-    .study-container::after {
-      background-size: 
-        300px 300px, 250px 250px, 350px 350px,
-        200px 200px, 220px 220px, 180px 180px,
-        120px 120px, 140px 140px, 130px 130px, 150px 150px;
-      animation-duration: 45s, 35s, 50s;
-    }
-    
-    /* Mobile completion adjustments */
-    .study-completion {
-      padding: 60px 30px;
-      margin: 20px;
-      border-radius: 20px;
-    }
-    
-    .completion-icon {
-      font-size: 4rem;
-      margin-bottom: 20px;
-    }
-    
-    .study-completion h2 {
-      font-size: 1.8rem;
-    }
-    
-    .study-completion p {
-      font-size: 1rem;
-      margin-bottom: 30px;
-    }
-    
-    .completion-actions {
-      flex-direction: column;
-      gap: 15px;
-    }
-    
-    .back-button, .restart-button {
-      width: 100%;
-      padding: 18px 24px;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .study-container {
-      padding: 90px 10px 15px 10px;
-    }
-    
-    .flashcard-study-box {
-      border-radius: 16px;
-    }
-    
-    /* FIXED: Study Mode Selector on Small Mobile */
-    .study-mode-selector {
-      margin-bottom: 15px;
-      gap: 10px;
-    }
-    
-    .study-mode-with-reset {
-      gap: 10px;
-    }
-    
-    .speed-focus-btn,
-    .reset-session-mode-btn {
-      max-width: 280px;
-      padding: 14px 18px;
-      font-size: 0.85rem;
-    }
-    
-    /* CRITICAL: Maintain fixed heights on small mobile, but flexible for images */
-    .flashcard-front {
-      font-size: 1.5rem;
-      padding: 30px 20px;
-      height: 200px;
-    }
-    
-    .flashcard-front:has(.image-occlusion-card) {
-      padding: 10px;
-      height: auto;
-      min-height: 200px;
-    }
-    
-    .flashcard-back {
-      padding: 25px 15px;
-      font-size: 1.3rem;
-    }
-    
-    .button-row {
-      flex-direction: column;
-      gap: 12px;
-    }
-    
-    .difficulty-buttons button {
-      width: 100%;
-      padding: 16px;
-      font-size: 1.1rem;
-    }
-    
-    .type-answer-section {
-      padding: 30px 20px;
-    }
-    
-    .answer-results {
-      padding: 30px 20px;
-    }
-  
-    .study-container .flashcard-front .occlusion-image,
-    .study-container .flashcard-back .occlusion-image {
-      max-height: 280px;
-    }
-    
-    .study-container .flashcard-front .occlusion-question-active,
-    .study-container .flashcard-back .occlusion-question-active,
-    .study-container .flashcard-front .occlusion-blocked,
-    .study-container .flashcard-back .occlusion-blocked,
-    .study-container .flashcard-front .occlusion-answer-revealed,
-    .study-container .flashcard-back .occlusion-answer-revealed {
-      font-size: 10px;
-      min-height: 16px;
-      min-width: 16px;
-    }
-    
-    .study-stats-header {
-      flex-direction: row;
-      gap: 10px;
-    }
-    
-    .stat-item {
-      padding: 12px 16px;
-      min-width: 70px;
-    }
-    
-    .stat-item .count {
-      font-size: 1.4rem;
-    }
-
-    /* Simplified animations on very small screens for performance */
-    .study-container::before {
-      animation-duration: 25s;
-    }
-    
-    .study-container::after {
-      background-size: 
-        200px 200px, 180px 180px, 250px 250px,
-        150px 150px, 160px 160px, 140px 140px,
-        100px 100px, 110px 110px, 105px 105px, 120px 120px;
-      animation-duration: 60s, 45s, 65s;
-    }
-    
-    /* Small mobile completion adjustments */
-    .study-completion {
-      padding: 50px 20px;
-      margin: 15px;
-    }
-    
-    .completion-icon {
-      font-size: 3.5rem;
-    }
-    
-    .study-completion h2 {
-      font-size: 1.6rem;
-    }
-  }
-
-  /* Reduced motion support */
-  @media (prefers-reduced-motion: reduce) {
-    .study-container::before,
-    .study-container::after,
-    .loading-spinner,
-    .completion-icon,
-    .study-header::before {
-      animation: none;
-    }
-    
-    .speed-focus-btn:hover,
-    .reset-session-mode-btn:hover,
-    .show-answer-btn:hover,
-    .difficulty-buttons button:hover {
-      transform: none;
-    }
-  }
-  
-  /* Additional CSS for FlashcardStudyPage.css - Audio Support */
-
-/* Audio Settings */
-.audio-settings {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
-    padding: 12px 20px;
-    background: rgba(30, 30, 30, 0.95);
-    border-radius: 12px;
-    border: 1px solid rgba(79, 172, 254, 0.2);
-    backdrop-filter: blur(10px);
-    position: relative;
-    z-index: 1;
-  }
-  
-  .audio-setting-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #ccc;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: color 0.3s ease;
-  }
-  
-  .audio-setting-item:hover {
-    color: #4facfe;
-  }
-  
-  .audio-setting-item input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: #4facfe;
-    cursor: pointer;
-  }
-  
-  /* Card Audio Players */
-  .card-audio {
-    margin: 16px 0;
-    background: rgba(155, 89, 182, 0.1);
-    border: 1px solid rgba(155, 89, 182, 0.3);
-    border-radius: 12px;
-    padding: 12px;
-    backdrop-filter: blur(5px);
-  }
-  
-  .card-audio.front-audio {
-    border-color: rgba(79, 172, 254, 0.3);
-    background: rgba(79, 172, 254, 0.1);
-  }
-  
-  .card-audio.back-audio {
-    border-color: rgba(40, 167, 69, 0.3);
-    background: rgba(40, 167, 69, 0.1);
-  }
-  
-  .card-audio .audio-player {
-    margin: 0;
-    background: transparent;
-    border: none;
-    padding: 0;
-  }
-  
-  .card-audio .audio-player:hover {
-    border: none;
-    box-shadow: none;
-  }
-  
-  /* Enhanced Audio Player in Study Context */
-  .study-container .audio-player {
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  }
-  
-  .study-container .audio-player-full {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 12px;
-    padding: 16px;
-  }
-  
-  .study-container .play-btn-main {
-    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
-  }
-  
-  .study-container .progress-bar-full {
-    background: rgba(0, 0, 0, 0.1);
-  }
-  
-  .study-container .progress-fill-full {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  }
-  
-  /* Audio Controls in Answer Sections */
-  .answer-results .card-audio {
-    margin-top: 16px;
-    border-color: rgba(40, 167, 69, 0.4);
-    background: rgba(40, 167, 69, 0.15);
-  }
-  
-  .type-answer-section .card-audio {
-    margin-top: 16px;
-    border-color: rgba(79, 172, 254, 0.4);
-    background: rgba(79, 172, 254, 0.15);
-  }
-  
-  /* Audio Player Compact Mode in Study */
-  .study-container .audio-player-compact {
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 8px;
-    padding: 8px 12px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-  }
-  
-  .study-container .play-btn-compact {
-    box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
-  }
-  
-  .study-container .time-compact {
-    color: #333;
-    font-weight: 600;
-  }
-  
-  /* Audio Visual Indicators */
-  .card-audio::before {
-    content: '🎵';
-    position: absolute;
-    top: -8px;
-    left: 12px;
-    background: inherit;
-    padding: 0 8px;
-    font-size: 0.9rem;
-    border-radius: 4px;
-  }
-  
-  .card-audio.front-audio::before {
-    content: '🎵 Front Audio';
-    color: #4facfe;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  
-  .card-audio.back-audio::before {
-    content: '🎵 Back Audio';
-    color: #28a745;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  
-  /* Loading States for Audio */
-  .card-audio .loading-spinner,
-  .card-audio .loading-spinner-small {
-    border-top-color: #9b59b6;
-  }
-  
-  .card-audio.front-audio .loading-spinner,
-  .card-audio.front-audio .loading-spinner-small {
-    border-top-color: #4facfe;
-  }
-  
-  .card-audio.back-audio .loading-spinner,
-  .card-audio.back-audio .loading-spinner-small {
-    border-top-color: #28a745;
-  }
-  
-  /* Audio Error States */
-  .card-audio .audio-player.error {
-    border-color: #ff6b6b;
-    background: rgba(255, 107, 107, 0.1);
-  }
-  
-  /* Mobile Responsive Audio */
-  @media (max-width: 768px) {
-    .audio-settings {
-      padding: 10px 16px;
-      margin-bottom: 16px;
-    }
-    
-    .audio-setting-item {
-      font-size: 0.85rem;
-    }
-    
-    .card-audio {
-      margin: 12px 0;
-      padding: 10px;
-    }
-    
-    .card-audio.front-audio::before,
-    .card-audio.back-audio::before {
-      font-size: 0.7rem;
-      top: -6px;
-      left: 10px;
-      padding: 0 6px;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .audio-settings {
-      padding: 8px 12px;
-      margin-bottom: 12px;
-    }
-    
-    .audio-setting-item {
-      font-size: 0.8rem;
-      gap: 6px;
-    }
-    
-    .card-audio {
-      margin: 10px 0;
-      padding: 8px;
-    }
-    
-    .card-audio::before {
-      font-size: 0.8rem;
-    }
-    
-    .card-audio.front-audio::before,
-    .card-audio.back-audio::before {
-      content: '🎵';
-      font-size: 0.8rem;
-    }
-  }
-  
-  /* High Contrast Mode for Audio */
-  @media (prefers-contrast: high) {
-    .card-audio {
-      border: 2px solid #fff;
-      background: rgba(0, 0, 0, 0.8);
-    }
-    
-    .audio-setting-item {
-      color: #fff;
-    }
-    
-    .card-audio.front-audio::before,
-    .card-audio.back-audio::before {
-      color: #fff;
-      background: #000;
-    }
-  }
-  
-  /* Reduced Motion Support for Audio */
-  @media (prefers-reduced-motion: reduce) {
-    .card-audio .audio-player .play-btn-main,
-    .card-audio .audio-player .play-btn-compact {
-      transition: none;
-    }
-    
-    .card-audio .audio-player .play-btn-main:hover,
-    .card-audio .audio-player .play-btn-compact:hover {
-      transform: none;
-    }
-  }
-  
-  /* Add this to FlashcardStudyPage.css for the spaced learning progress in header */
-
-/* Spaced Learning Progress in Study Mode Selector */
-.spaced-learning-progress {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 30px;
-  z-index: 1;
+  min-height: 100vh;
+  background: #121212;
+  color: white;
+  padding: 100px 20px 40px 20px;
   position: relative;
+  overflow-x: hidden;
 }
 
-.spaced-learning-info {
-  background: linear-gradient(135deg, rgba(155, 89, 182, 0.15) 0%, rgba(142, 68, 173, 0.15) 100%);
-  border: 1px solid rgba(155, 89, 182, 0.4);
-  border-radius: 16px;
-  padding: 16px 24px;
-  text-align: center;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 15px rgba(155, 89, 182, 0.2);
+/* Loading States */
+.loading-study {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-width: 320px;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
 }
 
-.session-indicator {
-  color: #bb86fc;
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #333;
+  border-top: 4px solid #4facfe;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-study p {
+  color: #aaa;
   font-size: 1.1rem;
+}
+
+/* Study Header */
+.study-header {
+  max-width: 1000px;
+  margin: 0 auto 30px auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.study-info h1 {
+  font-size: 2.2rem;
   font-weight: 700;
+  margin: 0 0 8px 0;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.progress-info {
+  color: #aaa;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.study-stats-header {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-item.total-cards .count {
+  color: #4facfe;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.stat-item.remaining .count {
+  color: #ffc107;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.stat-item.mastered .count {
+  color: #28a745;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.stat-item .label {
+  font-size: 0.8rem;
+  color: #666;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  text-shadow: 0 0 10px rgba(187, 134, 252, 0.3);
 }
 
-.session-progress {
-  color: #9b59b6;
+/* Study Mode Selector - UPDATED: Removed Speed Focus Mode */
+.study-mode-selector {
+  max-width: 1000px;
+  margin: 0 auto 30px auto;
+  display: flex;
+  justify-content: center;
+}
+
+.study-mode-with-reset {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* REMOVED: .speed-focus-btn class - no longer needed */
+
+/* Spaced Learning Display Button */
+.study-mode-with-reset button:first-child {
+  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 20px;
   font-size: 0.9rem;
+  font-weight: 600;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(155, 89, 182, 0.2);
+}
+
+.reset-session-mode-btn {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+  border: 2px solid rgba(220, 53, 69, 0.3);
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reset-session-mode-btn:hover {
+  background: rgba(220, 53, 69, 0.2);
+  border-color: rgba(220, 53, 69, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+}
+
+/* Flashcard Study Box */
+.flashcard-study-box {
+  max-width: 800px;
+  margin: 0 auto;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.flashcard-front,
+.flashcard-back {
+  min-height: 200px;
+  padding: 20px;
+  border-radius: 12px;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.6;
+  font-size: 1.1rem;
+}
+
+.flashcard-back {
+  background: #252525;
+  border-color: #28a745;
+}
+
+/* Card Audio */
+.card-audio {
+  margin: 16px 0;
+}
+
+.card-audio audio {
+  width: 100%;
+  border-radius: 8px;
+}
+
+/* Type Answer Section */
+.type-answer-section {
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.answer-input {
+  padding: 14px 18px;
+  background: #2a2a2a;
+  border: 2px solid #444;
+  border-radius: 12px;
+  color: white;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.answer-input:focus {
+  outline: none;
+  border-color: #4facfe;
+  box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+}
+
+.submit-answer-btn {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.submit-answer-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
+}
+
+.submit-answer-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Answer Results */
+.answer-results {
+  margin: 20px 0;
+}
+
+.answer-feedback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+}
+
+.answer-feedback.correct {
+  background: rgba(40, 167, 69, 0.2);
+  color: #28a745;
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.answer-feedback.incorrect {
+  background: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.answer-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.user-answer,
+.correct-answer {
+  padding: 16px;
+  border-radius: 8px;
+  background: #2a2a2a;
+  border: 1px solid #444;
+}
+
+.user-answer strong,
+.correct-answer strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #aaa;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Show Answer Button */
+.show-answer-btn {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 32px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  margin: 20px 0;
+}
+
+.show-answer-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
+}
+
+/* Difficulty Buttons */
+.difficulty-buttons {
+  margin-top: 30px;
+}
+
+.interval-preview {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 8px;
+}
+
+.interval-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.interval-item button.preview {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+.interval-text {
+  font-size: 0.8rem;
+  color: #888;
   font-weight: 500;
+}
+
+.button-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.again-btn,
+.hard-btn,
+.good-btn,
+.easy-btn {
+  flex: 1;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.again-btn {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  color: white;
+}
+
+.hard-btn {
+  background: linear-gradient(135deg, #fd7e14 0%, #e55a0e 100%);
+  color: white;
+}
+
+.good-btn {
+  background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+  color: white;
+}
+
+.easy-btn {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+}
+
+.again-btn:hover,
+.hard-btn:hover,
+.good-btn:hover,
+.easy-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Study Completion */
+.study-completion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.completion-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+.study-completion h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.study-completion p {
+  color: #aaa;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin: 0 0 30px 0;
+}
+
+.completion-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.back-button,
+.restart-button {
+  padding: 14px 28px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-button {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ccc;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.restart-button {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+}
+
+.restart-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+}
+
+/* Completion Popup */
+.completion-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  padding: 20px 32px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  z-index: 1000;
+  animation: completionFade 2s ease-in-out;
+  box-shadow: 0 8px 32px rgba(40, 167, 69, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+@keyframes completionFade {
+  0% { 
+    opacity: 0; 
+    transform: translate(-50%, -50%) scale(0.8) translateY(20px); 
+  }
+  20% { 
+    opacity: 1; 
+    transform: translate(-50%, -50%) scale(1.05) translateY(0px); 
+  }
+  80% { 
+    opacity: 1; 
+    transform: translate(-50%, -50%) scale(1) translateY(0px); 
+  }
+  100% { 
+    opacity: 0; 
+    transform: translate(-50%, -50%) scale(0.9) translateY(-10px); 
+  }
+}
+
+.completion-popup-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.completion-popup-icon {
+  font-size: 1.5rem;
+}
+
+.completion-popup-text h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.completion-popup-text p {
+  margin: 0;
+  font-size: 0.9rem;
   opacity: 0.9;
 }
 
-/* Hover effect for spaced learning progress */
-.spaced-learning-info:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(155, 89, 182, 0.3);
-  border-color: rgba(155, 89, 182, 0.6);
-}
-
-/* Mobile responsive for spaced learning progress */
+/* Responsive Design */
 @media (max-width: 768px) {
-  .spaced-learning-info {
-    padding: 12px 16px;
-    min-width: 280px;
+  .study-container {
+    padding: 90px 15px 30px 15px;
   }
   
-  .session-indicator {
+  .study-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .study-info h1 {
+    font-size: 1.8rem;
+  }
+  
+  .study-stats-header {
+    gap: 16px;
+    align-self: stretch;
+    justify-content: space-around;
+  }
+  
+  .study-mode-with-reset {
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+  
+  .study-mode-with-reset button:first-child,
+  .reset-session-mode-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 20px;
+  }
+  
+  .flashcard-study-box {
+    padding: 20px;
+    margin: 0 10px;
+  }
+  
+  .flashcard-front,
+  .flashcard-back {
+    min-height: 150px;
+    padding: 16px;
     font-size: 1rem;
   }
   
-  .session-progress {
-    font-size: 0.8rem;
+  .answer-comparison {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .button-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .again-btn,
+  .hard-btn,
+  .good-btn,
+  .easy-btn {
+    padding: 12px 16px;
+    font-size: 0.9rem;
+  }
+  
+  .interval-preview {
+    display: none; /* Hide interval preview on mobile for cleaner UI */
+  }
+  
+  .completion-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .back-button,
+  .restart-button {
+    width: 100%;
+    max-width: 300px;
   }
 }
 
 @media (max-width: 480px) {
-  .spaced-learning-info {
-    padding: 10px 14px;
-    min-width: 240px;
+  .study-container {
+    padding: 80px 12px 25px 12px;
   }
   
-  .session-indicator {
-    font-size: 0.9rem;
+  .study-info h1 {
+    font-size: 1.6rem;
   }
   
-  .session-progress {
+  .stat-item .count {
+    font-size: 1.3rem;
+  }
+  
+  .stat-item .label {
     font-size: 0.75rem;
   }
+  
+  .flashcard-study-box {
+    padding: 16px;
+    margin: 0 5px;
+  }
+  
+  .flashcard-front,
+  .flashcard-back {
+    min-height: 120px;
+    padding: 12px;
+    font-size: 0.95rem;
+  }
+  
+  .show-answer-btn {
+    padding: 14px 24px;
+    font-size: 1rem;
+  }
+  
+  .study-completion h2 {
+    font-size: 1.6rem;
+  }
+  
+  .study-completion p {
+    font-size: 1rem;
+  }
+}
+
+/* Cloze Deletion Styles */
+.cloze-revealed-active {
+  background: rgba(79, 172, 254, 0.3);
+  color: #4facfe;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.cloze-revealed-inactive {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ccc;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.cloze-question {
+  background: rgba(255, 193, 7, 0.3);
+  color: #ffc107;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 193, 7, 0.5);
+}
+
+.cloze-other {
+  color: #aaa;
+}
+
+/* Image Occlusion Styles */
+.image-occlusion-card {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.occlusion-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.occlusion-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.occlusion-question-active,
+.occlusion-blocked,
+.occlusion-answer-revealed {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  border-radius: 4px;
+  font-size: 14px;
+  border: 2px solid;
+}
+
+.occlusion-question-active {
+  background: #4facfe;
+  border-color: #4facfe;
+  color: white;
+  box-shadow: 0 0 8px rgba(79, 172, 254, 0.7);
+}
+
+.occlusion-blocked {
+  background: #000000;
+  border-color: #666;
+  color: #fff;
+}
+
+.occlusion-answer-revealed {
+  background: transparent;
+  border: 3px solid #28a745;
+  box-shadow: 0 0 12px rgba(40, 167, 69, 0.6);
+}
+
+/* REMOVED: Animation that was causing flashing on scroll */
+
+/* REMOVED: Green box styling around entire card - not needed */
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .completion-icon,
+  .completion-popup {
+    animation: none;
+  }
+  
+  .again-btn:hover,
+  .hard-btn:hover,
+  .good-btn:hover,
+  .easy-btn:hover,
+  .show-answer-btn:hover,
+  .submit-answer-btn:hover,
+  .reset-session-mode-btn:hover {
+    transform: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .flashcard-front,
+  .flashcard-back {
+    border-width: 2px;
+  }
+  
+  .again-btn,
+  .hard-btn,
+  .good-btn,
+  .easy-btn {
+    border: 2px solid rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* Focus states for accessibility */
+.again-btn:focus,
+.hard-btn:focus,
+.good-btn:focus,
+.easy-btn:focus,
+.show-answer-btn:focus,
+.submit-answer-btn:focus,
+.reset-session-mode-btn:focus {
+  outline: 2px solid #4facfe;
+  outline-offset: 2px;
+}
+
+.answer-input:focus {
+  outline: none;
+  border-color: #4facfe;
+  box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
 }

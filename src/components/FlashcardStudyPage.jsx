@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - FULLY FIXED: Proper Progress Restoration on Refresh
+// src/components/FlashcardStudyPage.jsx - REMOVED: Speed Focus Mode References
 import React, { useState, useEffect, useContext, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
@@ -767,6 +767,7 @@ export default function FlashcardStudyPage() {
         </div>
       </div>
 
+      {/* REMOVED: Speed Focus Mode selector - only show reset button now */}
       <div className="study-mode-selector">
         {spacedLearningEnabled ? (
           <div className="study-mode-with-reset">
@@ -791,18 +792,11 @@ export default function FlashcardStudyPage() {
         ) : (
           <div className="study-mode-with-reset">
             <button 
-              className="speed-focus-btn"
-              onClick={() => navigate(`/speed/${id}`)}
-              title="Speed Focus Mode - Test your knowledge under time pressure!"
-            >
-              ⚡ Speed Focus Mode
-            </button>
-            <button 
               className="reset-session-mode-btn"
               onClick={handleResetSession}
               title="Reset all progress and start fresh"
             >
-              🔄 Reset Session
+               Reset Session
             </button>
           </div>
         )}
