@@ -3,7 +3,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
-import { validateLimits, LIMIT_MESSAGES } from '../utils/limitValidation';
+import { validateLimits, LIMIT_MESSAGES } from '../utils/LimitValidation';
 
 import FlashcardTitle from "./FlashcardTitle";
 import FlashcardInput from "./FlashcardInput";

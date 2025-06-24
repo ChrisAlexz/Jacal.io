@@ -3,7 +3,7 @@ import React, { useState, useContext } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
 import { useNavigate } from 'react-router-dom';
-import { validateLimits, LIMIT_MESSAGES } from '../utils/limitValidation';
+import { validateLimits, LIMIT_MESSAGES } from '../utils/LimitValidation';
 import '../styles/ImportModal.css';
 
 // Import parsers

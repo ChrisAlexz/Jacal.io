@@ -3,7 +3,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import SimpleRichTextEditor from './SimpleRichTextEditor';
 import ImageOcclusionEditor from './ImageOcclusionEditor';
 import UserAuthContext from './context/UserAuthContext';
-import { validateLimits, createLimitWarningMessage } from '../utils/limitValidation';
+import { validateLimits, createLimitWarningMessage } from '../utils/LimitValidation';
 import "../styles/FlashcardInput.css";
 
 export default function FlashcardInput({ addFlashcard, disabled, type, isPerCardMode = false, setId, currentCardCount = 0 }) {
