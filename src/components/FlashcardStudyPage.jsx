@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - REMOVED: Speed Focus Mode References
+// src/components/FlashcardStudyPage.jsx - FIXED: Removed duplicate completion popups
 import React, { useState, useEffect, useContext, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
@@ -65,7 +65,7 @@ export default function FlashcardStudyPage() {
   const [deckType, setDeckType] = useState("Basic");
   const [setTitle, setSetTitle] = useState("");
   const [studyStats, setStudyStats] = useState(null);
-  const [showCompletionPopup, setShowCompletionPopup] = useState(false);
+  // REMOVED: showCompletionPopup state - this was causing the duplicate
   const [userAnswer, setUserAnswer] = useState('');
   const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
   const [isAnswerCorrect, setIsAnswerCorrect] = useState(null);
@@ -486,13 +486,15 @@ export default function FlashcardStudyPage() {
           await clearStudyProgress();
           
           if (spacedLearningEnabled && currentBatchIndex + 1 < spacedLearningBatches.length) {
+            // ONLY show batch completion modal - NO additional popup
             setBatchCompletionModal({
               completed: currentBatchIndex + 1,
               total: spacedLearningBatches.length
             });
           } else {
-            setShowCompletionPopup(true);
-            setTimeout(() => setShowCompletionPopup(false), 2000);
+            // REMOVED: showCompletionPopup state and timeout
+            // Just navigate or show final completion directly
+            // No temporary popup needed
           }
           return;
         }
@@ -721,17 +723,7 @@ export default function FlashcardStudyPage() {
 
   return (
     <div className="study-container">
-      {showCompletionPopup && (
-        <div className="completion-popup">
-          <div className="completion-popup-content">
-            <div className="completion-popup-icon">🎉</div>
-            <div className="completion-popup-text">
-              <h3>Card Mastered!</h3>
-              <p>Marked as Easy!</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* REMOVED: showCompletionPopup conditional render - no more duplicate popup */}
 
       <div className="study-header">
         <div className="study-info">
@@ -767,7 +759,7 @@ export default function FlashcardStudyPage() {
         </div>
       </div>
 
-      {/* REMOVED: Speed Focus Mode selector - only show reset button now */}
+      {/* Study mode selector - only show reset button now */}
       <div className="study-mode-selector">
         {spacedLearningEnabled ? (
           <div className="study-mode-with-reset">

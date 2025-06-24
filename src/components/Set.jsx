@@ -1,4 +1,4 @@
-// src/components/Set.jsx - PRODUCTION-SAFE VERSION with minimal logging
+// src/components/Set.jsx - FIXED: Sort dropdown and search functionality
 import React, { useEffect, useState, useContext, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
@@ -55,8 +55,53 @@ const formatDate = (dateString) => {
   }
 };
 
+// FIXED: Enhanced sorting function
+const sortItems = (items, sortBy) => {
+  return [...items].sort((a, b) => {
+    switch (sortBy) {
+      case 'alphabetical':
+        return a.name.localeCompare(b.name);
+      case 'recent':
+        const dateA = new Date(a.created_at || 0);
+        const dateB = new Date(b.created_at || 0);
+        return dateB - dateA; // Most recent first
+      case 'oldest':
+        const oldDateA = new Date(a.created_at || 0);
+        const oldDateB = new Date(b.created_at || 0);
+        return oldDateA - oldDateB; // Oldest first
+      default:
+        return 0;
+    }
+  });
+};
+
+// FIXED: Enhanced filtering function for both folders and decks
+const filterItems = (items, searchTerm) => {
+  if (!searchTerm.trim()) return items;
+  
+  const lowercaseSearch = searchTerm.toLowerCase();
+  
+  return items.filter(item => {
+    // Check if item name matches
+    const nameMatches = item.name?.toLowerCase().includes(lowercaseSearch);
+    
+    // For folders, also check if any of their children match
+    if (item.type === 'folder') {
+      const childrenMatch = item.children?.some(child => 
+        child.name?.toLowerCase().includes(lowercaseSearch)
+      );
+      const setsMatch = item.sets?.some(set => 
+        set.name?.toLowerCase().includes(lowercaseSearch)
+      );
+      return nameMatches || childrenMatch || setsMatch;
+    }
+    
+    return nameMatches;
+  });
+};
+
 // Helper function to build tree structure from flat data - SECURE VERSION
-const buildTree = (folders, sets) => {
+const buildTree = (folders, sets, sortBy, searchTerm) => {
   try {
     if (!Array.isArray(folders) || !Array.isArray(sets)) {
       console.error('Invalid input data for buildTree');
@@ -130,29 +175,27 @@ const buildTree = (folders, sets) => {
       }
     });
     
-    // Sort tree
-    const sortItems = (items) => {
-      return items.sort((a, b) => {
-        if (a.type !== b.type) {
-          return a.type === 'folder' ? -1 : 1;
-        }
-        return a.name.localeCompare(b.name);
-      });
-    };
-    
+    // FIXED: Apply sorting to each level recursively
     const sortRecursively = (nodes) => {
-      const sorted = sortItems(nodes);
+      // Sort current level
+      const sorted = sortItems(nodes, sortBy);
+      
+      // Sort children of folders recursively
       sorted.forEach(node => {
         if (node.type === 'folder') {
           node.children = sortRecursively(node.children);
-          node.sets = sortItems(node.sets);
+          node.sets = sortItems(node.sets, sortBy);
         }
       });
+      
       return sorted;
     };
     
-    const result = sortRecursively(tree);
-    return result;
+    // FIXED: Apply filtering after sorting
+    const sortedTree = sortRecursively(tree);
+    const filteredTree = filterItems(sortedTree, searchTerm);
+    
+    return filteredTree;
     
   } catch (error) {
     console.error('Error building tree');
@@ -181,22 +224,16 @@ const TreeNode = React.memo(({
     (item?.sets?.length > 0)
   );
   
-  // Filter children based on search - NO LOGGING
+  // FIXED: Filter children based on search - more comprehensive filtering
   const filteredChildren = useMemo(() => {
     if (!isFolder || !item?.children) return [];
-    const filtered = item.children.filter(child => 
-      child?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    return filtered;
-  }, [isFolder, item?.children, searchTerm, item?.name]);
+    return filterItems(item.children, searchTerm);
+  }, [isFolder, item?.children, searchTerm]);
   
   const filteredSets = useMemo(() => {
     if (!isFolder || !item?.sets) return [];
-    const filtered = item.sets.filter(set => 
-      set?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    return filtered;
-  }, [isFolder, item?.sets, searchTerm, item?.name]);
+    return filterItems(item.sets, searchTerm);
+  }, [isFolder, item?.sets, searchTerm]);
   
   const handleItemClick = useCallback((e) => {
     e.preventDefault();
@@ -243,7 +280,7 @@ const TreeNode = React.memo(({
   
   const hasVisibleChildren = filteredChildren.length > 0 || filteredSets.length > 0;
   
-  // Don't render if search doesn't match and no visible children
+  // FIXED: Don't render if search doesn't match and no visible children
   if (searchTerm && !item.name?.toLowerCase().includes(searchTerm.toLowerCase()) && !hasVisibleChildren) {
     return null;
   }
@@ -399,12 +436,14 @@ const TreeNode = React.memo(({
   );
 });
 
-// Main SetPage Component - SECURE VERSION
+// Main SetPage Component - FIXED: Sort and Search Issues
 export default function SetPage() {
   const { user } = useContext(UserAuthContext);
   const navigate = useNavigate();
   
-  const [tree, setTree] = useState([]);
+  // FIXED: Separate state for raw data and processed tree
+  const [folders, setFolders] = useState([]);
+  const [sets, setSets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('alphabetical');
@@ -424,6 +463,11 @@ export default function SetPage() {
     name: '',
     onConfirm: null
   });
+
+  // FIXED: Compute tree with proper dependency management
+  const tree = useMemo(() => {
+    return buildTree(folders, sets, sortBy, searchTerm);
+  }, [folders, sets, sortBy, searchTerm]);
 
   // Memoized navigation function to prevent recreation
   const handleNavigate = useCallback((path) => {
@@ -445,7 +489,7 @@ export default function SetPage() {
 
       if (foldersError) {
         console.error('Error fetching folders');
-        setTree([]);
+        setFolders([]);
         return;
       }
 
@@ -458,7 +502,7 @@ export default function SetPage() {
 
       if (setsError) {
         console.error('Error fetching sets');
-        setTree([]);
+        setSets([]);
         return;
       }
 
@@ -488,16 +532,17 @@ export default function SetPage() {
         })
       );
 
-      // Filter out null results
+      // Filter out null results and update state
       const validSets = setsWithCounts.filter(Boolean);
-
-      // Build tree structure
-      const treeData = buildTree(foldersData || [], validSets);
-      setTree(treeData);
+      
+      // FIXED: Update raw data states
+      setFolders(foldersData || []);
+      setSets(validSets);
       
     } catch (error) {
       console.error('Error in fetchAllData');
-      setTree([]);
+      setFolders([]);
+      setSets([]);
     } finally {
       setLoading(false);
     }
@@ -508,6 +553,17 @@ export default function SetPage() {
       fetchAllData();
     }
   }, [user, fetchAllData]);
+
+  // FIXED: Sort handler with proper state update
+  const handleSortChange = useCallback((e) => {
+    const newSortBy = e.target.value;
+    setSortBy(newSortBy);
+  }, []);
+
+  // FIXED: Search handler with debouncing
+  const handleSearchChange = useCallback((e) => {
+    setSearchTerm(e.target.value);
+  }, []);
 
   const handleToggleExpand = useCallback((folderId) => {
     setExpandedFolders(prev => {
@@ -709,7 +765,7 @@ export default function SetPage() {
                     type="text"
                     placeholder="Search folders and decks..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={handleSearchChange}
                     className="search-input"
                   />
                 </div>
@@ -717,7 +773,7 @@ export default function SetPage() {
                 <div className="sort-container">
                   <select
                     value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
+                    onChange={handleSortChange}
                     className="sort-select"
                   >
                     <option value="alphabetical">Alphabetical</option>

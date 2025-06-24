@@ -1,4 +1,4 @@
-/* src/styles/FlashcardStudyPage.css - REMOVED: Speed Focus Mode styles */
+/* src/styles/FlashcardStudyPage.css - FIXED: Improved sizing and spacing for better readability */
 
 .study-container {
   min-height: 100vh;
@@ -19,13 +19,13 @@
 }
 
 .loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid #333;
-  border-top: 4px solid #4facfe;
+  width: 60px; /* INCREASED from 50px */
+  height: 60px; /* INCREASED from 50px */
+  border: 5px solid #333; /* INCREASED from 4px */
+  border-top: 5px solid #4facfe; /* INCREASED from 4px */
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 20px;
+  margin-bottom: 25px; /* INCREASED from 20px */
 }
 
 @keyframes spin {
@@ -35,41 +35,42 @@
 
 .loading-study p {
   color: #aaa;
-  font-size: 1.1rem;
+  font-size: 1.3rem; /* INCREASED from 1.1rem */
 }
 
-/* Study Header */
+/* Study Header - ENLARGED */
 .study-header {
-  max-width: 1000px;
-  margin: 0 auto 30px auto;
+  max-width: 1200px; /* INCREASED from 1000px */
+  margin: 0 auto 40px auto; /* INCREASED bottom margin from 30px */
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  gap: 20px;
+  gap: 25px; /* INCREASED from 20px */
   flex-wrap: wrap;
 }
 
 .study-info h1 {
-  font-size: 2.2rem;
+  font-size: 2.8rem; /* INCREASED from 2.2rem */
   font-weight: 700;
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0; /* INCREASED bottom margin from 8px */
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  line-height: 1.2;
 }
 
 .progress-info {
   color: #aaa;
-  font-size: 1rem;
+  font-size: 1.2rem; /* INCREASED from 1rem */
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px; /* INCREASED from 8px */
 }
 
 .study-stats-header {
   display: flex;
-  gap: 20px;
+  gap: 30px; /* INCREASED from 20px */
   align-items: center;
 }
 
@@ -77,65 +78,64 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px; /* INCREASED from 4px */
+}
+
+.stat-item.total-cards .count,
+.stat-item.remaining .count,
+.stat-item.mastered .count {
+  font-size: 1.8rem; /* INCREASED from 1.5rem */
+  font-weight: 700;
 }
 
 .stat-item.total-cards .count {
   color: #4facfe;
-  font-size: 1.5rem;
-  font-weight: 700;
 }
 
 .stat-item.remaining .count {
   color: #ffc107;
-  font-size: 1.5rem;
-  font-weight: 700;
 }
 
 .stat-item.mastered .count {
   color: #28a745;
-  font-size: 1.5rem;
-  font-weight: 700;
 }
 
 .stat-item .label {
-  font-size: 0.8rem;
+  font-size: 0.95rem; /* INCREASED from 0.8rem */
   color: #666;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-/* Study Mode Selector - UPDATED: Removed Speed Focus Mode */
+/* Study Mode Selector - ENLARGED */
 .study-mode-selector {
-  max-width: 1000px;
-  margin: 0 auto 30px auto;
+  max-width: 1200px; /* INCREASED from 1000px */
+  margin: 0 auto 40px auto; /* INCREASED from 30px */
   display: flex;
   justify-content: center;
 }
 
 .study-mode-with-reset {
   display: flex;
-  gap: 16px;
+  gap: 20px; /* INCREASED from 16px */
   align-items: center;
   flex-wrap: wrap;
   justify-content: center;
 }
 
-/* REMOVED: .speed-focus-btn class - no longer needed */
-
-/* Spaced Learning Display Button */
+/* Spaced Learning Display Button - ENLARGED */
 .study-mode-with-reset button:first-child {
   background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
   color: white;
   border: none;
   border-radius: 12px;
-  padding: 12px 20px;
-  font-size: 0.9rem;
+  padding: 16px 24px; /* INCREASED from 12px 20px */
+  font-size: 1.1rem; /* INCREASED from 0.9rem */
   font-weight: 600;
   cursor: default;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px; /* INCREASED from 8px */
   box-shadow: 0 4px 15px rgba(155, 89, 182, 0.2);
 }
 
@@ -144,14 +144,14 @@
   color: #dc3545;
   border: 2px solid rgba(220, 53, 69, 0.3);
   border-radius: 12px;
-  padding: 12px 20px;
-  font-size: 0.9rem;
+  padding: 16px 24px; /* INCREASED from 12px 20px */
+  font-size: 1.1rem; /* INCREASED from 0.9rem */
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px; /* INCREASED from 8px */
 }
 
 .reset-session-mode-btn:hover {
@@ -161,31 +161,31 @@
   box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
 }
 
-/* Flashcard Study Box */
+/* Flashcard Study Box - SIGNIFICANTLY ENLARGED */
 .flashcard-study-box {
-  max-width: 800px;
+  max-width: 1000px; /* INCREASED from 800px */
   margin: 0 auto;
   background: #1e1e1e;
   border: 1px solid #333;
-  border-radius: 16px;
-  padding: 30px;
+  border-radius: 20px; /* INCREASED from 16px */
+  padding: 40px; /* INCREASED from 30px */
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
 }
 
 .flashcard-front,
 .flashcard-back {
-  min-height: 200px;
-  padding: 20px;
-  border-radius: 12px;
+  min-height: 280px; /* INCREASED from 200px */
+  padding: 30px; /* INCREASED from 20px */
+  border-radius: 16px; /* INCREASED from 12px */
   background: #2a2a2a;
   border: 1px solid #444;
-  margin-bottom: 20px;
+  margin-bottom: 25px; /* INCREASED from 20px */
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  line-height: 1.6;
-  font-size: 1.1rem;
+  line-height: 1.8; /* INCREASED from 1.6 */
+  font-size: 1.3rem; /* INCREASED from 1.1rem */
 }
 
 .flashcard-back {
@@ -193,31 +193,32 @@
   border-color: #28a745;
 }
 
-/* Card Audio */
+/* Card Audio - ENLARGED */
 .card-audio {
-  margin: 16px 0;
+  margin: 20px 0; /* INCREASED from 16px */
 }
 
 .card-audio audio {
   width: 100%;
-  border-radius: 8px;
+  border-radius: 10px; /* INCREASED from 8px */
+  height: 48px; /* Added explicit height for better visibility */
 }
 
-/* Type Answer Section */
+/* Type Answer Section - ENLARGED */
 .type-answer-section {
-  margin: 20px 0;
+  margin: 25px 0; /* INCREASED from 20px */
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px; /* INCREASED from 12px */
 }
 
 .answer-input {
-  padding: 14px 18px;
+  padding: 18px 22px; /* INCREASED from 14px 18px */
   background: #2a2a2a;
   border: 2px solid #444;
   border-radius: 12px;
   color: white;
-  font-size: 1rem;
+  font-size: 1.2rem; /* INCREASED from 1rem */
   transition: all 0.3s ease;
 }
 
@@ -232,8 +233,8 @@
   color: white;
   border: none;
   border-radius: 12px;
-  padding: 14px 24px;
-  font-size: 1rem;
+  padding: 18px 28px; /* INCREASED from 14px 24px */
+  font-size: 1.2rem; /* INCREASED from 1rem */
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -250,20 +251,20 @@
   transform: none;
 }
 
-/* Answer Results */
+/* Answer Results - ENLARGED */
 .answer-results {
-  margin: 20px 0;
+  margin: 25px 0; /* INCREASED from 20px */
 }
 
 .answer-feedback {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 1.2rem;
+  gap: 12px; /* INCREASED from 8px */
+  font-size: 1.4rem; /* INCREASED from 1.2rem */
   font-weight: 600;
-  margin-bottom: 16px;
-  padding: 12px 16px;
-  border-radius: 8px;
+  margin-bottom: 20px; /* INCREASED from 16px */
+  padding: 16px 20px; /* INCREASED from 12px 16px */
+  border-radius: 10px; /* INCREASED from 8px */
 }
 
 .answer-feedback.correct {
@@ -281,14 +282,14 @@
 .answer-comparison {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 20px; /* INCREASED from 16px */
+  margin-bottom: 25px; /* INCREASED from 20px */
 }
 
 .user-answer,
 .correct-answer {
-  padding: 16px;
-  border-radius: 8px;
+  padding: 20px; /* INCREASED from 16px */
+  border-radius: 10px; /* INCREASED from 8px */
   background: #2a2a2a;
   border: 1px solid #444;
 }
@@ -296,26 +297,32 @@
 .user-answer strong,
 .correct-answer strong {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 10px; /* INCREASED from 8px */
   color: #aaa;
-  font-size: 0.9rem;
+  font-size: 1rem; /* INCREASED from 0.9rem */
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-/* Show Answer Button */
+.user-answer div,
+.correct-answer div {
+  font-size: 1.1rem; /* Added explicit font size */
+  line-height: 1.5;
+}
+
+/* Show Answer Button - ENLARGED */
 .show-answer-btn {
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: white;
   border: none;
-  border-radius: 12px;
-  padding: 16px 32px;
-  font-size: 1.1rem;
+  border-radius: 16px; /* INCREASED from 12px */
+  padding: 20px 40px; /* INCREASED from 16px 32px */
+  font-size: 1.3rem; /* INCREASED from 1.1rem */
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   width: 100%;
-  margin: 20px 0;
+  margin: 25px 0; /* INCREASED from 20px */
 }
 
 .show-answer-btn:hover {
@@ -323,23 +330,23 @@
   box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
 }
 
-/* Difficulty Buttons */
+/* Difficulty Buttons - SIGNIFICANTLY ENLARGED */
 .difficulty-buttons {
-  margin-top: 30px;
+  margin-top: 35px; /* INCREASED from 30px */
 }
 
 .interval-preview {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 16px;
-  gap: 8px;
+  margin-bottom: 20px; /* INCREASED from 16px */
+  gap: 12px; /* INCREASED from 8px */
 }
 
 .interval-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px; /* INCREASED from 6px */
   flex: 1;
 }
 
@@ -348,10 +355,12 @@
   cursor: default;
   transform: none;
   box-shadow: none;
+  padding: 16px 18px; /* INCREASED from default */
+  font-size: 1.1rem; /* INCREASED from default */
 }
 
 .interval-text {
-  font-size: 0.8rem;
+  font-size: 0.95rem; /* INCREASED from 0.8rem */
   color: #888;
   font-weight: 500;
 }
@@ -359,7 +368,7 @@
 .button-row {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px; /* INCREASED from 12px */
 }
 
 .again-btn,
@@ -367,15 +376,16 @@
 .good-btn,
 .easy-btn {
   flex: 1;
-  padding: 14px 16px;
+  padding: 18px 20px; /* INCREASED from 14px 16px */
   border: none;
-  border-radius: 10px;
-  font-size: 1rem;
+  border-radius: 12px; /* INCREASED from 10px */
+  font-size: 1.2rem; /* INCREASED from 1rem */
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  min-height: 60px; /* Added minimum height for better touch targets */
 }
 
 .again-btn {
@@ -406,7 +416,7 @@
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
-/* Study Completion */
+/* Study Completion - ENLARGED */
 .study-completion {
   display: flex;
   flex-direction: column;
@@ -414,13 +424,14 @@
   justify-content: center;
   min-height: 400px;
   text-align: center;
-  max-width: 600px;
+  max-width: 700px; /* INCREASED from 600px */
   margin: 0 auto;
+  padding: 40px 20px; /* Added padding */
 }
 
 .completion-icon {
-  font-size: 4rem;
-  margin-bottom: 20px;
+  font-size: 5rem; /* INCREASED from 4rem */
+  margin-bottom: 25px; /* INCREASED from 20px */
   animation: bounce 2s ease-in-out infinite;
 }
 
@@ -437,9 +448,9 @@
 }
 
 .study-completion h2 {
-  font-size: 2rem;
+  font-size: 2.4rem; /* INCREASED from 2rem */
   font-weight: 700;
-  margin: 0 0 16px 0;
+  margin: 0 0 20px 0; /* INCREASED from 16px */
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -448,27 +459,28 @@
 
 .study-completion p {
   color: #aaa;
-  font-size: 1.1rem;
+  font-size: 1.3rem; /* INCREASED from 1.1rem */
   line-height: 1.6;
-  margin: 0 0 30px 0;
+  margin: 0 0 35px 0; /* INCREASED from 30px */
 }
 
 .completion-actions {
   display: flex;
-  gap: 16px;
+  gap: 20px; /* INCREASED from 16px */
   flex-wrap: wrap;
   justify-content: center;
 }
 
 .back-button,
 .restart-button {
-  padding: 14px 28px;
+  padding: 18px 32px; /* INCREASED from 14px 28px */
   border: none;
   border-radius: 12px;
-  font-size: 1rem;
+  font-size: 1.2rem; /* INCREASED from 1rem */
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  min-width: 160px; /* Added minimum width */
 }
 
 .back-button {
@@ -492,7 +504,7 @@
   box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
 }
 
-/* Completion Popup */
+/* Completion Popup - ENLARGED */
 .completion-popup {
   position: fixed;
   top: 50%;
@@ -500,10 +512,10 @@
   transform: translate(-50%, -50%);
   background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
   color: white;
-  padding: 20px 32px;
-  border-radius: 12px;
+  padding: 25px 40px; /* INCREASED from 20px 32px */
+  border-radius: 16px; /* INCREASED from 12px */
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: 1.3rem; /* INCREASED from 1.1rem */
   z-index: 1000;
   animation: completionFade 2s ease-in-out;
   box-shadow: 0 8px 32px rgba(40, 167, 69, 0.4);
@@ -533,25 +545,25 @@
 .completion-popup-content {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px; /* INCREASED from 12px */
 }
 
 .completion-popup-icon {
-  font-size: 1.5rem;
+  font-size: 1.8rem; /* INCREASED from 1.5rem */
 }
 
 .completion-popup-text h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.3rem; /* INCREASED from 1.1rem */
 }
 
 .completion-popup-text p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 1.1rem; /* INCREASED from 0.9rem */
   opacity: 0.9;
 }
 
-/* Responsive Design */
+/* Responsive Design - IMPROVED for better mobile experience */
 @media (max-width: 768px) {
   .study-container {
     padding: 90px 15px 30px 15px;
@@ -560,22 +572,22 @@
   .study-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: 20px; /* INCREASED from 16px */
   }
   
   .study-info h1 {
-    font-size: 1.8rem;
+    font-size: 2.2rem; /* INCREASED from 1.8rem */
   }
   
   .study-stats-header {
-    gap: 16px;
+    gap: 20px; /* INCREASED from 16px */
     align-self: stretch;
     justify-content: space-around;
   }
   
   .study-mode-with-reset {
     flex-direction: column;
-    gap: 12px;
+    gap: 16px; /* INCREASED from 12px */
     width: 100%;
   }
   
@@ -583,37 +595,39 @@
   .reset-session-mode-btn {
     width: 100%;
     justify-content: center;
-    padding: 14px 20px;
+    padding: 18px 24px; /* INCREASED from 14px 20px */
+    font-size: 1.1rem; /* Maintained larger size */
   }
   
   .flashcard-study-box {
-    padding: 20px;
+    padding: 25px; /* INCREASED from 20px */
     margin: 0 10px;
   }
   
   .flashcard-front,
   .flashcard-back {
-    min-height: 150px;
-    padding: 16px;
-    font-size: 1rem;
+    min-height: 200px; /* INCREASED from 150px */
+    padding: 20px; /* INCREASED from 16px */
+    font-size: 1.1rem; /* INCREASED from 1rem */
   }
   
   .answer-comparison {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 16px; /* INCREASED from 12px */
   }
   
   .button-row {
     flex-direction: column;
-    gap: 8px;
+    gap: 12px; /* INCREASED from 8px */
   }
   
   .again-btn,
   .hard-btn,
   .good-btn,
   .easy-btn {
-    padding: 12px 16px;
-    font-size: 0.9rem;
+    padding: 16px 20px; /* INCREASED from 12px 16px */
+    font-size: 1.1rem; /* INCREASED from 0.9rem */
+    min-height: 56px; /* INCREASED from default */
   }
   
   .interval-preview {
@@ -628,7 +642,8 @@
   .back-button,
   .restart-button {
     width: 100%;
-    max-width: 300px;
+    max-width: 350px; /* INCREASED from 300px */
+    padding: 16px 24px; /* INCREASED from default */
   }
 }
 
@@ -638,73 +653,87 @@
   }
   
   .study-info h1 {
-    font-size: 1.6rem;
+    font-size: 2rem; /* INCREASED from 1.6rem */
   }
   
   .stat-item .count {
-    font-size: 1.3rem;
+    font-size: 1.6rem; /* INCREASED from 1.3rem */
   }
   
   .stat-item .label {
-    font-size: 0.75rem;
+    font-size: 0.9rem; /* INCREASED from 0.75rem */
   }
   
   .flashcard-study-box {
-    padding: 16px;
+    padding: 20px; /* INCREASED from 16px */
     margin: 0 5px;
   }
   
   .flashcard-front,
   .flashcard-back {
-    min-height: 120px;
-    padding: 12px;
-    font-size: 0.95rem;
+    min-height: 180px; /* INCREASED from 120px */
+    padding: 16px; /* INCREASED from 12px */
+    font-size: 1.05rem; /* INCREASED from 0.95rem */
   }
   
   .show-answer-btn {
-    padding: 14px 24px;
-    font-size: 1rem;
+    padding: 18px 28px; /* INCREASED from 14px 24px */
+    font-size: 1.2rem; /* INCREASED from 1rem */
   }
   
   .study-completion h2 {
-    font-size: 1.6rem;
+    font-size: 1.9rem; /* INCREASED from 1.6rem */
   }
   
   .study-completion p {
-    font-size: 1rem;
+    font-size: 1.1rem; /* INCREASED from 1rem */
+  }
+  
+  .answer-input {
+    padding: 16px 20px; /* INCREASED from default */
+    font-size: 1.1rem; /* INCREASED from default */
+  }
+  
+  .submit-answer-btn {
+    padding: 16px 24px; /* INCREASED from default */
+    font-size: 1.1rem; /* INCREASED from default */
   }
 }
 
-/* Cloze Deletion Styles */
+/* Cloze Deletion Styles - ENLARGED */
 .cloze-revealed-active {
   background: rgba(79, 172, 254, 0.3);
   color: #4facfe;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 4px 8px; /* INCREASED from 2px 6px */
+  border-radius: 6px; /* INCREASED from 4px */
   font-weight: 600;
+  font-size: 1.1em; /* Added relative size increase */
 }
 
 .cloze-revealed-inactive {
   background: rgba(255, 255, 255, 0.1);
   color: #ccc;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 4px 8px; /* INCREASED from 2px 6px */
+  border-radius: 6px; /* INCREASED from 4px */
+  font-size: 1.05em; /* Added relative size increase */
 }
 
 .cloze-question {
   background: rgba(255, 193, 7, 0.3);
   color: #ffc107;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 4px 10px; /* INCREASED from 2px 8px */
+  border-radius: 6px; /* INCREASED from 4px */
   font-weight: 600;
   border: 1px solid rgba(255, 193, 7, 0.5);
+  font-size: 1.1em; /* Added relative size increase */
 }
 
 .cloze-other {
   color: #aaa;
+  font-size: 1.05em; /* Added relative size increase */
 }
 
-/* Image Occlusion Styles */
+/* Image Occlusion Styles - ENLARGED */
 .image-occlusion-card {
   position: relative;
   display: inline-block;
@@ -714,8 +743,10 @@
 .occlusion-image {
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-radius: 10px; /* INCREASED from 8px */
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); /* Enhanced shadow */
+  min-height: 300px; /* Added minimum height */
+  object-fit: contain;
 }
 
 .occlusion-overlay {
@@ -735,16 +766,18 @@
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  border-radius: 4px;
-  font-size: 14px;
-  border: 2px solid;
+  border-radius: 6px; /* INCREASED from 4px */
+  font-size: 16px; /* INCREASED from 14px */
+  border: 3px solid; /* INCREASED from 2px */
+  min-width: 24px; /* INCREASED from default */
+  min-height: 24px; /* INCREASED from default */
 }
 
 .occlusion-question-active {
   background: #4facfe;
   border-color: #4facfe;
   color: white;
-  box-shadow: 0 0 8px rgba(79, 172, 254, 0.7);
+  box-shadow: 0 0 12px rgba(79, 172, 254, 0.7); /* Enhanced shadow */
 }
 
 .occlusion-blocked {
@@ -755,15 +788,11 @@
 
 .occlusion-answer-revealed {
   background: transparent;
-  border: 3px solid #28a745;
-  box-shadow: 0 0 12px rgba(40, 167, 69, 0.6);
+  border: 4px solid #28a745; /* INCREASED from 3px */
+  box-shadow: 0 0 16px rgba(40, 167, 69, 0.6); /* Enhanced shadow */
 }
 
-/* REMOVED: Animation that was causing flashing on scroll */
-
-/* REMOVED: Green box styling around entire card - not needed */
-
-/* Accessibility */
+/* Accessibility - IMPROVED */
 @media (prefers-reduced-motion: reduce) {
   .completion-icon,
   .completion-popup {
@@ -781,22 +810,26 @@
   }
 }
 
-/* High contrast mode */
+/* High contrast mode - IMPROVED */
 @media (prefers-contrast: high) {
   .flashcard-front,
   .flashcard-back {
-    border-width: 2px;
+    border-width: 3px; /* INCREASED from 2px */
   }
   
   .again-btn,
   .hard-btn,
   .good-btn,
   .easy-btn {
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    border: 3px solid rgba(255, 255, 255, 0.3); /* INCREASED from 2px */
+  }
+  
+  .answer-input {
+    border-width: 3px; /* INCREASED from 2px */
   }
 }
 
-/* Focus states for accessibility */
+/* Focus states for accessibility - IMPROVED */
 .again-btn:focus,
 .hard-btn:focus,
 .good-btn:focus,
@@ -804,12 +837,33 @@
 .show-answer-btn:focus,
 .submit-answer-btn:focus,
 .reset-session-mode-btn:focus {
-  outline: 2px solid #4facfe;
-  outline-offset: 2px;
+  outline: 3px solid #4facfe; /* INCREASED from 2px */
+  outline-offset: 3px; /* INCREASED from 2px */
 }
 
 .answer-input:focus {
   outline: none;
   border-color: #4facfe;
-  box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+  box-shadow: 0 0 0 4px rgba(79, 172, 254, 0.15); /* Enhanced focus shadow */
+}
+
+/* Enhanced typography for better readability */
+.flashcard-front *,
+.flashcard-back * {
+  line-height: 1.6 !important;
+}
+
+/* Better button spacing and touch targets */
+@media (hover: none) and (pointer: coarse) {
+  /* Touch devices - ensure all buttons are easily tappable */
+  .again-btn,
+  .hard-btn,
+  .good-btn,
+  .easy-btn,
+  .show-answer-btn,
+  .submit-answer-btn {
+    min-height: 60px;
+    font-size: 1.2rem;
+    padding: 18px 20px;
+  }
 }
