@@ -1,4 +1,4 @@
-// src/components/Set.jsx - COMPLETE WITH LIMITS FUNCTIONALITY
+// src/components/Set.jsx - COMPLETE WITH ENHANCED LIMITS FUNCTIONALITY
 import React, { useEffect, useState, useContext, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
@@ -495,14 +495,14 @@ export default function SetPage() {
           folders: { 
             canCreate: true, 
             currentCount: 0, 
-            limit: 25, 
+            limit: 2, 
             percentage: 0,
             message: null 
           },
           decks: { 
             canCreate: true, 
             currentCount: 0, 
-            limit: 100, 
+            limit: 5, 
             percentage: 0,
             message: null 
           },
@@ -771,10 +771,7 @@ export default function SetPage() {
                 <h1>My Learning Library</h1>
                 <p>Organize and manage your flashcard collections</p>
                 
-                {/* NEW: Limits Overview Display */}
-                {/* TEMPORARY DEBUG - Remove this after checking */}
-                {console.log('Rendering limits overview, limitsOverview:', limitsOverview)}
-                
+                {/* NEW: Enhanced Limits Overview Display */}
                 {limitsOverview && limitsOverview.folders && limitsOverview.decks && (
                   <div className="limits-overview">
                     <div className="limits-row">
@@ -782,7 +779,7 @@ export default function SetPage() {
                         <div className="limit-icon">📁</div>
                         <div className="limit-info">
                           <span className="limit-label">Folders</span>
-                          <span className="limit-count">{limitsOverview.folders.currentCount || 0}/{limitsOverview.folders.limit || 25}</span>
+                          <span className="limit-count">{limitsOverview.folders.currentCount || 0}/{limitsOverview.folders.limit || 2}</span>
                         </div>
                         <div className="limit-bar">
                           <div 
@@ -796,7 +793,7 @@ export default function SetPage() {
                         <div className="limit-icon">📚</div>
                         <div className="limit-info">
                           <span className="limit-label">Decks</span>
-                          <span className="limit-count">{limitsOverview.decks.currentCount || 0}/{limitsOverview.decks.limit || 100}</span>
+                          <span className="limit-count">{limitsOverview.decks.currentCount || 0}/{limitsOverview.decks.limit || 5}</span>
                         </div>
                         <div className="limit-bar">
                           <div 
@@ -810,13 +807,13 @@ export default function SetPage() {
                     {limitsOverview.hasWarnings && (
                       <div className="limits-warnings">
                         {limitsOverview.folders && limitsOverview.folders.message && (
-                          <div className="limit-warning">
-                            ⚠️ {limitsOverview.folders.message}
+                          <div className="limit-warning" role="alert">
+                            {limitsOverview.folders.message}
                           </div>
                         )}
                         {limitsOverview.decks && limitsOverview.decks.message && (
-                          <div className="limit-warning">
-                            ⚠️ {limitsOverview.decks.message}
+                          <div className="limit-warning" role="alert">
+                            {limitsOverview.decks.message}
                           </div>
                         )}
                       </div>

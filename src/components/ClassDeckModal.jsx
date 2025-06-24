@@ -4,7 +4,7 @@ import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
 import { useNavigate } from 'react-router-dom';
 import { validateLimits, LIMIT_MESSAGES } from '../utils/LimitValidation';
-import '../styles/ClassDeckModal.css';
+import '../styles/ClassDeskModal.css'
 
 const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
   const { user } = useContext(UserAuthContext);
@@ -160,8 +160,8 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
   // Don't render if deck limits are exceeded
   if (limitInfo.decks && !limitInfo.decks.canCreate) {
     return (
-      <div className="modal-overlay">
-        <div className="modal-content limit-reached-modal">
+      <div className="class-deck-modal-overlay">
+        <div className="class-deck-modal-content">
           <div className="modal-header">
             <h2>⚠️ Deck Limit Reached</h2>
           </div>
@@ -185,7 +185,7 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
+      <div className="class-deck-modal-content">
         <div className="modal-header">
           <h2>📚 Create New Deck</h2>
           {isAddingToFolder && selectedClass && (

@@ -1,15 +1,15 @@
-// src/utils/LimitValidation.js - LIMIT VALIDATION UTILITY
+// src/utils/LimitValidation.js - LIMIT VALIDATION UTILITY - UPDATED LIMITS
 import { supabase } from '../supabase';
 
-// User limits configuration
+// User limits configuration - UPDATED LIMITS
 export const USER_LIMITS = {
-  FOLDERS: 25,
-  DECKS: 100,
-  CARDS_PER_DECK: 50,
-  IMPORTED_CARDS: 50 // Maximum cards to import from a file
+  FOLDERS: 2,        // Changed from 25 to 2
+  DECKS: 5,          // Changed from 100 to 5
+  CARDS_PER_DECK: 30, // Changed from 50 to 30
+  IMPORTED_CARDS: 30  // Changed from 50 to 30 (matching CARDS_PER_DECK)
 };
 
-// Limit warning messages
+// Limit warning messages - UPDATED
 export const LIMIT_MESSAGES = {
   FOLDER_LIMIT_REACHED: `You've reached the maximum of ${USER_LIMITS.FOLDERS} folders. Please delete some folders to create new ones.`,
   DECK_LIMIT_REACHED: `You've reached the maximum of ${USER_LIMITS.DECKS} decks. Please delete some decks to create new ones.`,
@@ -52,7 +52,7 @@ export const validateLimits = {
       let message = null;
       if (!canCreate) {
         message = LIMIT_MESSAGES.FOLDER_LIMIT_REACHED;
-      } else if (remaining <= 5) {
+      } else if (remaining <= 1) { // Changed from 5 to 1 since limit is only 2
         message = createLimitWarningMessage('folder', remaining);
       }
 
@@ -90,7 +90,7 @@ export const validateLimits = {
       let message = null;
       if (!canCreate) {
         message = LIMIT_MESSAGES.DECK_LIMIT_REACHED;
-      } else if (remaining <= 10) {
+      } else if (remaining <= 2) { // Changed from 10 to 2 since limit is only 5
         message = createLimitWarningMessage('deck', remaining);
       }
 
@@ -128,7 +128,7 @@ export const validateLimits = {
       let message = null;
       if (!canAdd) {
         message = LIMIT_MESSAGES.CARD_LIMIT_REACHED;
-      } else if (availableSlots <= 5) {
+      } else if (availableSlots <= 5) { // Keep at 5 since 30 card limit is reasonable for this warning threshold
         message = createLimitWarningMessage('card', availableSlots);
       }
 
