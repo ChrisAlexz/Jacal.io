@@ -1,4 +1,4 @@
-// src/components/ImportModal.jsx - UPDATED WITH CLEAR EXPORT INSTRUCTIONS
+// src/components/ImportModal.jsx - FIXED: Import button shows total cards, not preview count
 import React, { useState, useContext } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
@@ -82,13 +82,20 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
       setParseProgress(0);
       let preview;
       
-      // UPDATED: Only use quizlet parser for .txt/.csv files
+      // FIXED: Parse the entire file to get accurate total count, but only show 5 cards in preview
       try {
-        preview = await parseQuizletFile(selectedFile, { 
-          previewOnly: true, 
-          maxCards: 5,
+        const fullParse = await parseQuizletFile(selectedFile, { 
+          previewOnly: false, // Parse the full file to get accurate count
           onProgress: setParseProgress
         });
+        
+        // Create preview object with accurate total count but limited preview cards
+        preview = {
+          totalCards: fullParse.cards?.length || 0,
+          preview: fullParse.cards?.slice(0, 5) || [], // Only show first 5 for preview
+          cards: fullParse.cards, // Keep all cards for import
+          deckName: fullParse.deckName
+        };
       } catch (quizletError) {
         console.error('Text file preview failed:', quizletError);
         setError(`File parsing failed: ${quizletError.message}`);
@@ -141,11 +148,21 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
       console.log('✅ Validation passed, starting full parse...');
       setParseProgress(10);
 
-      // Parse the full file - UPDATED: Only use quizlet parser
+      // Parse the full file - FIXED: Use the already parsed data from preview
       let parsedData;
-      parsedData = await parseQuizletFile(file, {
-        onProgress: (progress) => setParseProgress(10 + (progress * 0.3)) // 10-40%
-      });
+      if (importPreview && importPreview.cards && importPreview.cards.length > 0) {
+        // Use the already parsed data from the preview
+        parsedData = {
+          cards: importPreview.cards,
+          deckName: importPreview.deckName
+        };
+        console.log(`📊 Using cached parsed data: ${parsedData.cards.length} cards`);
+      } else {
+        // Fallback: Parse again if no cached data
+        parsedData = await parseQuizletFile(file, {
+          onProgress: (progress) => setParseProgress(10 + (progress * 0.3)) // 10-40%
+        });
+      }
 
       if (!parsedData.cards || parsedData.cards.length === 0) {
         throw new Error('No cards found in the file after full parsing.');
@@ -508,7 +525,8 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
               ) : (
                 <>
                   <span className="btn-icon">📁</span>
-                  Import {importPreview ? `${importPreview.totalCards} Cards` : 'File'}
+                  {/* FIXED: Use totalCards instead of preview count */}
+                  Import {importPreview?.totalCards ? `${importPreview.totalCards} Cards` : 'Cards'}
                 </>
               )}
             </button>

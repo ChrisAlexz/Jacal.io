@@ -1,5 +1,5 @@
 // src/components/FlashcardStudyPage.jsx - FIXED: Removed duplicate completion popups
-import React, { useState, useEffect, useContext, useCallback } from "react";
+import React, { useState, useEffect, useContext, useCallback, useLayoutEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import AudioPlayer from "./AudioPlayer";
@@ -65,7 +65,6 @@ export default function FlashcardStudyPage() {
   const [deckType, setDeckType] = useState("Basic");
   const [setTitle, setSetTitle] = useState("");
   const [studyStats, setStudyStats] = useState(null);
-  // REMOVED: showCompletionPopup state - this was causing the duplicate
   const [userAnswer, setUserAnswer] = useState('');
   const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
   const [isAnswerCorrect, setIsAnswerCorrect] = useState(null);
@@ -92,6 +91,7 @@ export default function FlashcardStudyPage() {
   
   // CRITICAL FIX: Add a flag to track if we've restored saved progress
   const [hasRestoredProgress, setHasRestoredProgress] = useState(false);
+  const [cardKey, setCardKey] = useState(0); // Force re-render key
 
   useEffect(() => {
     if (id && user?.id) {
@@ -482,19 +482,21 @@ export default function FlashcardStudyPage() {
         // Save progress immediately with the fresh mastered array
         await saveStudyProgress(newSessionCards, Math.min(currentIndex, newSessionCards.length - 1), masteredArray);
         
+        // FIXED: Only handle session completion when ALL cards in current session are done
         if (newSessionCards.length === 0) {
-          await clearStudyProgress();
-          
+          // Check if this is spaced learning and we have more batches
           if (spacedLearningEnabled && currentBatchIndex + 1 < spacedLearningBatches.length) {
-            // ONLY show batch completion modal - NO additional popup
+            // This is just one session complete, NOT final completion
+            // Show batch completion modal - user can choose to continue or stop
             setBatchCompletionModal({
               completed: currentBatchIndex + 1,
               total: spacedLearningBatches.length
             });
+            // Don't clear progress yet - user might continue to next session
           } else {
-            // REMOVED: showCompletionPopup state and timeout
-            // Just navigate or show final completion directly
-            // No temporary popup needed
+            // This is the FINAL completion - all sessions done
+            await clearStudyProgress();
+            // Let the completion screen render naturally (don't return early)
           }
           return;
         }
@@ -557,6 +559,12 @@ export default function FlashcardStudyPage() {
     await saveStudyProgress(spacedLearningBatches[nextBatchIndex], 0, completedCardIds);
   };
 
+  // Handle "Back to Sets" from batch completion modal
+  const handleBackToSetsFromModal = async () => {
+    await clearStudyProgress();
+    navigate(-1);
+  };
+
   // SIMPLE: Batch completion modal
   if (batchCompletionModal) {
     const isLast = batchCompletionModal.completed >= batchCompletionModal.total;
@@ -609,7 +617,7 @@ export default function FlashcardStudyPage() {
                 fontSize: '1rem',
                 cursor: 'pointer'
               }}
-              onClick={() => navigate(-1)}
+              onClick={handleBackToSetsFromModal}
             >
               Back to Sets
             </button>
@@ -663,14 +671,28 @@ export default function FlashcardStudyPage() {
     );
   }
 
-  // Completion state
+  // FIXED: Final completion state - only show when ALL batches are complete
   if (sessionCards.length === 0 && allCards.length > 0) {
+    // Check if we're in spaced learning mode and still have batches remaining
+    if (spacedLearningEnabled && currentBatchIndex + 1 < spacedLearningBatches.length) {
+      // Don't show completion screen yet - there are still more sessions
+      return (
+        <div className="study-container">
+          <div className="loading-study">
+            <div className="loading-spinner"></div>
+            <p>Preparing next session...</p>
+          </div>
+        </div>
+      );
+    }
+    
+    // Only show final completion when truly ALL sessions are done
     return (
       <div className="study-container">
         <div className="study-completion">
           <div className="completion-icon">🎉</div>
           <h2>Perfect! All Cards Mastered!</h2>
-          <p>Congratulations! You've marked every single card as "Easy" - you've truly mastered this deck! All {allCards.length} cards have been successfully completed. You mastered {masteredCardIds.size} cards in this session!</p>
+          <p>Congratulations! You've completed ALL sessions and marked every single card as "Easy" - you've truly mastered this entire deck! All {allCards.length} cards across {spacedLearningEnabled ? spacedLearningBatches.length : 1} session{spacedLearningEnabled && spacedLearningBatches.length > 1 ? 's' : ''} have been successfully completed. You mastered {masteredCardIds.size} cards total!</p>
          
           <div className="completion-actions">
             <button 
@@ -723,8 +745,6 @@ export default function FlashcardStudyPage() {
 
   return (
     <div className="study-container">
-      {/* REMOVED: showCompletionPopup conditional render - no more duplicate popup */}
-
       <div className="study-header">
         <div className="study-info">
           <h1>{setTitle}</h1>
