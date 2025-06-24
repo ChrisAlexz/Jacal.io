@@ -1,4 +1,4 @@
-// src/components/FlashcardStudyPage.jsx - FIXED: Removed duplicate completion popups
+// src/components/FlashcardStudyPage.jsx - FIXED: Prevents next card back from flashing
 import React, { useState, useEffect, useContext, useCallback, useLayoutEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
@@ -429,6 +429,12 @@ export default function FlashcardStudyPage() {
       return;
     }
     
+    // CRITICAL FIX: Reset UI state IMMEDIATELY to prevent next card back from showing
+    setShowBack(false);
+    setShowCorrectAnswer(false);
+    setIsAnswerCorrect(null);
+    setUserAnswer('');
+    
     const currentCardData = sessionCards[currentIndex];
     const now = new Date().toISOString();
     const currentUserId = user.id;
@@ -531,11 +537,7 @@ export default function FlashcardStudyPage() {
       );
       setAllCards(newAllCards);
 
-      // Reset UI state
-      setShowBack(false);
-      setShowCorrectAnswer(false);
-      setIsAnswerCorrect(null);
-      setUserAnswer('');
+      // UI state was already reset at the beginning of this function
 
     } catch (error) {
       console.error('Error in handleDifficultyChoice');

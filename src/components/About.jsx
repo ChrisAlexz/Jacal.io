@@ -1,9 +1,24 @@
-import React from 'react';
+import React, { useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from './Layout';
+import UserAuthContext from './context/UserAuthContext';
 import '../styles/About.css';
-import { MdSchool, MdFolderSpecial, MdBrush, MdBarChart, MdEditNote, MdDevices, MdRecordVoiceOver, MdImage, MdSpeed, MdMemory } from 'react-icons/md';
+import { MdSchool, MdFolderSpecial, MdEditNote, MdDevices, MdRecordVoiceOver } from 'react-icons/md';
 
 export default function About() {
+  const navigate = useNavigate();
+  const { isLoggedIn } = useContext(UserAuthContext);
+
+  const handleGetStarted = () => {
+    if (isLoggedIn) {
+      // If user is already logged in, take them to the sets page or dashboard
+      navigate('/set');
+    } else {
+      // If not logged in, take them to register
+      navigate('/register');
+    }
+  };
+
   return (
     <Layout>
       <div className="about-container">
@@ -52,19 +67,6 @@ export default function About() {
             </div>
 
             <div className="feature-card">
-              <div className="feature-icon design-icon">
-                <MdBrush />
-              </div>
-              <div className="feature-content">
-                <h3>Rich Text Formatting</h3>
-                <p>
-                  Create beautiful flashcards with advanced formatting including bold, italics, colors, 
-                  superscript, subscript, and structured text. Perfect for detailed notes, definitions, and organized content.
-                </p>
-              </div>
-            </div>
-
-            <div className="feature-card">
               <div className="feature-icon cloze-icon">
                 <MdEditNote />
               </div>
@@ -91,45 +93,6 @@ export default function About() {
             </div>
 
             <div className="feature-card">
-              <div className="feature-icon progress-icon">
-                <MdImage />
-              </div>
-              <div className="feature-content">
-                <h3>Image Occlusion</h3>
-                <p>
-                  Upload images and create interactive occlusion cards by covering parts of diagrams, maps, or charts. 
-                  Ideal for anatomy, geography, technical diagrams, and visual memorization tasks.
-                </p>
-              </div>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon organize-icon">
-                <MdSpeed />
-              </div>
-              <div className="feature-content">
-                <h3>Speed Focus Mode</h3>
-                <p>
-                  Test your knowledge under time pressure with our Speed Focus mode. Quick-fire questions 
-                  help identify weak areas and build confidence for exams and time-pressured scenarios.
-                </p>
-              </div>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon mobile-icon">
-                <MdBarChart />
-              </div>
-              <div className="feature-content">
-                <h3>Study Analytics</h3>
-                <p>
-                  Track your learning journey with detailed statistics, study streaks, and progress tracking. 
-                  Monitor your performance and maintain consistent study habits with comprehensive insights.
-                </p>
-              </div>
-            </div>
-
-            <div className="feature-card">
               <div className="feature-icon organize-icon">
                 <MdFolderSpecial />
               </div>
@@ -138,19 +101,6 @@ export default function About() {
                 <p>
                   Create unlimited sets organized by classes or subjects. Import decks from Anki and Quizlet, 
                   and keep your study materials perfectly organized and easily accessible across all your devices.
-                </p>
-              </div>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon mobile-icon">
-                <MdDevices />
-              </div>
-              <div className="feature-content">
-                <h3>Cross-Device Access</h3>
-                <p>
-                  Access your flashcards from any device with responsive design that adapts to desktop, 
-                  tablet, and mobile screens. Your study progress syncs across all devices automatically.
                 </p>
               </div>
             </div>
@@ -305,8 +255,6 @@ export default function About() {
           </div>
         </div>
 
-
-
         {/* CTA Section */}
         <div className="cta-section">
           <div className="cta-content">
@@ -316,8 +264,8 @@ export default function About() {
               the power of intelligent flashcards with multimedia support and advanced study modes.
             </p>
             <div className="cta-buttons">
-              <button className="cta-primary">
-                Get Started Free
+              <button className="cta-primary" onClick={handleGetStarted}>
+                {isLoggedIn ? 'Go to Dashboard' : 'Get Started Free'}
               </button>
               <button className="cta-secondary">
                 View Demo
