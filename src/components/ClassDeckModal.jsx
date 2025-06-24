@@ -1,8 +1,9 @@
-// src/components/ClassDeckModal.jsx - FIXED VERSION (keeping original functionality)
-import React, { useState, useEffect, useContext } from 'react';
+// src/components/ClassDeckModal.jsx - WITH DECK LIMITS
+import React, { useState, useContext, useEffect } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
 import { useNavigate } from 'react-router-dom';
+import { validateLimits, LIMIT_MESSAGES } from '../utils/limitValidation';
 import '../styles/ClassDeckModal.css';
 
 const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
@@ -15,10 +16,7 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
   const [deckName, setDeckName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Determine modal type and content
-  const isAddingToDeck = Boolean(preselectedClassId);
-  const selectedClass = classes.find(cls => cls.id === preselectedClassId);
+  const [limitInfo, setLimitInfo] = useState({ folders: null, decks: null });
 
   // Fetch existing classes for the user
   useEffect(() => {
@@ -36,8 +34,26 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
     fetchClasses();
   }, [user]);
 
-  // If the user wants to create a deck for an existing class
-  // that was "preselected", auto-select it
+  // Check limits when component mounts
+  useEffect(() => {
+    if (!user) return;
+    const checkLimits = async () => {
+      const [folderCheck, deckCheck] = await Promise.all([
+        validateLimits.canCreateFolder(user.id),
+        validateLimits.canCreateDeck(user.id)
+      ]);
+      
+      setLimitInfo({ folders: folderCheck, decks: deckCheck });
+      
+      // If deck limit is reached, show error immediately
+      if (!deckCheck.canCreate) {
+        setError(deckCheck.message || LIMIT_MESSAGES.DECK_LIMIT_REACHED);
+      }
+    };
+    checkLimits();
+  }, [user]);
+
+  // Auto-select preselected class
   useEffect(() => {
     if (preselectedClassId) {
       setSelectedOption(preselectedClassId);
@@ -57,92 +73,173 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
         throw new Error('Deck name is required.');
       }
 
-      // If "Create New Set" is selected, we also create a new class row
+      // Check deck limits again before creating
+      const deckLimitCheck = await validateLimits.canCreateDeck(user.id);
+      if (!deckLimitCheck.canCreate) {
+        setError(deckLimitCheck.message || LIMIT_MESSAGES.DECK_LIMIT_REACHED);
+        setLoading(false);
+        return;
+      }
+
       let classId;
       if (selectedOption === 'new') {
         if (!className.trim()) {
-          throw new Error('Set name is required when creating a new set.');
+          throw new Error('Folder name is required when creating a new folder.');
         }
+        
+        // Check folder limits before creating
+        const folderLimitCheck = await validateLimits.canCreateFolder(user.id);
+        if (!folderLimitCheck.canCreate) {
+          setError(folderLimitCheck.message || LIMIT_MESSAGES.FOLDER_LIMIT_REACHED);
+          setLoading(false);
+          return;
+        }
+        
+        console.log('🏗️ Creating new class:', className);
         const { data: classData, error: classError } = await supabase
           .from('classes')
-          .insert([{ name: className, user_id: user.id }])
+          .insert([{ name: className.trim(), user_id: user.id }])
           .select()
           .single();
-        if (classError) throw classError;
+          
+        if (classError) {
+          console.error('❌ Error creating class:', classError);
+          throw new Error(`Failed to create folder: ${classError.message}`);
+        }
+        
         classId = classData.id;
+        console.log('✅ Class created with ID:', classId);
       } else {
         classId = selectedOption;
+        console.log('✅ Using existing class ID:', classId);
       }
 
-      // Create the new flashcard set with the chosen class_id
+      console.log('🃏 Creating flashcard set...');
       const { data: deckData, error: deckError } = await supabase
         .from('flashcard_sets')
         .insert([
           {
-            title: deckName,
+            title: deckName.trim(),
             class_id: classId,
             user_id: user.id,
-            type: 'Basic'
+            type: 'Mixed'
           }
         ])
         .select()
         .single();
 
-      if (deckError) throw deckError;
+      if (deckError) {
+        console.error('❌ Error creating deck:', deckError);
+        throw new Error(`Failed to create flashcard set: ${deckError.message}`);
+      }
 
-      // Inform parent about success
-      onSuccess && onSuccess(deckData.id);
+      const setId = deckData.id;
+      console.log('✅ Flashcard set created with ID:', setId);
 
-      // Close modal
       onClose();
+      
+      if (onSuccess) {
+        onSuccess(setId);
+      }
 
-      // Navigate to the edit flashcards page
-      navigate(`/flashcards/${deckData.id}`);
+      setTimeout(() => {
+        navigate(`/flashcards/${setId}`);
+      }, 300);
 
     } catch (err) {
+      console.error('💥 Creation failed:', err);
       setError(err.message);
-      console.error('Error creating deck:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const getModalTitle = () => {
-    if (isAddingToDeck) {
-      return 'Add New Deck';
-    } else {
-      return selectedOption === 'new' ? 'Create New Set' : 'Create New Deck';
-    }
-  };
+  const isAddingToFolder = Boolean(preselectedClassId);
+  const selectedClass = classes.find(cls => cls.id === preselectedClassId);
+
+  // Don't render if deck limits are exceeded
+  if (limitInfo.decks && !limitInfo.decks.canCreate) {
+    return (
+      <div className="modal-overlay">
+        <div className="modal-content limit-reached-modal">
+          <div className="modal-header">
+            <h2>⚠️ Deck Limit Reached</h2>
+          </div>
+          <div className="modal-body">
+            <p>{limitInfo.decks.message || LIMIT_MESSAGES.DECK_LIMIT_REACHED}</p>
+            <p>Please delete an existing deck before creating a new one.</p>
+          </div>
+          <div className="modal-footer">
+            <button 
+              type="button" 
+              onClick={onClose}
+              className="modal-btn primary"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="modal-overlay">
-      <div className="class-deck-modal">
+      <div className="modal-content">
         <div className="modal-header">
-          <h2>{getModalTitle()}</h2>
-          {isAddingToDeck && selectedClass && (
+          <h2>📚 Create New Deck</h2>
+          {isAddingToFolder && selectedClass && (
             <p className="modal-subtitle">Adding to "{selectedClass.name}"</p>
           )}
         </div>
 
+        {/* Limit Information */}
+        {limitInfo.decks && (
+          <div className="limit-info">
+            <div className="limit-item">
+              <span className="limit-label">Decks:</span>
+              <span className="limit-count">
+                {limitInfo.decks.currentCount}/{limitInfo.decks.limit} used
+              </span>
+              <span className="limit-remaining">
+                ({limitInfo.decks.limit - limitInfo.decks.currentCount} remaining)
+              </span>
+            </div>
+            {selectedOption === 'new' && limitInfo.folders && (
+              <div className="limit-item">
+                <span className="limit-label">Folders:</span>
+                <span className="limit-count">
+                  {limitInfo.folders.currentCount}/{limitInfo.folders.limit} used
+                </span>
+                <span className="limit-remaining">
+                  ({limitInfo.folders.limit - limitInfo.folders.currentCount} remaining)
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         {error && (
           <div className="error-message">
             <span className="error-icon">⚠️</span>
-            {error}
+            <div className="error-content">
+              <div className="error-text">{error}</div>
+            </div>
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          {!isAddingToDeck && (
+          {/* Folder Selection */}
+          {!isAddingToFolder && (
             <div className="form-group">
-              <label>Set</label>
+              <label>Folder</label>
               <div className="select-container">
                 <select
                   value={selectedOption}
                   onChange={(e) => setSelectedOption(e.target.value)}
                   disabled={loading}
                 >
-                  <option value="new">Create New Set</option>
+                  <option value="new">Create New Folder</option>
                   {classes.map((cls) => (
                     <option key={cls.id} value={cls.id}>
                       {cls.name}
@@ -150,29 +247,37 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
                   ))}
                 </select>
               </div>
+              {selectedOption === 'new' && limitInfo.folders && !limitInfo.folders.canCreate && (
+                <div className="field-warning">
+                  ⚠️ {limitInfo.folders.message}
+                </div>
+              )}
             </div>
           )}
 
-          {(selectedOption === 'new' && !isAddingToDeck) && (
+          {/* Folder Name (if creating new) */}
+          {(selectedOption === 'new' && !isAddingToFolder) && (
             <div className="form-group">
-              <label>Set Name</label>
+              <label>Folder Name</label>
               <input
                 type="text"
                 value={className}
                 onChange={(e) => setClassName(e.target.value)}
-                placeholder="e.g., Spanish Vocabulary, Biology Chapter 1"
-                disabled={loading}
+                placeholder="e.g., Spanish Class, Biology"
+                disabled={loading || (limitInfo.folders && !limitInfo.folders.canCreate)}
+                required
               />
             </div>
           )}
 
+          {/* Deck Name */}
           <div className="form-group">
             <label>Deck Name</label>
             <input
               type="text"
               value={deckName}
               onChange={(e) => setDeckName(e.target.value)}
-              placeholder="e.g., Basic Vocabulary, Unit 1 Terms"
+              placeholder="e.g., Chapter 1 Vocabulary, Math Formulas"
               disabled={loading}
               required
             />
@@ -190,7 +295,12 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
             <button
               type="submit"
               className="create-btn"
-              disabled={loading || !deckName.trim()}
+              disabled={
+                loading || 
+                !deckName.trim() || 
+                (selectedOption === 'new' && !isAddingToFolder && (!className.trim() || (limitInfo.folders && !limitInfo.folders.canCreate))) ||
+                (limitInfo.decks && !limitInfo.decks.canCreate)
+              }
             >
               {loading ? (
                 <>
@@ -199,8 +309,8 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
                 </>
               ) : (
                 <>
-                  <span className="btn-icon"></span>
-                  {isAddingToDeck ? 'Add Deck' : 'Create'}
+                  <span className="btn-icon">📚</span>
+                  Create Deck
                 </>
               )}
             </button>

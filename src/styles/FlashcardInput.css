@@ -1,4 +1,4 @@
-/* src/styles/FlashcardInput.css - WITH INCREASED SPACING FOR MATH SYMBOLS */
+/* src/styles/FlashcardInput.css - WITH INCREASED SPACING FOR MATH SYMBOLS AND CARD LIMITS */
 
 .flashcard-input {
   background: #1e1e1e;
@@ -6,6 +6,78 @@
   border-radius: 12px;
   padding: 25px;
   margin-bottom: 30px;
+}
+
+/* Card Limit Information */
+.card-limit-info {
+  background: rgba(79, 172, 254, 0.05);
+  border: 1px solid rgba(79, 172, 254, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.card-limit-info.near-limit {
+  background: rgba(255, 193, 7, 0.05);
+  border-color: rgba(255, 193, 7, 0.3);
+}
+
+.card-limit-info.limit-reached {
+  background: rgba(220, 53, 69, 0.05);
+  border-color: rgba(220, 53, 69, 0.3);
+}
+
+.limit-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.limit-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.limit-text {
+  font-weight: 600;
+  color: white;
+  font-size: 0.95rem;
+}
+
+.card-limit-info.near-limit .limit-text {
+  color: #ffc107;
+}
+
+.card-limit-info.limit-reached .limit-text {
+  color: #ff6b6b;
+}
+
+.limit-remaining {
+  color: #4facfe;
+  font-size: 0.85rem;
+  font-style: italic;
+  margin-bottom: 8px;
+}
+
+.card-limit-info.near-limit .limit-remaining {
+  color: #ffdb66;
+}
+
+.card-limit-info.limit-reached .limit-remaining {
+  display: none;
+}
+
+.limit-message {
+  color: #ff6b6b;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: rgba(220, 53, 69, 0.1);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  margin-top: 8px;
 }
 
 /* Front Side and Back Side labels - make them white */
@@ -94,6 +166,15 @@
   box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3) !important;
 }
 
+/* Button disabled state when limit reached */
+.add-flashcard-btn:disabled {
+  background: rgba(220, 53, 69, 0.2) !important;
+  color: #ff6b6b !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 /* Small helper text styling */
 .flashcard-input small {
   color: #aaa;
@@ -104,6 +185,27 @@
 @media (max-width: 768px) {
   .flashcard-input {
     padding: 20px;
+  }
+  
+  .card-limit-info {
+    padding: 12px;
+  }
+  
+  .limit-header {
+    gap: 8px;
+  }
+  
+  .limit-text {
+    font-size: 0.9rem;
+  }
+  
+  .limit-remaining {
+    font-size: 0.8rem;
+  }
+  
+  .limit-message {
+    font-size: 0.85rem;
+    padding: 6px 10px;
   }
   
   /* Slightly reduced spacing on tablets */
@@ -131,6 +233,27 @@
   
   .flashcard-input h4 {
     font-size: 1rem;
+  }
+  
+  .card-limit-info {
+    padding: 10px;
+  }
+  
+  .limit-header {
+    gap: 6px;
+  }
+  
+  .limit-text {
+    font-size: 0.85rem;
+  }
+  
+  .limit-remaining {
+    font-size: 0.75rem;
+  }
+  
+  .limit-message {
+    font-size: 0.8rem;
+    padding: 4px 8px;
   }
   
   /* Further reduced spacing on mobile */

@@ -1,8 +1,9 @@
-// src/components/ImportModal.jsx - FIXED: Import button shows total cards, not preview count
+// src/components/ImportModal.jsx - FIXED: Import with limits and 50-card restriction
 import React, { useState, useContext } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
 import { useNavigate } from 'react-router-dom';
+import { validateLimits, LIMIT_MESSAGES } from '../utils/limitValidation';
 import '../styles/ImportModal.css';
 
 // Import parsers
@@ -82,20 +83,31 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
       setParseProgress(0);
       let preview;
       
-      // FIXED: Parse the entire file to get accurate total count, but only show 5 cards in preview
+      // FIXED: Parse the entire file to get accurate total count, but limit to 50 cards
       try {
         const fullParse = await parseQuizletFile(selectedFile, { 
-          previewOnly: false, // Parse the full file to get accurate count
+          previewOnly: false,
           onProgress: setParseProgress
         });
         
-        // Create preview object with accurate total count but limited preview cards
+        // LIMIT: Restrict to first 50 cards
+        const limitedCards = validateLimits.limitImportedCards(fullParse.cards || []);
+        const wasLimited = (fullParse.cards?.length || 0) > limitedCards.length;
+        
+        // Create preview object with limited cards
         preview = {
-          totalCards: fullParse.cards?.length || 0,
-          preview: fullParse.cards?.slice(0, 5) || [], // Only show first 5 for preview
-          cards: fullParse.cards, // Keep all cards for import
-          deckName: fullParse.deckName
+          totalCards: limitedCards.length, // Show limited count as total
+          originalCardCount: fullParse.cards?.length || 0, // Keep original count for warning
+          preview: limitedCards.slice(0, 5), // Show first 5 for preview
+          cards: limitedCards, // Use limited cards for import
+          deckName: fullParse.deckName,
+          wasLimited
         };
+        
+        // Show warning if cards were limited
+        if (wasLimited) {
+          setError(`${LIMIT_MESSAGES.IMPORT_TRUNCATED} (${fullParse.cards.length} cards found, ${limitedCards.length} will be imported)`);
+        }
       } catch (quizletError) {
         console.error('Text file preview failed:', quizletError);
         setError(`File parsing failed: ${quizletError.message}`);
@@ -178,6 +190,12 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
           throw new Error('Set name is required when creating a new set.');
         }
         
+        // NEW: Check folder limits before creating
+        const folderLimitCheck = await validateLimits.canCreateFolder(user.id);
+        if (!folderLimitCheck.canCreate) {
+          throw new Error(folderLimitCheck.message || LIMIT_MESSAGES.FOLDER_LIMIT_REACHED);
+        }
+        
         console.log('🏗️ Creating new class:', className);
         const { data: classData, error: classError } = await supabase
           .from('classes')
@@ -198,6 +216,12 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
       }
 
       setParseProgress(50);
+
+      // NEW: Check deck limits before creating
+      const deckLimitCheck = await validateLimits.canCreateDeck(user.id);
+      if (!deckLimitCheck.canCreate) {
+        throw new Error(deckLimitCheck.message || LIMIT_MESSAGES.DECK_LIMIT_REACHED);
+      }
 
       // Create the flashcard set
       console.log('🃏 Creating flashcard set...');
@@ -410,10 +434,16 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
             </div>
           </div>
 
-          {/* Preview */}
+          {/* Import Preview */}
           {importPreview && importPreview.totalCards > 0 && (
             <div className="import-preview">
-              <h4>✅ Preview ({importPreview.totalCards} cards found)</h4>
+              <h4>✅ Preview ({importPreview.totalCards} cards will be imported)</h4>
+              {importPreview.wasLimited && (
+                <div className="limit-warning">
+                  <span className="warning-icon">⚠️</span>
+                  <span>Original file had {importPreview.originalCardCount} cards. Limited to first {importPreview.totalCards} cards.</span>
+                </div>
+              )}
               <div className="preview-cards">
                 {importPreview.preview && importPreview.preview.map((card, index) => (
                   <div key={index} className="preview-card">
@@ -525,8 +555,9 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
               ) : (
                 <>
                   <span className="btn-icon">📁</span>
-                  {/* FIXED: Use totalCards instead of preview count */}
+                  {/* FIXED: Use totalCards with limit indication */}
                   Import {importPreview?.totalCards ? `${importPreview.totalCards} Cards` : 'Cards'}
+                  {importPreview?.wasLimited && ' (Limited)'}
                 </>
               )}
             </button>

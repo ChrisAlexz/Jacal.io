@@ -1,4 +1,4 @@
-/* src/styles/ImportModal.css - UPDATED WITH EXPORT INSTRUCTIONS STYLING */
+/* src/styles/ImportModal.css - UPDATED WITH EXPORT INSTRUCTIONS STYLING AND LIMITS */
 
 .import-modal {
   background-color: #1e1e1e;
@@ -204,7 +204,6 @@
 
 .requirement-icon {
   font-size: 1.2rem;
-  /* REMOVED: animation that was causing scroll issues */
 }
 
 .requirement-header h4 {
@@ -334,6 +333,26 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Limit Warning in Import Preview */
+.limit-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  color: #ffc107;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.warning-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
 .preview-cards {
@@ -718,6 +737,11 @@
   .import-description {
     font-size: 0.85rem;
   }
+  
+  .limit-warning {
+    padding: 10px;
+    font-size: 0.85rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -772,6 +796,11 @@
 
   .requirement-header h4 {
     font-size: 0.9rem;
+  }
+  
+  .limit-warning {
+    padding: 8px;
+    font-size: 0.8rem;
   }
 }
 

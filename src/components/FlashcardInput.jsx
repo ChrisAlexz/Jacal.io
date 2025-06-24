@@ -1,20 +1,33 @@
-// src/components/FlashcardInput.jsx - COMPLETE WITH ENHANCED IMAGE OCCLUSION
-import React, { useState, useContext } from 'react';
+// src/components/FlashcardInput.jsx - COMPLETE WITH ENHANCED IMAGE OCCLUSION AND CARD LIMITS
+import React, { useState, useContext, useEffect } from 'react';
 import SimpleRichTextEditor from './SimpleRichTextEditor';
 import ImageOcclusionEditor from './ImageOcclusionEditor';
 import UserAuthContext from './context/UserAuthContext';
+import { validateLimits, createLimitWarningMessage } from '../utils/limitValidation';
 import "../styles/FlashcardInput.css";
 
-export default function FlashcardInput({ addFlashcard, disabled, type, isPerCardMode = false }) {
+export default function FlashcardInput({ addFlashcard, disabled, type, isPerCardMode = false, setId, currentCardCount = 0 }) {
   const { user } = useContext(UserAuthContext);
   const [frontContent, setFrontContent] = useState('');
   const [backContent, setBackContent] = useState('');
   const [currentCardType, setCurrentCardType] = useState(type || 'Basic');
   const [frontAudioUrl, setFrontAudioUrl] = useState(null);
   const [backAudioUrl, setBackAudioUrl] = useState(null);
+  const [cardLimitInfo, setCardLimitInfo] = useState(null);
 
   // Use per-card type if in per-card mode, otherwise use set type
   const activeType = isPerCardMode ? currentCardType : (type || 'Basic');
+
+  // Check card limits when setId or currentCardCount changes
+  useEffect(() => {
+    if (setId && currentCardCount !== undefined) {
+      const checkCardLimits = async () => {
+        const limitCheck = await validateLimits.canAddCards(setId, 1);
+        setCardLimitInfo(limitCheck);
+      };
+      checkCardLimits();
+    }
+  }, [setId, currentCardCount]);
 
   // Ensure we always have a valid card type
   const getValidCardType = (cardType) => {
@@ -259,6 +272,30 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
 
   return (
     <div className="flashcard-input">
+      {/* Card Limit Information */}
+      {cardLimitInfo && (
+        <div className={`card-limit-info ${!cardLimitInfo.canAdd ? 'limit-reached' : cardLimitInfo.availableSlots <= 5 ? 'near-limit' : ''}`}>
+          <div className="limit-header">
+            <span className="limit-icon">
+              {cardLimitInfo.availableSlots === 0 ? '🚫' : cardLimitInfo.availableSlots <= 5 ? '⚠️' : '📊'}
+            </span>
+            <span className="limit-text">
+              Cards in this deck: {cardLimitInfo.currentCount}/{cardLimitInfo.limit}
+            </span>
+          </div>
+          {cardLimitInfo.availableSlots > 0 && (
+            <div className="limit-remaining">
+              {cardLimitInfo.availableSlots} card{cardLimitInfo.availableSlots !== 1 ? 's' : ''} remaining
+            </div>
+          )}
+          {!cardLimitInfo.canAdd && (
+            <div className="limit-message">
+              This deck has reached the maximum number of cards. Please delete some cards to add new ones.
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Per-card type selector */}
       {isPerCardMode && (
         <div style={{ marginBottom: '20px' }}>
@@ -349,9 +386,13 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
           <button 
             className="add-flashcard-btn" 
             onClick={handleAdd} 
-            disabled={disabled || !isContentValid()}
+            disabled={disabled || !isContentValid() || (cardLimitInfo && !cardLimitInfo.canAdd)}
           >
-            Add Flashcard ({getValidCardType(activeType)})
+            {cardLimitInfo && !cardLimitInfo.canAdd ? (
+              'Deck Full - Cannot Add More Cards'
+            ) : (
+              `Add Flashcard (${getValidCardType(activeType)})`
+            )}
           </button>
         </>
       )}

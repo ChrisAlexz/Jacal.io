@@ -1,8 +1,9 @@
-// src/components/Flashcard.jsx - SECURE VERSION (No Database ID Logging)
+// src/components/Flashcard.jsx - SECURE VERSION WITH CARD LIMITS
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
+import { validateLimits, LIMIT_MESSAGES } from '../utils/limitValidation';
 
 import FlashcardTitle from "./FlashcardTitle";
 import FlashcardInput from "./FlashcardInput";
@@ -29,8 +30,6 @@ export default function Flashcard() {
   useEffect(() => {
     const loadData = async () => {
       if (id) {
-        // REMOVED: Sensitive ID logging
-        // console.log('🔄 Loading flashcard set with ID:', id);
         setLoading(true);
         setError(null);
         
@@ -51,9 +50,6 @@ export default function Flashcard() {
   }, [id]);
 
   const fetchExistingSet = async (theId) => {
-    // REMOVED: Sensitive ID logging
-    // console.log('📦 Fetching existing set with ID:', theId);
-    
     try {
       // First, try to get just the set info to verify it exists
       const { data: setData, error: setError } = await supabase
@@ -73,18 +69,12 @@ export default function Flashcard() {
         throw new Error('Flashcard set not found');
       }
 
-      // REMOVED: Sensitive set data logging
-      // console.log('✅ Set data loaded:', setData);
-
       // Set the basic info first
       setSetId(setData.id);
       setTitle(setData.title);
       setType(setData.type || 'Basic');
 
       // Now fetch the cards separately with a small delay to ensure database consistency
-      // REMOVED: Sensitive set ID logging
-      // console.log('🃏 Fetching cards for set:', setData.id);
-      
       // Add a small delay to ensure database writes have settled
       await new Promise(resolve => setTimeout(resolve, 500));
       
@@ -98,15 +88,11 @@ export default function Flashcard() {
         console.error("Error fetching cards");
         setFlashcards([]);
       } else {
-        // REMOVED: Sensitive card count and data logging
-        // console.log('✅ Cards loaded:', cardsData?.length || 0, 'cards');
         setFlashcards(cardsData || []);
       }
 
       // Always set deck type to 'Mixed' since we're always in per-card mode
       if (setData.type !== 'Mixed') {
-        // REMOVED: Logging about type updates
-        // console.log('🔄 Updating deck type to Mixed...');
         const { error: updateError } = await supabase
           .from('flashcard_sets')
           .update({ type: 'Mixed' })
@@ -127,8 +113,6 @@ export default function Flashcard() {
   useEffect(() => {
     const updateSetDetails = async () => {
       if (setId && title.trim()) {
-        // REMOVED: Sensitive title logging
-        // console.log('📝 Updating set title to:', title);
         const { error } = await supabase
           .from('flashcard_sets')
           .update({ title: title.trim() })
@@ -149,35 +133,12 @@ export default function Flashcard() {
   }, [title, setId]);
 
   const addFlashcard = async (front, back, cardType = null, frontAudioUrl = null, backAudioUrl = null) => {
-    // REMOVED: Detailed logging with card content
-    // console.log('🚀 addFlashcard called with:', {
-    //   front: front?.substring(0, 50) + '...',
-    //   back: back?.substring(0, 50) + '...',
-    //   cardType,
-    //   frontAudio: frontAudioUrl ? 'Yes' : 'No',
-    //   backAudio: backAudioUrl ? 'Yes' : 'No',
-    //   setId,
-    //   title: title?.substring(0, 30),
-    //   userId: user?.id
-    // });
-
     const finalCardType = cardType || type;
     
     // Enhanced validation: Better content checking including audio
     const cleanFront = (front || '').replace(/<[^>]*>/g, '').trim();
     const cleanBack = (back || '').replace(/<[^>]*>/g, '').trim();
     
-    // REMOVED: Sensitive content validation logging
-    // console.log('📝 Content validation:', {
-    //   finalCardType,
-    //   cleanFront: cleanFront.substring(0, 50),
-    //   cleanBack: cleanBack.substring(0, 50),
-    //   frontLength: cleanFront.length,
-    //   backLength: cleanBack.length,
-    //   frontAudio: frontAudioUrl ? 'Yes' : 'No',
-    //   backAudio: backAudioUrl ? 'Yes' : 'No'
-    // });
-
     // Type-specific validation with audio support
     if (finalCardType === 'Basic' && (!cleanFront && !frontAudioUrl) || (!cleanBack && !backAudioUrl)) {
       console.warn('Basic card validation failed');
@@ -195,13 +156,19 @@ export default function Flashcard() {
       return;
     }
 
+    // NEW: Check card limits before adding
+    if (setId) {
+      const cardLimitCheck = await validateLimits.canAddCards(setId, 1);
+      if (!cardLimitCheck.canAdd) {
+        alert(cardLimitCheck.message || LIMIT_MESSAGES.CARD_LIMIT_REACHED);
+        return;
+      }
+    }
+
     setShowSuccess(true);
 
     try {
       if (setId) {
-        // REMOVED: Sensitive set ID logging
-        // console.log('📦 Adding card to existing set:', setId);
-        
         const cardData = { 
           set_id: setId, 
           front: front || '', 
@@ -211,9 +178,6 @@ export default function Flashcard() {
           back_audio_url: backAudioUrl,
           user_id: user?.id || null
         };
-        
-        // REMOVED: Sensitive card data logging
-        // console.log('📋 Inserting card data:', cardData);
         
         const { data, error } = await supabase
           .from('flashcard_cards')
@@ -231,26 +195,23 @@ export default function Flashcard() {
           alert('Card may not have been saved properly. Please refresh and try again.');
           return;
         }
-
-        // REMOVED: Sensitive success logging
-        // console.log('✅ Card added successfully:', data[0]);
         
         // Update flashcards state
         setFlashcards(prev => {
-          // REMOVED: Sensitive state logging
-          // console.log('📊 Current flashcards count:', prev.length);
           const newList = [...prev, data[0]];
-          // console.log('📊 New flashcards count:', newList.length);
-          // console.log('🔄 Flashcards state updated');
           return newList;
         });
         
       } else {
-        // REMOVED: Sensitive creation logging
-        // console.log('🆕 Creating new set and adding first card...');
-        
+        // NEW: Check deck limits before creating new set
         if (!user) {
           alert('Please log in to create flashcard sets.');
+          return;
+        }
+
+        const deckLimitCheck = await validateLimits.canCreateDeck(user.id);
+        if (!deckLimitCheck.canCreate) {
+          alert(deckLimitCheck.message || LIMIT_MESSAGES.DECK_LIMIT_REACHED);
           return;
         }
         
@@ -259,9 +220,6 @@ export default function Flashcard() {
           type: 'Mixed',
           user_id: user.id
         };
-        
-        // REMOVED: Sensitive set data logging
-        // console.log('📋 Creating set with data:', setData);
         
         const { data: newSetData, error: newSetErr } = await supabase
           .from('flashcard_sets')
@@ -275,8 +233,6 @@ export default function Flashcard() {
           return;
         }
 
-        // REMOVED: Sensitive new set logging
-        // console.log('✅ New set created:', newSetData);
         setSetId(newSetData.id);
 
         const cardData = { 
@@ -288,9 +244,6 @@ export default function Flashcard() {
           back_audio_url: backAudioUrl,
           user_id: user.id
         };
-        
-        // REMOVED: Sensitive first card logging
-        // console.log('📋 Inserting first card:', cardData);
 
         const { data: insertedCard, error: cardErr } = await supabase
           .from('flashcard_cards')
@@ -304,8 +257,6 @@ export default function Flashcard() {
           return;
         }
 
-        // REMOVED: Sensitive success logging
-        // console.log('✅ First card added successfully:', insertedCard);
         setFlashcards([insertedCard]);
         
         // Update URL to include the new set ID
@@ -418,6 +369,8 @@ export default function Flashcard() {
           disabled={loading}
           type={type} 
           isPerCardMode={isPerCardMode}
+          setId={setId}
+          currentCardCount={flashcards.length}
         />
         
         {/* Flashcard List */}
