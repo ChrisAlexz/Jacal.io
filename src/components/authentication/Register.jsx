@@ -1,9 +1,9 @@
-// components/authentication/Register.jsx - FIXED IMPORTS
+// components/authentication/Register.jsx - CLEAN VERSION
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import UserAuthContext from '../context/UserAuthContext';
 import { supabase } from '../../supabase';
-import { emailService } from '../../api/emailService'; // FIXED: correct path
+import { emailService } from '../../api/emailService';
 import { 
   FaEye, 
   FaEyeSlash, 
@@ -38,6 +38,7 @@ export default function Register() {
   const [validationErrors, setValidationErrors] = useState({});
   const [isSignUp, setIsSignUp] = useState(true);
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [] });
+  const [useCustomEmail, setUseCustomEmail] = useState(emailService.isConfigured());
 
   // Redirect if already logged in
   useEffect(() => {
@@ -163,7 +164,7 @@ export default function Register() {
 
     try {
       if (isSignUp) {
-        await handleCustomSignUp();
+        await handleSignUp();
       } else {
         await handleSignIn();
       }
@@ -175,84 +176,137 @@ export default function Register() {
     }
   };
 
-  // Custom sign up with Resend email verification
-  const handleCustomSignUp = async () => {
+  // Handle sign up with Jacal custom emails
+  const handleSignUp = async () => {
     try {
-      console.log('🚀 Starting custom sign up process...');
+      console.log('🚀 Starting Jacal sign up with custom emails...');
       
-      // Create user in Supabase
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: {
-            name: formData.fullName.trim(),
-            picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullName)}&background=4facfe&color=fff&size=200`,
-            email_verified: false
-          }
+      if (useCustomEmail) {
+        // Try custom Jacal email service first
+        try {
+          await handleJacalCustomSignUp();
+          return;
+        } catch (customError) {
+          console.warn('⚠️ Custom Jacal email service failed, falling back to Supabase:', customError.message);
+          setUseCustomEmail(false);
+          // Fall through to Supabase default
         }
-      });
-
-      if (signUpError) {
-        console.error('❌ Supabase signup error:', signUpError);
-        if (signUpError.message.includes('already registered')) {
-          setError('An account with this email already exists. Try signing in instead.');
-        } else {
-          setError(signUpError.message);
-        }
-        return;
       }
 
-      const userId = authData.user?.id;
-      if (!userId) {
-        setError('Failed to create account. Please try again.');
-        return;
-      }
-
-      console.log('✅ User created in Supabase:', userId);
-
-      // Generate custom verification token
-      const verificationToken = emailService.generateVerificationToken();
-      console.log('🔑 Generated verification token');
-      
-      // Store verification token in database
-      await emailService.storeVerificationToken(
-        userId, 
-        formData.email, 
-        verificationToken, 
-        'email_confirmation'
-      );
-      console.log('💾 Stored verification token in database');
-
-      // Create confirmation URL
-      const confirmationUrl = `${window.location.origin}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(formData.email)}`;
-
-      // Send custom confirmation email via Resend
-      console.log('📧 Sending confirmation email...');
-      await emailService.sendConfirmationEmail(
-        formData.email,
-        confirmationUrl,
-        formData.fullName.trim()
-      );
-      console.log('✅ Confirmation email sent successfully!');
-
-      setMessage(
-        `🎉 Welcome to Jacal, ${formData.fullName}! We've sent a beautiful confirmation email to ${formData.email}. Please check your inbox and click the verification link to start your learning journey!`
-      );
-      
-      // Clear form after successful sign up
-      setFormData({
-        fullName: '',
-        email: '',
-        password: '',
-        confirmPassword: ''
-      });
+      // Fallback to Supabase's built-in email verification
+      await handleSupabaseSignUp();
 
     } catch (error) {
-      console.error('❌ Custom sign up error:', error);
-      setError(`Failed to send verification email: ${error.message}`);
+      console.error('❌ Sign up error:', error);
+      setError(`Failed to create account: ${error.message}`);
     }
+  };
+
+  // Custom Jacal sign up with beautiful emails
+  const handleJacalCustomSignUp = async () => {
+    console.log('📧 Using Jacal custom email service...');
+    
+    // Create user in Supabase with email confirmation disabled initially
+    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: {
+          name: formData.fullName.trim(),
+          picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullName)}&background=4facfe&color=fff&size=200`,
+          email_verified: false
+        }
+      }
+    });
+
+    if (signUpError) {
+      if (signUpError.message.includes('already registered')) {
+        throw new Error('An account with this email already exists. Try signing in instead.');
+      } else {
+        throw new Error(signUpError.message);
+      }
+    }
+
+    const userId = authData.user?.id;
+    if (!userId) {
+      throw new Error('Failed to create account. Please try again.');
+    }
+
+    console.log('✅ User created in Supabase:', userId);
+
+    // Generate and store custom verification token
+    const verificationToken = emailService.generateVerificationToken();
+    
+    await emailService.storeVerificationToken(
+      userId, 
+      formData.email, 
+      verificationToken, 
+      'email_confirmation'
+    );
+
+    // Create confirmation URL
+    const confirmationUrl = `${window.location.origin}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(formData.email)}`;
+
+    // Send beautiful Jacal confirmation email
+    await emailService.sendConfirmationEmail(
+      formData.email,
+      confirmationUrl,
+      formData.fullName.trim()
+    );
+
+    console.log('✅ Beautiful Jacal confirmation email sent successfully!');
+
+    setMessage(
+      `🎉 Welcome to Jacal, ${formData.fullName}! We've sent a beautiful welcome email to ${formData.email}. Check your inbox for our custom verification link to start your learning journey!`
+    );
+    
+    // Clear form after successful sign up
+    setFormData({
+      fullName: '',
+      email: '',
+      password: '',
+      confirmPassword: ''
+    });
+  };
+
+  // Fallback to Supabase's built-in email verification
+  const handleSupabaseSignUp = async () => {
+    console.log('📧 Using Supabase email service as fallback...');
+    
+    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: {
+          name: formData.fullName.trim(),
+          picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullName)}&background=4facfe&color=fff&size=200`
+        }
+      }
+    });
+
+    if (signUpError) {
+      if (signUpError.message.includes('already registered')) {
+        throw new Error('An account with this email already exists. Try signing in instead.');
+      } else {
+        throw new Error(signUpError.message);
+      }
+    }
+
+    console.log('✅ Supabase confirmation email sent successfully!');
+
+    setMessage(
+      `Welcome ${formData.fullName}! A confirmation email has been sent to ${formData.email}. Please check your inbox and click the verification link to activate your account.`
+    );
+    
+    // Clear form after successful sign up
+    setFormData({
+      fullName: '',
+      email: '',
+      password: '',
+      confirmPassword: ''
+    });
   };
 
   // Handle sign in
@@ -331,6 +385,21 @@ export default function Register() {
               : 'Continue mastering new skills with Jacal'
             }
           </p>
+          
+          {/* Show email service status in development */}
+          {process.env.NODE_ENV === 'development' && (
+            <div style={{ 
+              fontSize: '0.7rem', 
+              color: '#666', 
+              marginTop: '8px',
+              padding: '4px 8px',
+              background: useCustomEmail ? 'rgba(40, 167, 69, 0.1)' : 'rgba(255, 193, 7, 0.1)',
+              borderRadius: '4px',
+              border: `1px solid ${useCustomEmail ? 'rgba(40, 167, 69, 0.3)' : 'rgba(255, 193, 7, 0.3)'}`
+            }}>
+              Email: {useCustomEmail ? 'Jacal Custom (Resend)' : 'Supabase Default'}
+            </div>
+          )}
         </div>
 
         {/* Alert Messages */}
@@ -553,43 +622,43 @@ export default function Register() {
         {message && isSignUp && (
           <div className="terms-privacy" style={{ marginTop: '24px' }}>
             <div style={{ 
-              background: 'rgba(40, 167, 69, 0.1)', 
-              border: '1px solid rgba(40, 167, 69, 0.3)',
+              background: useCustomEmail ? 'linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(79, 172, 254, 0.05) 100%)' : 'rgba(40, 167, 69, 0.1)', 
+              border: `1px solid ${useCustomEmail ? 'rgba(79, 172, 254, 0.3)' : 'rgba(40, 167, 69, 0.3)'}`,
               borderRadius: '12px',
               padding: '20px',
               marginBottom: '20px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ fontSize: '2rem' }}>📧</div>
+                <div style={{ fontSize: '2rem' }}>{useCustomEmail ? '🎨' : '📧'}</div>
                 <div>
-                  <strong style={{ color: '#28a745', fontSize: '1.1rem' }}>Check Your Email!</strong>
+                  <strong style={{ color: useCustomEmail ? '#4facfe' : '#28a745', fontSize: '1.1rem' }}>
+                    {useCustomEmail ? 'Beautiful Email Sent!' : 'Check Your Email!'}
+                  </strong>
                   <p style={{ 
-                    color: '#28a745', 
+                    color: useCustomEmail ? '#4facfe' : '#28a745', 
                     margin: '4px 0 0 0', 
                     fontSize: '0.9rem', 
                     lineHeight: 1.5 
                   }}>
-                    We've sent a beautiful welcome email with your verification link.
+                    {useCustomEmail 
+                      ? "We've sent you a gorgeous, custom-designed welcome email with your verification link."
+                      : "We've sent a verification email to your inbox."
+                    }
                   </p>
                 </div>
               </div>
               
               <div style={{
-                background: '#f8f9fa',
+                background: useCustomEmail ? 'rgba(79, 172, 254, 0.1)' : '#f8f9fa',
                 padding: '12px',
                 borderRadius: '8px',
-                borderLeft: '4px solid #4facfe'
+                borderLeft: `4px solid ${useCustomEmail ? '#4facfe' : '#28a745'}`
               }}>
                 <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
-                  💡 <strong>Pro tip:</strong> Check your spam folder if you don't see it in a few minutes!
+                  💡 <strong>Pro tip:</strong> {useCustomEmail ? 'Look for the beautifully designed Jacal email - it stands out!' : 'Check your spam folder if you don\'t see it in a few minutes!'}
                 </p>
               </div>
             </div>
-            
-            <ResendVerificationButton 
-              email={formData.email} 
-              userName={formData.fullName}
-            />
           </div>
         )}
 
@@ -608,155 +677,3 @@ export default function Register() {
     </div>
   );
 }
-
-// Resend Verification Component
-const ResendVerificationButton = ({ email, userName }) => {
-  const [resendLoading, setResendLoading] = useState(false);
-  const [resendMessage, setResendMessage] = useState('');
-  const [canResend, setCanResend] = useState(false);
-  const [countdown, setCountdown] = useState(60);
-
-  useEffect(() => {
-    // Start countdown timer
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          setCanResend(true);
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const handleResendVerification = async () => {
-    if (!email) return;
-
-    setResendLoading(true);
-    setResendMessage('');
-
-    try {
-      // Generate new verification token
-      const newToken = emailService.generateVerificationToken();
-      
-      // Get user data
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !userData.user) {
-        throw new Error('User session not found');
-      }
-
-      // Store new token
-      await emailService.storeVerificationToken(
-        userData.user.id,
-        email,
-        newToken,
-        'email_confirmation'
-      );
-
-      // Create new confirmation URL
-      const confirmationUrl = `${window.location.origin}/auth/verify-email?token=${newToken}&email=${encodeURIComponent(email)}`;
-
-      // Send new verification email
-      await emailService.sendConfirmationEmail(
-        email,
-        confirmationUrl,
-        userName || ''
-      );
-
-      setResendMessage('✅ New verification email sent successfully!');
-      setCanResend(false);
-      setCountdown(60);
-
-      // Restart countdown
-      const timer = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            setCanResend(true);
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-    } catch (error) {
-      console.error('Resend verification error:', error);
-      setResendMessage('❌ Failed to send verification email. Please try again.');
-    } finally {
-      setResendLoading(false);
-    }
-  };
-
-  return (
-    <div style={{ textAlign: 'center' }}>
-      {resendMessage && (
-        <p style={{ 
-          color: resendMessage.includes('✅') ? '#28a745' : '#ff4757',
-          fontSize: '0.9rem',
-          marginBottom: '16px',
-          fontWeight: '500',
-          padding: '8px',
-          borderRadius: '6px',
-          background: resendMessage.includes('✅') ? 'rgba(40, 167, 69, 0.1)' : 'rgba(255, 71, 87, 0.1)'
-        }}>
-          {resendMessage}
-        </p>
-      )}
-      
-      <button
-        onClick={handleResendVerification}
-        disabled={!canResend || resendLoading}
-        style={{
-          background: canResend ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' : 'rgba(255, 255, 255, 0.1)',
-          border: `2px solid ${canResend ? 'rgba(79, 172, 254, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
-          borderRadius: '10px',
-          padding: '12px 24px',
-          color: canResend ? 'white' : '#666',
-          fontSize: '0.9rem',
-          fontWeight: '600',
-          cursor: canResend ? 'pointer' : 'not-allowed',
-          transition: 'all 0.3s ease',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
-          margin: '0 auto',
-          minWidth: '200px'
-        }}
-      >
-        {resendLoading ? (
-          <>
-            <FaSpinner className="spinner" style={{ fontSize: '0.9rem' }} />
-            Sending...
-          </>
-        ) : canResend ? (
-          <>
-            <FaEnvelope style={{ fontSize: '0.9rem' }} />
-            Resend Email
-          </>
-        ) : (
-          <>
-            <FaSpinner style={{ fontSize: '0.9rem', animation: 'none' }} />
-            Resend in {countdown}s
-          </>
-        )}
-      </button>
-      
-      <p style={{ 
-        color: '#999', 
-        fontSize: '0.8rem', 
-        marginTop: '16px',
-        lineHeight: 1.4 
-      }}>
-        Still having trouble? Contact us at{' '}
-        <a href="mailto:jacal.io.service@gmail.com" style={{ color: '#4facfe' }}>
-          jacal.io.service@gmail.com
-        </a>
-      </p>
-    </div>
-  );
-};
