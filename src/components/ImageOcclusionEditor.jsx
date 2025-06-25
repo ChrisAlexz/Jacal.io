@@ -1,10 +1,11 @@
-// src/components/ImageOcclusionEditor.jsx - ENHANCED WITH COPY/PASTE FUNCTIONALITY
+// src/components/ImageOcclusionEditor.jsx - ENHANCED WITH COPY/PASTE FUNCTIONALITY AND CARD LIMITS
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
+import { validateLimits } from '../utils/LimitValidation';
 import '../styles/ImageOcclusionEditor.css';
 
-const ImageOcclusionEditor = ({ onSave, disabled }) => {
+const ImageOcclusionEditor = ({ onSave, disabled, cardLimitInfo }) => {
   const { user } = useContext(UserAuthContext);
   const [image, setImage] = useState(null);
   const [imageFile, setImageFile] = useState(null);
@@ -77,7 +78,7 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
         activeElement.contentEditable === 'true'
       );
       
-      if (!isInputFocused) {
+      if (!isInputFocused && !disabled) {
         handlePaste(e);
       }
     };
@@ -86,7 +87,7 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     return () => {
       document.removeEventListener('paste', handleGlobalPaste);
     };
-  }, []);
+  }, [disabled]);
 
   const uploadImageToSupabase = async (file) => {
     if (!user || !file) return;
@@ -309,10 +310,16 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     }
   }, [occlusions, currentRect, image]);
 
-  // FIXED: Create cards ONLY from CURRENT occlusions and reset properly
-  const handleSave = () => {
+  // FIXED: Create cards ONLY from CURRENT occlusions and reset properly + Check limits
+  const handleSave = async () => {
     if (!image || occlusions.length === 0 || !uploadedImageUrl) {
       alert('Please upload an image and create at least one occlusion. Make sure the image is uploaded before saving.');
+      return;
+    }
+
+    // CRITICAL: Check if adding these cards would exceed the limit
+    if (cardLimitInfo && cardLimitInfo.availableSlots < occlusions.length) {
+      alert(`Cannot create ${occlusions.length} image occlusion cards. You can only add ${cardLimitInfo.availableSlots} more cards to this deck. Please delete some existing cards or reduce the number of occlusions.`);
       return;
     }
 
@@ -378,11 +385,49 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
     console.log('Occlusions state updated:', occlusions);
   }, [occlusions]);
 
+  // Check if save is possible based on card limits
+  const canSave = () => {
+    if (!image || occlusions.length === 0 || isUploading || !uploadedImageUrl) {
+      return false;
+    }
+    
+    if (cardLimitInfo && cardLimitInfo.availableSlots < occlusions.length) {
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Get save button text based on state
+  const getSaveButtonText = () => {
+    if (isUploading) {
+      return 'Uploading...';
+    }
+    
+    if (!image || occlusions.length === 0) {
+      return `Create Cards`;
+    }
+    
+    if (cardLimitInfo && cardLimitInfo.availableSlots < occlusions.length) {
+      return `Cannot Create ${occlusions.length} Cards (Limit: ${cardLimitInfo.availableSlots})`;
+    }
+    
+    return `Create ${occlusions.length} Cards`;
+  };
+
   return (
     <div className="image-occlusion-editor" ref={containerRef}>
       <div className="editor-header">
         <h3>Image Occlusion Editor</h3>
         <p>Upload an image or paste one from your clipboard, then draw rectangles to hide parts of it</p>
+        
+        {/* Card Limit Warning for Image Occlusion */}
+        {cardLimitInfo && cardLimitInfo.availableSlots > 0 && cardLimitInfo.availableSlots < 10 && (
+          <div className="image-occlusion-limit-info">
+            <span className="limit-icon">⚠️</span>
+            <span>You can create {cardLimitInfo.availableSlots} more cards in this deck</span>
+          </div>
+        )}
       </div>
 
       <div className="editor-controls">
@@ -497,14 +542,23 @@ const ImageOcclusionEditor = ({ onSave, disabled }) => {
             <div className="occlusion-info">
               <span>Occlusions: {occlusions.length}</span>
               <small>Shift+Click to delete an occlusion</small>
+              {cardLimitInfo && occlusions.length > cardLimitInfo.availableSlots && (
+                <small style={{ color: '#ff6b6b', fontWeight: 'bold' }}>
+                  ⚠️ Too many occlusions for deck limit
+                </small>
+              )}
             </div>
 
             <button 
               className="save-btn"
               onClick={handleSave}
-              disabled={disabled || !image || occlusions.length === 0 || isUploading || !uploadedImageUrl}
+              disabled={disabled || !canSave()}
+              style={{
+                opacity: canSave() ? 1 : 0.6,
+                cursor: canSave() ? 'pointer' : 'not-allowed'
+              }}
             >
-              {isUploading ? 'Uploading...' : `Create ${occlusions.length} Cards`}
+              {getSaveButtonText()}
             </button>
           </div>
         </>

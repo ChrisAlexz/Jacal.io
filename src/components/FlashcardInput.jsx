@@ -1,4 +1,4 @@
-// src/components/FlashcardInput.jsx - COMPLETE WITH ENHANCED IMAGE OCCLUSION AND CARD LIMITS
+// src/components/FlashcardInput.jsx - COMPLETE WITH ENHANCED IMAGE OCCLUSION AND CARD LIMITS - FIXED
 import React, { useState, useContext, useEffect } from 'react';
 import SimpleRichTextEditor from './SimpleRichTextEditor';
 import ImageOcclusionEditor from './ImageOcclusionEditor';
@@ -133,8 +133,18 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
     clearContent();
   };
 
-  const handleImageOcclusionSave = (cards) => {
+  // FIXED: Enhanced Image Occlusion save with proper limit checking
+  const handleImageOcclusionSave = async (cards) => {
     console.log('🖼️ Image occlusion save called with', cards.length, 'cards');
+    
+    // CRITICAL: Check if we can add all the cards before proceeding
+    if (setId) {
+      const cardLimitCheck = await validateLimits.canAddCards(setId, cards.length);
+      if (!cardLimitCheck.canAdd) {
+        alert(`Cannot add ${cards.length} cards. ${cardLimitCheck.message || 'This would exceed the deck limit.'} You can add ${cardLimitCheck.availableSlots} more cards.`);
+        return;
+      }
+    }
     
     cards.forEach((card, index) => {
       console.log(`🃏 Adding image occlusion card ${index + 1}:`, card.title);
@@ -305,14 +315,16 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
           <select
             value={currentCardType}
             onChange={(e) => setCurrentCardType(e.target.value)}
-            disabled={disabled}
+            disabled={disabled || (cardLimitInfo && !cardLimitInfo.canAdd)}
             style={{
               padding: '8px 12px',
               background: '#2a2a2a',
               border: '2px solid #333',
               borderRadius: '8px',
               color: 'white',
-              fontSize: '1rem'
+              fontSize: '1rem',
+              opacity: (cardLimitInfo && !cardLimitInfo.canAdd) ? 0.5 : 1,
+              cursor: (cardLimitInfo && !cardLimitInfo.canAdd) ? 'not-allowed' : 'pointer'
             }}
           >
             <option value="Basic">Basic</option>
@@ -323,12 +335,32 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
         </div>
       )}
 
-      {/* Render Image Occlusion Editor for Image-Occlusion type */}
+      {/* FIXED: Render Image Occlusion Editor only if limits allow */}
       {activeType === 'Image-Occlusion' ? (
-        <ImageOcclusionEditor 
-          onSave={handleImageOcclusionSave} 
-          disabled={disabled}
-        />
+        <>
+          {/* Show limit reached message for Image Occlusion */}
+          {cardLimitInfo && !cardLimitInfo.canAdd && (
+            <div className="image-occlusion-limit-warning">
+              <div className="limit-warning-header">
+                <span className="warning-icon">🚫</span>
+                <h4>Cannot Create Image Occlusion Cards</h4>
+              </div>
+              <p>This deck has reached the maximum number of cards ({cardLimitInfo.limit}). Please delete some existing cards before creating new image occlusion cards.</p>
+              <div className="limit-suggestion">
+                <strong>Tip:</strong> Each image occlusion can create multiple cards (one per occlusion area). Make sure you have enough space in your deck.
+              </div>
+            </div>
+          )}
+          
+          {/* Only show ImageOcclusionEditor if limits allow */}
+          {(!cardLimitInfo || cardLimitInfo.canAdd) && (
+            <ImageOcclusionEditor 
+              onSave={handleImageOcclusionSave} 
+              disabled={disabled}
+              cardLimitInfo={cardLimitInfo}
+            />
+          )}
+        </>
       ) : (
         <>
           {/* Front Side Editor with Audio Toolbar */}
@@ -339,7 +371,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
               value={frontContent}
               onChange={setFrontContent}
               placeholder={placeholders.front}
-              readOnly={disabled}
+              readOnly={disabled || (cardLimitInfo && !cardLimitInfo.canAdd)}
               onAudioChange={setFrontAudioUrl}
               initialAudioUrl={frontAudioUrl}
               user={user}
@@ -357,7 +389,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
               value={backContent}
               onChange={setBackContent}
               placeholder={placeholders.back}
-              readOnly={disabled}
+              readOnly={disabled || (cardLimitInfo && !cardLimitInfo.canAdd)}
               onAudioChange={setBackAudioUrl}
               initialAudioUrl={backAudioUrl}
               user={user}
@@ -374,7 +406,15 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
 
           {activeType === 'Cloze' && (
             <div style={{ marginBottom: '10px' }}>
-              <button onClick={handleCloze} disabled={disabled} type="button">
+              <button 
+                onClick={handleCloze} 
+                disabled={disabled || (cardLimitInfo && !cardLimitInfo.canAdd)} 
+                type="button"
+                style={{
+                  opacity: (cardLimitInfo && !cardLimitInfo.canAdd) ? 0.5 : 1,
+                  cursor: (cardLimitInfo && !cardLimitInfo.canAdd) ? 'not-allowed' : 'pointer'
+                }}
+              >
                 [c] Cloze
               </button>
               <small style={{ marginLeft: '10px', color: '#666' }}>
@@ -387,6 +427,10 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
             className="add-flashcard-btn" 
             onClick={handleAdd} 
             disabled={disabled || !isContentValid() || (cardLimitInfo && !cardLimitInfo.canAdd)}
+            style={{
+              opacity: (disabled || !isContentValid() || (cardLimitInfo && !cardLimitInfo.canAdd)) ? 0.6 : 1,
+              cursor: (disabled || !isContentValid() || (cardLimitInfo && !cardLimitInfo.canAdd)) ? 'not-allowed' : 'pointer'
+            }}
           >
             {cardLimitInfo && !cardLimitInfo.canAdd ? (
               'Deck Full - Cannot Add More Cards'

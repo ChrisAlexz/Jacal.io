@@ -169,10 +169,22 @@ export const validateLimits = {
         hasLimits: false
       };
     }
+  },
+
+  // FIXED: Added limitImportedCards to validateLimits object
+  limitImportedCards: (cards) => {
+    if (!Array.isArray(cards)) return [];
+    
+    if (cards.length > USER_LIMITS.IMPORTED_CARDS) {
+      console.warn(`Limiting imported cards from ${cards.length} to ${USER_LIMITS.IMPORTED_CARDS}`);
+      return cards.slice(0, USER_LIMITS.IMPORTED_CARDS);
+    }
+    
+    return cards;
   }
 };
 
-// Utility functions for import limits
+// Utility functions for import limits (keep as standalone exports too for backwards compatibility)
 export const limitImportedCards = (cards) => {
   if (!Array.isArray(cards)) return [];
   
