@@ -1,4 +1,4 @@
-// src/components/Flashcard.jsx - SECURE VERSION WITH CARD LIMITS
+// src/components/Flashcard.jsx - SECURE VERSION WITH CARD LIMITS AND SIMPLE IMAGE OCCLUSION FIX
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from '../supabase';
@@ -135,25 +135,28 @@ export default function Flashcard() {
   const addFlashcard = async (front, back, cardType = null, frontAudioUrl = null, backAudioUrl = null) => {
     const finalCardType = cardType || type;
     
-    // Enhanced validation: Better content checking including audio
-    const cleanFront = (front || '').replace(/<[^>]*>/g, '').trim();
-    const cleanBack = (back || '').replace(/<[^>]*>/g, '').trim();
-    
-    // Type-specific validation with audio support
-    if (finalCardType === 'Basic' && (!cleanFront && !frontAudioUrl) || (!cleanBack && !backAudioUrl)) {
-      console.warn('Basic card validation failed');
-      alert('Please fill in both front and back content or add audio for Basic cards.');
-      return;
-    }
-    if (finalCardType === 'Basic-Type' && (!cleanFront && !frontAudioUrl) || (!cleanBack && !backAudioUrl)) {
-      console.warn('Basic-Type card validation failed');
-      alert('Please fill in both front and back content or add audio for Basic-Type cards.');
-      return;
-    }
-    if (finalCardType === 'Cloze' && (!cleanFront && !frontAudioUrl)) {
-      console.warn('Cloze card validation failed');
-      alert('Please add front content or audio for Cloze cards.');
-      return;
+    // FIXED: Skip validation for Image Occlusion cards
+    if (finalCardType !== 'Image-Occlusion') {
+      // Enhanced validation: Better content checking including audio
+      const cleanFront = (front || '').replace(/<[^>]*>/g, '').trim();
+      const cleanBack = (back || '').replace(/<[^>]*>/g, '').trim();
+      
+      // Type-specific validation with audio support
+      if (finalCardType === 'Basic' && ((!cleanFront && !frontAudioUrl) || (!cleanBack && !backAudioUrl))) {
+        console.warn('Basic card validation failed');
+        alert('Please fill in both front and back content or add audio for Basic cards.');
+        return;
+      }
+      if (finalCardType === 'Basic-Type' && ((!cleanFront && !frontAudioUrl) || (!cleanBack && !backAudioUrl))) {
+        console.warn('Basic-Type card validation failed');
+        alert('Please fill in both front and back content or add audio for Basic-Type cards.');
+        return;
+      }
+      if (finalCardType === 'Cloze' && (!cleanFront && !frontAudioUrl)) {
+        console.warn('Cloze card validation failed');
+        alert('Please add front content or audio for Cloze cards.');
+        return;
+      }
     }
 
     // NEW: Check card limits before adding

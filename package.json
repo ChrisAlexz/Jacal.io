@@ -1,5 +1,6 @@
 {
-  "name": "notive",
+  "name": "jacal",
+  "homepage": "https://jacal.io",
   "version": "0.1.0",
   "private": true,
   "proxy": "http://localhost:3001",
@@ -63,4 +64,5 @@
     "concurrently": "^9.1.2",
     "nodemon": "^3.1.10"
   }
+
 }

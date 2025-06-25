@@ -1,8 +1,9 @@
-// src/components/authentication/AuthCallback.jsx - HANDLES AUTH REDIRECTS
+// src/components/authentication/AuthCallback.jsx - FIXED SYNTAX ERRORS
 import React, { useEffect, useContext } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../supabase';
 import UserAuthContext from '../context/UserAuthContext';
+import getEnvironmentConfig from '../../config/environment';
 import { FaSpinner, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 import '../../styles/Register.css';
 
@@ -12,10 +13,17 @@ export default function AuthCallback() {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = React.useState('loading'); // loading, success, error
   const [message, setMessage] = React.useState('Processing authentication...');
+  const envConfig = getEnvironmentConfig();
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        console.log('🔍 Auth callback environment:', {
+          baseUrl: envConfig.baseUrl,
+          isProduction: envConfig.isProduction,
+          currentUrl: window.location.href
+        });
+
         // Get the current URL hash and search params
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
@@ -44,7 +52,7 @@ export default function AuthCallback() {
         if (type === 'recovery' || type === 'magiclink') {
           // Password reset or magic link - redirect to password reset with tokens
           if (accessToken) {
-            const url = new URL('/auth/reset-password', window.location.origin);
+            const url = new URL('/auth/reset-password', envConfig.baseUrl);
             url.searchParams.set('access_token', accessToken);
             if (refreshToken) url.searchParams.set('refresh_token', refreshToken);
             url.searchParams.set('type', type);
@@ -56,6 +64,8 @@ export default function AuthCallback() {
 
         // Handle regular sign-in callback
         if (accessToken) {
+          console.log('✅ Access token found, setting session...');
+          
           // Set the session with the tokens
           const { data, error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
@@ -71,13 +81,15 @@ export default function AuthCallback() {
           }
 
           if (data.user) {
+            console.log('✅ User session established:', data.user.email);
+            
             // Update context
             login(data.user);
             
             setStatus('success');
-            setMessage('Successfully signed in! Redirecting...');
+            setMessage('Successfully signed in! Redirecting to your dashboard...');
             
-            // Clear URL parameters
+            // Clear URL parameters and redirect
             window.history.replaceState({}, document.title, '/');
             
             // Redirect to home
@@ -87,6 +99,7 @@ export default function AuthCallback() {
         }
 
         // If we get here, try to get the current session
+        console.log('🔍 No access token in URL, checking current session...');
         const { data: { session }, error: getSessionError } = await supabase.auth.getSession();
         
         if (getSessionError) {
@@ -98,9 +111,10 @@ export default function AuthCallback() {
         }
 
         if (session?.user) {
+          console.log('✅ Existing session found:', session.user.email);
           login(session.user);
           setStatus('success');
-          setMessage('Successfully signed in! Redirecting...');
+          setMessage('Successfully signed in! Redirecting to your dashboard...');
           
           // Clear URL parameters
           window.history.replaceState({}, document.title, '/');
@@ -108,6 +122,7 @@ export default function AuthCallback() {
           setTimeout(() => navigate('/'), 1500);
         } else {
           // No session found, redirect to sign in
+          console.log('❌ No session found, redirecting to sign in');
           setStatus('error');
           setMessage('No authentication session found. Redirecting to sign in...');
           setTimeout(() => navigate('/register'), 2000);
@@ -122,7 +137,7 @@ export default function AuthCallback() {
     };
 
     handleAuthCallback();
-  }, [navigate, login, searchParams]);
+  }, [navigate, login, searchParams, envConfig.baseUrl]);
 
   const getStatusIcon = () => {
     switch (status) {
@@ -160,6 +175,27 @@ export default function AuthCallback() {
           <p style={{ color: '#aaa', lineHeight: 1.6 }}>
             {message}
           </p>
+          
+          {/* Debug info for development */}
+          {!envConfig.isProduction && (
+            <div style={{ 
+              fontSize: '0.7rem', 
+              color: '#666', 
+              marginTop: '12px',
+              padding: '8px',
+              background: 'rgba(79, 172, 254, 0.1)',
+              borderRadius: '4px',
+              border: '1px solid rgba(79, 172, 254, 0.2)',
+              textAlign: 'left'
+            }}>
+              <strong>Debug Info:</strong><br/>
+              Environment: {envConfig.isLocal ? 'Local' : envConfig.isStaging ? 'Staging' : 'Production'}<br/>
+              Base URL: {envConfig.baseUrl}<br/>
+              Current URL: {window.location.href}<br/>
+              Has Hash: {window.location.hash ? 'Yes' : 'No'}<br/>
+              Has Search: {window.location.search ? 'Yes' : 'No'}
+            </div>
+          )}
         </div>
 
         {/* Progress indicator for loading state */}
@@ -200,7 +236,7 @@ export default function AuthCallback() {
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes progressSlide {
           0% { transform: translateX(-100%); }
           50% { transform: translateX(0%); }

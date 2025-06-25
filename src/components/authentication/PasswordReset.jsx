@@ -1,8 +1,8 @@
-// src/components/authentication/PasswordReset.jsx - FIXED IMPORTS
+// src/components/authentication/PasswordReset.jsx - FIXED WITH ENVIRONMENT CONFIG
 import React, { useState, useEffect } from 'react';
-import { emailService } from '../../api/emailService'; // FIXED: correct path
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../supabase';
+import getEnvironmentConfig from '../../config/environment';
 import { 
   FaEnvelope, 
   FaLock, 
@@ -18,6 +18,7 @@ import '../../styles/Register.css';
 export default function PasswordReset() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const envConfig = getEnvironmentConfig();
   
   // Determine if this is a reset request or password update
   const isUpdatingPassword = searchParams.has('access_token') && searchParams.has('type');
@@ -41,6 +42,12 @@ export default function PasswordReset() {
       const accessToken = searchParams.get('access_token');
       const refreshToken = searchParams.get('refresh_token');
       
+      console.log('🔍 Password reset environment:', {
+        baseUrl: envConfig.baseUrl,
+        isProduction: envConfig.isProduction,
+        hasAccessToken: !!accessToken
+      });
+      
       if (accessToken) {
         // Set the session with the tokens from URL
         supabase.auth.setSession({
@@ -54,7 +61,7 @@ export default function PasswordReset() {
         });
       }
     }
-  }, [isUpdatingPassword, searchParams]);
+  }, [isUpdatingPassword, searchParams, envConfig.baseUrl, envConfig.isProduction]);
 
   // Password strength validation
   useEffect(() => {
@@ -168,11 +175,15 @@ export default function PasswordReset() {
   };
 
   const handlePasswordResetRequest = async () => {
+    console.log('🚀 Sending password reset email...');
+    console.log('📧 Reset redirect URL:', envConfig.redirectUrl);
+    
     const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
+      redirectTo: `${envConfig.baseUrl}/auth/reset-password`, // FIXED: Use environment config
     });
 
     if (error) {
+      console.error('❌ Password reset error:', error);
       if (error.message.includes('rate limit')) {
         setError('Too many reset requests. Please wait a few minutes before trying again.');
       } else {
@@ -181,6 +192,7 @@ export default function PasswordReset() {
       return;
     }
 
+    console.log('✅ Password reset email sent successfully!');
     setMessage(
       `A password reset link has been sent to ${formData.email}. Please check your inbox (and spam folder) and follow the instructions to reset your password.`
     );
@@ -190,11 +202,14 @@ export default function PasswordReset() {
   };
 
   const handlePasswordUpdate = async () => {
+    console.log('🔄 Updating password...');
+    
     const { error } = await supabase.auth.updateUser({
       password: formData.password
     });
 
     if (error) {
+      console.error('❌ Password update error:', error);
       if (error.message.includes('session_not_found')) {
         setError('Your reset session has expired. Please request a new password reset link.');
       } else {
@@ -203,6 +218,7 @@ export default function PasswordReset() {
       return;
     }
 
+    console.log('✅ Password updated successfully!');
     setMessage('Your password has been successfully updated! You can now sign in with your new password.');
     
     // Redirect to login after a short delay
@@ -228,6 +244,22 @@ export default function PasswordReset() {
               : 'Enter your email address and we\'ll send you a link to reset your password'
             }
           </p>
+          
+          {/* Debug info for development */}
+          {!envConfig.isProduction && (
+            <div style={{ 
+              fontSize: '0.7rem', 
+              color: '#666', 
+              marginTop: '8px',
+              padding: '4px 8px',
+              background: 'rgba(79, 172, 254, 0.1)',
+              borderRadius: '4px',
+              border: '1px solid rgba(79, 172, 254, 0.2)'
+            }}>
+              Mode: {isUpdatingPassword ? 'Update Password' : 'Request Reset'}<br/>
+              Redirect URL: {envConfig.baseUrl}/auth/reset-password
+            </div>
+          )}
         </div>
 
         {/* Alert Messages */}
