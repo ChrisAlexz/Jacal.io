@@ -1,4 +1,4 @@
-/* src/styles/Home.css - PROFESSIONAL TECH-FOCUSED DESIGN */
+/* src/styles/Home.css - FIXED TERMINAL DEMO SECTION */
 
 :root {
   --color-background: #0a0a0a;
@@ -33,7 +33,6 @@
   box-sizing: border-box;
 }
 
-/* Remove global html, body styles that affect other pages */
 .home-container {
   min-height: 100vh;
   background: var(--color-background);
@@ -348,7 +347,6 @@
   position: relative;
   z-index: 1;
   padding: 6rem 1rem;
-  /* Remove solid background to blend with grid */
   background: transparent;
 }
 
@@ -437,7 +435,6 @@
   position: relative;
   z-index: 1;
   padding: 3rem 1rem 4rem 1rem;
-  /* Remove solid background to blend with grid */
   background: transparent;
 }
 
@@ -469,7 +466,6 @@
   position: relative;
   z-index: 1;
   padding: 6rem 1rem;
-  /* Remove solid background to blend with grid */
   background: transparent;
 }
 
@@ -492,6 +488,32 @@
   color: var(--color-text-secondary);
   line-height: 1.6;
   margin-bottom: 2rem;
+}
+
+/* Terminal Demo Section */
+.terminal-demo-section {
+  position: relative;
+  z-index: 1;
+  padding: 6rem 1rem;
+  background: transparent;
+  margin-bottom: 4rem;
+}
+
+.terminal-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+/* Ensure terminal windows in demo have consistent styling */
+.terminal-demo-grid .terminal-window {
+  max-width: none;
+  width: 100%;
+}
+
+.terminal-demo-grid .terminal-body {
+  min-height: 120px;
 }
 
 /* Dashboard Styles */
@@ -801,6 +823,16 @@
   .terminal-window {
     max-width: 400px;
   }
+  
+  .terminal-demo-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .terminal-demo-grid .terminal-window {
+    max-width: 500px;
+    margin: 0 auto;
+  }
 }
 
 @media (max-width: 768px) {
@@ -861,6 +893,15 @@
     padding: 1rem;
     font-size: 0.75rem;
   }
+  
+  .terminal-demo-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .terminal-demo-grid .terminal-window {
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
@@ -897,6 +938,10 @@
   
   .cta-content h2 {
     font-size: 1.875rem;
+  }
+  
+  .terminal-demo-grid {
+    grid-template-columns: 1fr;
   }
 }
 

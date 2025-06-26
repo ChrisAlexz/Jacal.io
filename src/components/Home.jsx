@@ -1,4 +1,4 @@
-// src/components/Home.jsx - PROFESSIONAL TECH-FOCUSED DESIGN
+// src/components/Home.jsx - COMPLETE WITH MEDICAL DEMO
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
@@ -21,6 +21,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
+  // Medical demo state
+  // const [revealedCount, setRevealedCount] = useState(2);
+
   // Get greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -28,6 +31,26 @@ export default function Home() {
     if (hour < 17) return 'Good Afternoon';
     return 'Good Evening';
   };
+
+  // Update progress for demo
+  // const updateProgress = () => {
+  //   const revealed = document.querySelectorAll('.anatomical-mask.revealed').length;
+  //   const total = document.querySelectorAll('.anatomical-mask').length;
+  //   const percentage = (revealed / total) * 100;
+  //   
+  //   const progressFill = document.getElementById('progress-fill');
+  //   const progressText = document.getElementById('progress-text');
+  //   
+  //   if (progressFill) {
+  //     progressFill.style.width = percentage + '%';
+  //   }
+  //   
+  //   if (progressText) {
+  //     progressText.textContent = `${revealed}/${total} structures`;
+  //   }
+  //   
+  //   setRevealedCount(revealed);
+  // };
 
   // Enhanced fetchStats with proper last studied tracking AND studied today count
   const fetchStats = async () => {
@@ -412,8 +435,8 @@ export default function Home() {
                     <path d="M3 10h18"/>
                   </svg>
                 </div>
-                <h3>Smart Scheduling</h3>
-                <p>Automatic scheduling based on forgetting curves and personal performance.</p>
+                <h3>Customizable Flashcards</h3>
+                <p>Personalize your cards with rich text, images, and custom formatting to match your learning style.</p>
               </div>
               
               <div className="feature-card">
@@ -436,8 +459,8 @@ export default function Home() {
                     <path d="m9 12 2 2 4-4"/>
                   </svg>
                 </div>
-                <h3>Seamless Sync</h3>
-                <p>Real-time synchronization across all your devices with offline support.</p>
+                <h3>Multiple Card Types</h3>
+                <p>Create basic, cloze deletion, and image occlusion cards to master any type of content effectively.</p>
               </div>
               
               <div className="feature-card">
@@ -473,32 +496,13 @@ export default function Home() {
                 <div className="stat-label">Less time needed to memorize</div>
               </div>
               <div className="stat-item">
-                <div className="stat-number">1885</div>
-                <div className="stat-label">First studied by Ebbinghaus</div>
+                <div className="stat-number">3x</div>
+                <div className="stat-label">Faster learning with spaced intervals</div>
               </div>
               <div className="stat-item">
                 <div className="stat-number">95%</div>
                 <div className="stat-label">Retention after optimal intervals</div>
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="cta-section">
-          <div className="container">
-            <div className="cta-content">
-              <h2>Ready to transform your learning?</h2>
-              <p>Join thousands of students and professionals using intelligent flashcards.</p>
-              <button 
-                className="btn-primary"
-                onClick={() => navigate('/register')}
-              >
-                Get started for free
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m9 18 6-6-6-6"/>
-                </svg>
-              </button>
             </div>
           </div>
         </section>
@@ -573,6 +577,25 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="cta-section">
+          <div className="container">
+            <div className="cta-content">
+              <h2>Ready to transform your learning?</h2>
+              <p>Join thousands of students and professionals using intelligent flashcards.</p>
+              <button 
+                className="btn-primary"
+                onClick={() => navigate('/register')}
+              >
+                Get started for free
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m9 18 6-6-6-6"/>
+                </svg>
+              </button>
             </div>
           </div>
         </section>
