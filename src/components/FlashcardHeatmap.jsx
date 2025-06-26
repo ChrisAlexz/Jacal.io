@@ -1,4 +1,4 @@
-// src/components/FlashcardHeatmap.jsx - Working Heatmap Component (Security Fixed)
+// src/components/FlashcardHeatmap.jsx - Working Heatmap Component with FIXED Month Positioning
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import UserAuthContext from './context/UserAuthContext';
 import { 
@@ -109,7 +109,7 @@ const FlashcardHeatmap = ({ className = '' }) => {
   };
 
   /**
-   * Group days into weeks for display
+   * Group days into weeks for display - BACK TO VERTICAL LAYOUT
    */
   const groupIntoWeeks = (days) => {
     if (!days || days.length === 0) return [];
@@ -121,7 +121,7 @@ const FlashcardHeatmap = ({ className = '' }) => {
     const firstDate = new Date(days[0].date + 'T00:00:00');
     const dayOfWeek = firstDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
 
-    // Add empty cells for days before the month starts
+    // Add empty cells for days before the year starts
     for (let i = 0; i < dayOfWeek; i++) {
       currentWeek.push(null);
     }
@@ -148,12 +148,12 @@ const FlashcardHeatmap = ({ className = '' }) => {
   };
 
   /**
-   * Get month labels for the year
+   * Get month labels for the year - FIXED VERSION
    */
   const getMonthLabels = () => {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
     ];
     
     return months.map((month, index) => ({
@@ -163,7 +163,7 @@ const FlashcardHeatmap = ({ className = '' }) => {
   };
 
   /**
-   * Calculate week offset for month labels
+   * Calculate week offset for month labels - CORRECTED VERSION
    */
   const getWeekOffset = (year, monthIndex) => {
     const firstDayOfYear = new Date(year, 0, 1);
@@ -260,7 +260,7 @@ const FlashcardHeatmap = ({ className = '' }) => {
         </div>
       )}
 
-      {/* Heatmap Grid */}
+      {/* Heatmap Grid - BACK TO VERTICAL LAYOUT */}
       {!loading && !error && (
         <div className="heatmap-grid">
           {/* Month Labels */}
@@ -269,7 +269,7 @@ const FlashcardHeatmap = ({ className = '' }) => {
               <span
                 key={month.name}
                 className="month-label"
-                style={{ left: `${month.weekOffset * 14 + 45}px` }}
+                style={{ left: `${month.weekOffset * 15 + 45}px` }}
               >
                 {month.name}
               </span>

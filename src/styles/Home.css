@@ -1533,3 +1533,101 @@
     --color-text-tertiary: #999999;
   }
 }
+/* Add this to the existing Home.css file - Heatmap Centering Fix for signed-in users */
+
+/* CRITICAL FIX: Ensure heatmap is properly centered within signed-in dashboard layout */
+.home-container.logged-in {
+  /* Existing styles... */
+  background: #121212 !important;
+  color: white !important;
+  padding: 0 !important;
+  position: relative;
+  
+  /* FIXED: Ensure proper container behavior for centering child elements */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch; /* Allow children to stretch but center heatmap specifically */
+}
+
+/* FIXED: Specific wrapper for heatmap to ensure proper centering */
+.home-container.logged-in .flashcard-heatmap {
+  /* Override any inherited styles that might prevent centering */
+  margin: 40px auto !important;
+  max-width: 1200px !important;
+  width: calc(100% - 80px) !important; /* Account for margins */
+  position: relative !important;
+  z-index: 1 !important;
+  
+  /* Ensure the heatmap container doesn't inherit any flex properties that break centering */
+  align-self: center;
+  flex-shrink: 0;
+}
+
+/* FIXED: Ensure all major sections in logged-in home are properly contained */
+.home-container.logged-in > * {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+/* FIXED: Specific overrides for sections that should maintain their existing margins */
+.home-container.logged-in .welcome-section {
+  margin: 0 auto !important;
+  padding: 120px 20px 40px 20px !important;
+}
+
+.home-container.logged-in .stats-section {
+  margin: 0 auto !important;
+  padding: 40px 20px !important;
+}
+
+.home-container.logged-in .quick-actions-section {
+  margin: 0 auto !important;
+  padding: 40px 20px !important;
+}
+
+.home-container.logged-in .recent-section {
+  margin: 0 auto !important;
+  padding: 40px 20px !important;
+}
+
+/* RESPONSIVE FIXES for heatmap centering */
+@media (max-width: 1240px) {
+  .home-container.logged-in .flashcard-heatmap {
+    width: calc(100% - 60px) !important;
+    margin: 40px auto !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-container.logged-in .flashcard-heatmap {
+    width: calc(100% - 30px) !important;
+    margin: 30px auto !important;
+  }
+  
+  .home-container.logged-in .welcome-section,
+  .home-container.logged-in .stats-section,
+  .home-container.logged-in .quick-actions-section,
+  .home-container.logged-in .recent-section {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-container.logged-in .flashcard-heatmap {
+    width: calc(100% - 20px) !important;
+    margin: 20px auto !important;
+  }
+  
+  .home-container.logged-in .welcome-section,
+  .home-container.logged-in .stats-section,
+  .home-container.logged-in .quick-actions-section,
+  .home-container.logged-in .recent-section {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}
