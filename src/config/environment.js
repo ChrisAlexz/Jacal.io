@@ -1,35 +1,61 @@
-// src/config/environment.js - Environment-specific configuration
+// src/config/environment.js - FIXED for proper OAuth redirects
 const getEnvironmentConfig = () => {
+  // Determine environment
   const hostname = window.location.hostname;
   const protocol = window.location.protocol;
+  const port = window.location.port;
   
-  // Determine environment based on hostname
-  const isProduction = hostname === 'jacal.io' || hostname === 'www.jacal.io';
+  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
   const isStaging = hostname.includes('staging') || hostname.includes('preview');
-  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('192.168.');
-  
+  const isProduction = hostname === 'jacal.io' || (!isLocal && !isStaging);
+
+  // Base URL configuration
   let baseUrl;
+  let apiUrl;
   
-  if (isProduction) {
-    baseUrl = 'https://jacal.io';
+  if (isLocal) {
+    // Local development - detect actual port
+    baseUrl = `${protocol}//${hostname}${port ? `:${port}` : ''}`;
+    apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
   } else if (isStaging) {
+    // Staging environment
     baseUrl = `${protocol}//${hostname}`;
-  } else if (isLocal) {
-    baseUrl = `${protocol}//${hostname}:${window.location.port || '3000'}`;
+    apiUrl = process.env.REACT_APP_API_URL || `${protocol}//${hostname}`;
   } else {
-    // Fallback for other environments (Vercel previews, etc.)
-    baseUrl = `${protocol}//${hostname}`;
+    // Production
+    baseUrl = 'https://jacal.io';
+    apiUrl = process.env.REACT_APP_API_URL || 'https://jacal.io';
   }
+
+  // OAuth redirect URLs
+  const redirectUrl = `${baseUrl}/auth/callback`;
   
-  return {
-    baseUrl,
-    isProduction,
-    isStaging,
+  console.log('🌍 Environment Config:', {
+    hostname,
+    port,
     isLocal,
-    redirectUrl: `${baseUrl}/auth/callback`,
-    // Add other environment-specific configs here
-    supabaseUrl: process.env.REACT_APP_SUPABASE_URL,
-    supabaseAnonKey: process.env.REACT_APP_SUPABASE_ANON_KEY,
+    isStaging, 
+    isProduction,
+    baseUrl,
+    redirectUrl,
+    env: process.env.NODE_ENV
+  });
+
+  return {
+    isLocal,
+    isStaging,
+    isProduction,
+    baseUrl,
+    apiUrl,
+    redirectUrl,
+    
+    // Email service config
+    emailService: {
+      fromEmail: process.env.REACT_APP_FROM_EMAIL || 'noreply@jacal.io',
+      fromName: process.env.REACT_APP_FROM_NAME || 'Jacal Learning Platform',
+      supportEmail: process.env.REACT_APP_SUPPORT_EMAIL || 'support@jacal.io',
+      websiteUrl: baseUrl
+    }
   };
 };
 

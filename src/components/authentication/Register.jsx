@@ -1,9 +1,10 @@
-// components/authentication/Register.jsx - CLEAN VERSION
+// src/components/authentication/Register.jsx - FIXED OAuth redirects
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import UserAuthContext from '../context/UserAuthContext';
 import { supabase } from '../../supabase';
 import { emailService } from '../../api/emailService';
+import getEnvironmentConfig from '../../config/environment'; // Import environment config
 import { 
   FaEye, 
   FaEyeSlash, 
@@ -20,6 +21,7 @@ import '../../styles/Register.css';
 export default function Register() {
   const navigate = useNavigate();
   const { login, isLoggedIn } = useContext(UserAuthContext);
+  const envConfig = getEnvironmentConfig(); // Get environment config
 
   // Form states
   const [formData, setFormData] = useState({
@@ -211,7 +213,7 @@ export default function Register() {
       email: formData.email,
       password: formData.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: envConfig.redirectUrl, // Use environment-based redirect
         data: {
           name: formData.fullName.trim(),
           picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullName)}&background=4facfe&color=fff&size=200`,
@@ -245,8 +247,8 @@ export default function Register() {
       'email_confirmation'
     );
 
-    // Create confirmation URL
-    const confirmationUrl = `${window.location.origin}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(formData.email)}`;
+    // Create confirmation URL - Use environment config
+    const confirmationUrl = `${envConfig.baseUrl}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(formData.email)}`;
 
     // Send beautiful Jacal confirmation email
     await emailService.sendConfirmationEmail(
@@ -278,7 +280,7 @@ export default function Register() {
       email: formData.email,
       password: formData.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: envConfig.redirectUrl, // Use environment-based redirect
         data: {
           name: formData.fullName.trim(),
           picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullName)}&background=4facfe&color=fff&size=200`
@@ -333,15 +335,21 @@ export default function Register() {
     }
   };
 
-  // Handle Google sign in
+  // Handle Google sign in - FIXED with environment config
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
     
+    console.log('🔍 Google OAuth config:', {
+      redirectTo: envConfig.redirectUrl,
+      environment: envConfig.isLocal ? 'local' : envConfig.isStaging ? 'staging' : 'production',
+      baseUrl: envConfig.baseUrl
+    });
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: envConfig.redirectUrl, // Use environment-based redirect URL
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -351,6 +359,7 @@ export default function Register() {
     });
     
     if (error) {
+      console.error('❌ Google OAuth error:', error);
       setError('Failed to sign in with Google. Please try again.');
       setLoading(false);
     }
@@ -386,18 +395,21 @@ export default function Register() {
             }
           </p>
           
-          {/* Show email service status in development */}
+          {/* Show environment and email service status in development */}
           {process.env.NODE_ENV === 'development' && (
             <div style={{ 
               fontSize: '0.7rem', 
               color: '#666', 
               marginTop: '8px',
-              padding: '4px 8px',
-              background: useCustomEmail ? 'rgba(40, 167, 69, 0.1)' : 'rgba(255, 193, 7, 0.1)',
+              padding: '6px 10px',
+              background: envConfig.isLocal ? 'rgba(40, 167, 69, 0.1)' : 'rgba(255, 193, 7, 0.1)',
               borderRadius: '4px',
-              border: `1px solid ${useCustomEmail ? 'rgba(40, 167, 69, 0.3)' : 'rgba(255, 193, 7, 0.3)'}`
+              border: `1px solid ${envConfig.isLocal ? 'rgba(40, 167, 69, 0.3)' : 'rgba(255, 193, 7, 0.3)'}`,
+              lineHeight: 1.4
             }}>
-              Email: {useCustomEmail ? 'Jacal Custom (Resend)' : 'Supabase Default'}
+              <div><strong>Env:</strong> {envConfig.isLocal ? 'Local' : envConfig.isStaging ? 'Staging' : 'Production'}</div>
+              <div><strong>Redirect:</strong> {envConfig.redirectUrl}</div>
+              <div><strong>Email:</strong> {useCustomEmail ? 'Jacal Custom (Resend)' : 'Supabase Default'}</div>
             </div>
           )}
         </div>
