@@ -1,4 +1,4 @@
-/* src/styles/Home.css - FIXED: Aggressive override for proper signed-in vs signed-out separation */
+/* src/styles/Home.css - FIXED: Complete separation of signed-in vs signed-out styles */
 
 /* ============================================================================
    SIGNED-OUT USER STYLES (Marketing Homepage) - Default Styles
@@ -435,35 +435,99 @@
   line-height: 1.6;
 }
 
-/* Stats Section */
-.stats-section {
+/* MARKETING STATS SECTION WITH CIRCULAR PROGRESS INDICATORS */
+.marketing-stats-section {
   position: relative;
   z-index: 1;
   padding: 3rem 1rem 4rem 1rem;
   background: transparent;
 }
 
-.stats-grid {
+.marketing-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 2rem;
+  gap: 3rem;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
-.stat-item {
+.marketing-stat-item {
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
 }
 
-.stat-number {
-  font-size: 2.5rem;
+.marketing-stat-circle {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.marketing-stat-circle svg {
+  transform: rotate(-90deg);
+  width: 100%;
+  height: 100%;
+}
+
+.marketing-stat-circle .circle-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 8;
+}
+
+.marketing-stat-circle .circle-progress {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 2s ease-in-out;
+  animation: progressAnimation 2s ease-in-out;
+}
+
+/* Different colors for each stat */
+.marketing-stat-item:nth-child(1) .circle-progress {
+  stroke: #4facfe;
+}
+
+.marketing-stat-item:nth-child(2) .circle-progress {
+  stroke: #00f2fe;
+}
+
+.marketing-stat-item:nth-child(3) .circle-progress {
+  stroke: #10b981;
+}
+
+.marketing-stat-item:nth-child(4) .circle-progress {
+  stroke: #f59e0b;
+}
+
+@keyframes progressAnimation {
+  0% {
+    stroke-dashoffset: 283; /* Full circle circumference */
+  }
+}
+
+.marketing-stat-number {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.8rem;
   font-weight: 700;
   color: var(--color-text-primary);
-  margin-bottom: 0.5rem;
+  z-index: 2;
 }
 
-.stat-label {
+.marketing-stat-label {
   font-size: 0.875rem;
   color: var(--color-text-secondary);
   font-weight: 500;
+  line-height: 1.4;
+  max-width: 180px;
 }
 
 /* CTA Section */
@@ -521,7 +585,7 @@
 }
 
 /* ============================================================================
-   SIGNED-IN USER STYLES (Original Dashboard) - COMPLETE OVERRIDE
+   SIGNED-IN USER STYLES (Dashboard) - COMPLETE OVERRIDE
    ============================================================================ */
 
 /* AGGRESSIVE RESET AND OVERRIDE FOR SIGNED-IN USERS */
@@ -547,6 +611,9 @@
   color: white !important;
   padding: 0 !important;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 
 /* Hide marketing elements completely for signed-in users */
@@ -555,6 +622,7 @@
 .home-container.logged-in .features-section,
 .home-container.logged-in .terminal-demo-section,
 .home-container.logged-in .cta-section,
+.home-container.logged-in .marketing-stats-section,
 .home-container.logged-in .status-badge,
 .home-container.logged-in .hero-content,
 .home-container.logged-in .hero-visual,
@@ -809,22 +877,7 @@
   box-shadow: 0 8px 30px rgba(79, 172, 254, 0.4) !important;
 }
 
-.home-container.logged-in .cta-icon {
-  font-size: 1.3rem !important;
-  font-weight: bold !important;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-}
-
-/* Stats Section for signed-in users */
+/* SIGNED-IN STATS SECTION - COMPLETELY SEPARATE FROM MARKETING STATS */
 .home-container.logged-in .stats-section {
   padding: 40px 20px !important;
   max-width: 1200px !important;
@@ -907,18 +960,27 @@
   font-size: 2.5rem !important;
   padding: 16px !important;
   border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 64px !important;
+  height: 64px !important;
+  flex-shrink: 0 !important;
 }
 
 .home-container.logged-in .sets-icon {
   background: rgba(79, 172, 254, 0.1) !important;
+  color: #4facfe !important;
 }
 
 .home-container.logged-in .cards-icon {
   background: rgba(255, 193, 7, 0.1) !important;
+  color: #ffc107 !important;
 }
 
 .home-container.logged-in .study-icon {
   background: rgba(40, 167, 69, 0.1) !important;
+  color: #28a745 !important;
 }
 
 .home-container.logged-in .stat-content {
@@ -1292,6 +1354,44 @@
   margin: 0 !important;
 }
 
+/* HEATMAP CENTERING FIX for signed-in users */
+.home-container.logged-in > .welcome-section,
+.home-container.logged-in > .stats-section,
+.home-container.logged-in > .quick-actions-section,
+.home-container.logged-in > .recent-section {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.home-container.logged-in .flashcard-heatmap {
+  max-width: 1200px !important;
+  width: calc(100% - 80px) !important;
+  margin: 40px auto !important;
+  position: relative !important;
+  z-index: 10 !important;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.home-container.logged-in .flashcard-heatmap * {
+  max-width: none !important;
+  margin-left: initial !important;
+  margin-right: initial !important;
+  width: auto !important;
+}
+
+.home-container.logged-in .flashcard-heatmap .heatmap-grid,
+.home-container.logged-in .flashcard-heatmap .heatmap-main-grid,
+.home-container.logged-in .flashcard-heatmap .heatmap-months-container {
+  max-width: none !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
 /* ============================================================================
    RESPONSIVE DESIGN
    ============================================================================ */
@@ -1357,7 +1457,7 @@
   }
   
   .home-container:not(.logged-in) .features-grid,
-  .home-container:not(.logged-in) .stats-grid {
+  .home-container:not(.logged-in) .marketing-stats-grid {
     grid-template-columns: 1fr;
   }
   
@@ -1396,6 +1496,19 @@
   
   .home-container.logged-in .sets-grid {
     grid-template-columns: 1fr !important;
+  }
+
+  .home-container.logged-in .flashcard-heatmap {
+    width: calc(100% - 30px) !important;
+    margin: 30px auto !important;
+  }
+  
+  .home-container.logged-in .welcome-section,
+  .home-container.logged-in .stats-section,
+  .home-container.logged-in .quick-actions-section,
+  .home-container.logged-in .recent-section {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
   }
 
   /* Reduce animation intensity on mobile */
@@ -1457,6 +1570,19 @@
     padding: 40px 20px !important;
   }
 
+  .home-container.logged-in .flashcard-heatmap {
+    width: calc(100% - 20px) !important;
+    margin: 20px auto !important;
+  }
+  
+  .home-container.logged-in .welcome-section,
+  .home-container.logged-in .stats-section,
+  .home-container.logged-in .quick-actions-section,
+  .home-container.logged-in .recent-section {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
   /* Disable complex animations on very small screens for performance */
   .home-container.logged-in::before {
     animation-duration: 25s;
@@ -1468,6 +1594,14 @@
       150px 150px, 160px 160px, 140px 140px,
       100px 100px, 110px 110px, 105px 105px, 120px 120px;
     animation-duration: 60s, 45s, 65s;
+  }
+}
+
+/* Responsive heatmap adjustments */
+@media (max-width: 1240px) {
+  .home-container.logged-in .flashcard-heatmap {
+    width: calc(100% - 60px) !important;
+    margin: 40px auto !important;
   }
 }
 
@@ -1495,7 +1629,6 @@
   .home-container.logged-in::after,
   .home-container.logged-in .greeting-time,
   .home-container.logged-in .primary-cta,
-  .home-container.logged-in .cta-icon,
   .home-container.logged-in .empty-icon {
     animation: none;
   }
@@ -1531,144 +1664,5 @@
     --color-border-subtle: #303030;
     --color-text-secondary: #cccccc;
     --color-text-tertiary: #999999;
-  }
-}
-/* Add this to the existing Home.css file - Heatmap Centering Fix for signed-in users */
-
-/* CRITICAL FIX: Ensure heatmap is properly centered within signed-in dashboard layout */
-.home-container.logged-in {
-  /* Existing styles... */
-  background: #121212 !important;
-  color: white !important;
-  padding: 0 !important;
-  position: relative;
-  
-  /* FIXED: Ensure proper container behavior for centering child elements */
-  display: flex;
-  flex-direction: column;
-  align-items: stretch; /* Allow children to stretch but center heatmap specifically */
-}
-
-/* FIXED: Specific wrapper for heatmap to ensure proper centering */
-.home-container.logged-in .flashcard-heatmap {
-  /* Override any inherited styles that might prevent centering */
-  margin: 40px auto !important;
-  max-width: 1200px !important;
-  width: calc(100% - 80px) !important; /* Account for margins */
-  position: relative !important;
-  z-index: 1 !important;
-  
-  /* Ensure the heatmap container doesn't inherit any flex properties that break centering */
-  align-self: center;
-  flex-shrink: 0;
-}
-
-/* FIXED: Ensure all major sections in logged-in home are properly contained */
-/* FIXED: More specific targeting for signed-in home container children to exclude heatmap */
-.home-container.logged-in > .welcome-section,
-.home-container.logged-in > .stats-section,
-.home-container.logged-in > .quick-actions-section,
-.home-container.logged-in > .recent-section {
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
-  position: relative;
-  z-index: 1;
-}
-
-/* CRITICAL: Exclude heatmap from container constraints */
-.home-container.logged-in .flashcard-heatmap {
-  max-width: 1200px !important;
-  width: calc(100% - 80px) !important;
-  margin: 40px auto !important;
-  position: relative !important;
-  z-index: 10 !important;
-  /* Ensure the heatmap's internal elements aren't constrained */
-}
-
-.home-container.logged-in .flashcard-heatmap * {
-  max-width: none !important;
-  margin-left: initial !important;
-  margin-right: initial !important;
-  width: auto !important;
-}
-
-/* SPECIFIC OVERRIDES for heatmap internal containers */
-.home-container.logged-in .flashcard-heatmap .heatmap-grid {
-  max-width: none !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  width: 100% !important;
-}
-
-.home-container.logged-in .flashcard-heatmap .heatmap-main-grid {
-  max-width: none !important;
-  margin: 0 !important;
-  width: 100% !important;
-}
-
-.home-container.logged-in .flashcard-heatmap .heatmap-months-container {
-  max-width: none !important;
-  margin: 0 !important;
-  width: 100% !important;
-}
-
-/* FIXED: Specific overrides for sections that should maintain their existing margins */
-.home-container.logged-in .welcome-section {
-  margin: 0 auto !important;
-  padding: 120px 20px 40px 20px !important;
-}
-
-.home-container.logged-in .stats-section {
-  margin: 0 auto !important;
-  padding: 40px 20px !important;
-}
-
-.home-container.logged-in .quick-actions-section {
-  margin: 0 auto !important;
-  padding: 40px 20px !important;
-}
-
-.home-container.logged-in .recent-section {
-  margin: 0 auto !important;
-  padding: 40px 20px !important;
-}
-
-/* RESPONSIVE FIXES for heatmap centering */
-@media (max-width: 1240px) {
-  .home-container.logged-in .flashcard-heatmap {
-    width: calc(100% - 60px) !important;
-    margin: 40px auto !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .home-container.logged-in .flashcard-heatmap {
-    width: calc(100% - 30px) !important;
-    margin: 30px auto !important;
-  }
-  
-  .home-container.logged-in .welcome-section,
-  .home-container.logged-in .stats-section,
-  .home-container.logged-in .quick-actions-section,
-  .home-container.logged-in .recent-section {
-    padding-left: 15px !important;
-    padding-right: 15px !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .home-container.logged-in .flashcard-heatmap {
-    width: calc(100% - 20px) !important;
-    margin: 20px auto !important;
-  }
-  
-  .home-container.logged-in .welcome-section,
-  .home-container.logged-in .stats-section,
-  .home-container.logged-in .quick-actions-section,
-  .home-container.logged-in .recent-section {
-    padding-left: 10px !important;
-    padding-right: 10px !important;
   }
 }

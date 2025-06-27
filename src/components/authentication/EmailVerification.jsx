@@ -1,8 +1,8 @@
-// components/authentication/EmailVerification.jsx - FIXED IMPORTS
+// components/authentication/EmailVerification.jsx - Clean Production Version
 import React, { useEffect, useState, useContext } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../supabase';
-import { emailService } from '../../api/emailService'; // FIXED: correct path
+import { emailService } from '../../api/emailService';
 import UserAuthContext from '../context/UserAuthContext';
 import { FaCheckCircle, FaExclamationTriangle, FaSpinner, FaEnvelope } from 'react-icons/fa';
 import '../../styles/Register.css';
@@ -49,8 +49,6 @@ export default function EmailVerification() {
       }, 3000);
 
     } catch (error) {
-      console.error('Email verification error:', error);
-      
       if (error.message.includes('expired')) {
         setStatus('expired');
         setMessage('This verification link has expired. Please request a new one.');
@@ -75,7 +73,6 @@ export default function EmailVerification() {
       setStatus('success');
 
     } catch (error) {
-      console.error('Resend verification error:', error);
       setMessage('Failed to resend verification email. Please try again later.');
     } finally {
       setResendLoading(false);

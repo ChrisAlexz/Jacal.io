@@ -1,4 +1,4 @@
-// components/authentication/CustomRegister.jsx - Updated Register Component
+// components/authentication/CustomRegister.jsx - Clean Production Version
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import UserAuthContext from '../context/UserAuthContext';
@@ -168,7 +168,6 @@ export default function CustomRegister() {
         await handleSignIn();
       }
     } catch (err) {
-      console.error('Auth error:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
@@ -187,7 +186,7 @@ export default function CustomRegister() {
           data: {
             name: formData.fullName.trim(),
             picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullName)}&background=4facfe&color=fff&size=200`,
-            email_verified: false // We'll handle verification manually
+            email_verified: false
           }
         }
       });
@@ -241,12 +240,11 @@ export default function CustomRegister() {
       });
 
     } catch (error) {
-      console.error('Custom sign up error:', error);
       setError('Failed to send verification email. Please try again.');
     }
   };
 
-  // Handle sign in (unchanged)
+  // Handle sign in
   const handleSignIn = async () => {
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email: formData.email,
@@ -270,7 +268,7 @@ export default function CustomRegister() {
     }
   };
 
-  // Handle Google sign in (unchanged)
+  // Handle Google sign in
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
@@ -621,7 +619,7 @@ const ResendVerificationButton = ({ email, userName }) => {
       // Generate new verification token
       const newToken = emailService.generateVerificationToken();
       
-      // Get user ID (this is a simplified approach - in production you might want to handle this differently)
+      // Get user ID
       const { data: userData, error: userError } = await supabase.auth.getUser();
       
       if (userError || !userData.user) {
@@ -663,7 +661,6 @@ const ResendVerificationButton = ({ email, userName }) => {
       }, 1000);
 
     } catch (error) {
-      console.error('Resend verification error:', error);
       setResendMessage('❌ Failed to send verification email. Please try again.');
     } finally {
       setResendLoading(false);

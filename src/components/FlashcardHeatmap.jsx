@@ -1,4 +1,4 @@
-// src/components/FlashcardHeatmap.jsx - Working Heatmap Component with MONTH-SEPARATED Layout
+// src/components/FlashcardHeatmap.jsx - FIXED WITH INLINE STYLES
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import UserAuthContext from './context/UserAuthContext';
 import { 
@@ -212,47 +212,97 @@ const FlashcardHeatmap = ({ className = '' }) => {
 
   return (
     <div className={`flashcard-heatmap ${className}`}>
-      {/* Header */}
-      <div className="heatmap-header">
-        <div className="heatmap-title-section">
-          <h3>
+      {/* Header - FIXED WITH INLINE STYLES + MOBILE RESPONSIVE */}
+      <div className="heatmap-header" style={{ position: 'relative' }}>
+        <div 
+          className="heatmap-title-section"
+          style={{ 
+            paddingTop: window.innerWidth <= 768 ? '20px' : '32px',    // RESPONSIVE TOP SPACING
+            paddingLeft: window.innerWidth <= 768 ? '20px' : '40px',   // RESPONSIVE LEFT SPACING
+            paddingBottom: window.innerWidth <= 768 ? '16px' : '24px', // RESPONSIVE BOTTOM SPACING
+            display: 'flex',
+            flexDirection: 'column',
+            gap: window.innerWidth <= 768 ? '12px' : '16px'             // RESPONSIVE GAP
+          }}
+        >
+          <h3 style={{ 
+            margin: '0', 
+            padding: '0',
+            fontSize: window.innerWidth <= 768 ? '1.3rem' : '1.6rem'   // RESPONSIVE FONT SIZE
+          }}>
             📊 Study Activity
             {loading && <span className="loading-indicator">⟳</span>}
           </h3>
-          <span className="total-reviews">
-               {stats.totalReviews} reviews in {selectedYear}
+          <span 
+            className="total-reviews"
+            style={{ 
+              paddingLeft: window.innerWidth <= 768 ? '16px' : '24px',  // RESPONSIVE LEFT SPACING
+              margin: '0',
+              fontSize: window.innerWidth <= 768 ? '0.9rem' : '1rem'    // RESPONSIVE FONT SIZE
+            }}
+          >
+            {stats.totalReviews} reviews in {selectedYear}
           </span>
         </div>
 
-        <div className="year-navigation">
-          <button
-            className="year-nav-btn"
-            onClick={() => setSelectedYear(prev => prev - 1)}
-            disabled={loading || selectedYear <= availableYears[availableYears.length - 1]}
-            title="Previous year"
-          >
-            ‹
-          </button>
-          
-          <select
-            className="year-select"
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            disabled={loading}
-          >
-            {availableYears.map(year => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
-          
-          <button
-            className="year-nav-btn"
-            onClick={() => setSelectedYear(prev => prev + 1)}
-            disabled={loading || selectedYear >= new Date().getFullYear()}
-            title="Next year"
-          >
-            ›
-          </button>
+        <div 
+          style={{
+            position: window.innerWidth <= 768 ? 'static' : 'absolute', // MOBILE: USE NORMAL FLOW
+            top: window.innerWidth <= 768 ? 'auto' : '32px',
+            right: window.innerWidth <= 768 ? 'auto' : '40px',
+            zIndex: 10,
+            marginTop: window.innerWidth <= 768 ? '20px' : '0',         // MOBILE: ADD TOP MARGIN
+            display: 'flex',
+            justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-start', // MOBILE: CENTER
+            paddingRight: window.innerWidth <= 768 ? '20px' : '0',     // MOBILE: RIGHT PADDING
+            paddingLeft: window.innerWidth <= 768 ? '20px' : '0'       // MOBILE: LEFT PADDING
+          }}
+        >
+          <div className="year-navigation">
+            <button
+              className="year-nav-btn"
+              onClick={() => setSelectedYear(prev => prev - 1)}
+              disabled={loading || selectedYear <= availableYears[availableYears.length - 1]}
+              title="Previous year"
+              style={{
+                width: window.innerWidth <= 768 ? '36px' : '40px',      // MOBILE: SMALLER BUTTONS
+                height: window.innerWidth <= 768 ? '36px' : '40px',
+                fontSize: window.innerWidth <= 768 ? '1rem' : '1.2rem'
+              }}
+            >
+              ‹
+            </button>
+            
+            <select
+              className="year-select"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              disabled={loading}
+              style={{
+                padding: window.innerWidth <= 768 ? '10px 32px 10px 16px' : '12px 40px 12px 20px', // MOBILE: SMALLER PADDING
+                fontSize: window.innerWidth <= 768 ? '0.9rem' : '1rem',
+                minWidth: window.innerWidth <= 768 ? '90px' : '100px'
+              }}
+            >
+              {availableYears.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+            
+            <button
+              className="year-nav-btn"
+              onClick={() => setSelectedYear(prev => prev + 1)}
+              disabled={loading || selectedYear >= new Date().getFullYear()}
+              title="Next year"
+              style={{
+                width: window.innerWidth <= 768 ? '36px' : '40px',      // MOBILE: SMALLER BUTTONS
+                height: window.innerWidth <= 768 ? '36px' : '40px',
+                fontSize: window.innerWidth <= 768 ? '1rem' : '1.2rem'
+              }}
+            >
+              ›
+            </button>
+          </div>
         </div>
       </div>
 
@@ -279,8 +329,8 @@ const FlashcardHeatmap = ({ className = '' }) => {
         <div className="heatmap-grid">
           {/* Main Grid */}
           <div className="heatmap-main-grid">
-            {/* Day Labels */}
             <div className="day-labels">
+              <div className="spacer"></div> {/* CRITICAL: Empty spacer to align with month labels */}
               <span>Sun</span>
               <span>Mon</span>
               <span>Tue</span>
@@ -339,9 +389,17 @@ const FlashcardHeatmap = ({ className = '' }) => {
         </div>
       )}
 
-      {/* Stats */}
+      {/* Stats - MOBILE RESPONSIVE */}
       {!loading && !error && (
-        <div className="heatmap-stats">
+        <div 
+          className="heatmap-stats" 
+          style={{ 
+            marginTop: window.innerWidth <= 768 ? '24px' : '40px',     // RESPONSIVE TOP MARGIN
+            gridTemplateColumns: window.innerWidth <= 768 ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(140px, 1fr))', // MOBILE: 2 COLUMNS
+            gap: window.innerWidth <= 768 ? '16px' : '24px',           // RESPONSIVE GAP
+            padding: window.innerWidth <= 768 ? '20px 16px' : '32px 28px' // RESPONSIVE PADDING
+          }}
+        >
           <div className="stat-item">
             <div className="stat-value">{stats.totalReviews}</div>
             <div className="stat-label">Total Reviews</div>
@@ -363,7 +421,6 @@ const FlashcardHeatmap = ({ className = '' }) => {
 
       {/* Legend */}
       <div className="heatmap-legend">
-        <span className="legend-text">Less</span>
         <div className="legend-squares">
           {[0, 1, 2, 3, 4].map(level => (
             <div
@@ -373,7 +430,6 @@ const FlashcardHeatmap = ({ className = '' }) => {
             />
           ))}
         </div>
-        <span className="legend-text">More</span>
       </div>
     </div>
   );

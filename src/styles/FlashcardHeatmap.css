@@ -1,14 +1,14 @@
-/* src/styles/FlashcardHeatmap.css - MONTH-SEPARATED LAYOUT WITH PROPER SPACING */
+/* src/styles/FlashcardHeatmap.css - FIXED: Proper Day Alignment & Spacing */
 
 .flashcard-heatmap {
   background: linear-gradient(135deg, #1e1e1e 0%, #252525 100%);
   border: 1px solid #333;
   border-radius: 20px;
-  padding: 80px 80px 60px 80px; /* MASSIVE INCREASE: Much more padding everywhere */
+  padding: 40px;
   color: white;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  margin: 60px auto; /* INCREASED: More margin */
-  max-width: 1400px; /* INCREASED: Bigger container */
+  margin: 40px auto;
+  max-width: 1400px;
   width: 100%;
   position: relative;
   overflow: hidden;
@@ -44,34 +44,37 @@
   opacity: 1;
 }
 
-/* Header */
+/* FIXED: Header with proper spacing */
 .heatmap-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 80px; /* MASSIVE INCREASE: Much more space below header */
+  align-items: flex-start;
+  margin-bottom: 40px; /* Increased spacing */
   flex-wrap: wrap;
-  gap: 50px; /* INCREASED: Much more gap */
-  padding: 40px 50px 20px 50px; /* MASSIVE INCREASE: Much more padding everywhere */
+  gap: 30px; /* Increased gap */
+  padding: 0;
 }
 
 .heatmap-title-section {
-  padding: 30px 50px; /* MASSIVE INCREASE: Much bigger padding */
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* FIXED: Much more spacing between title and review count */
+  padding: 0;
 }
 
 .heatmap-title-section h3 {
-  margin: 0 0 25px 0; /* INCREASED: More space below title */
-  font-size: 1.8rem; /* INCREASED: Bigger font */
+  margin: 0;
+  font-size: 1.6rem;
   font-weight: 700;
   color: white;
   display: flex;
   align-items: center;
-  gap: 15px; /* INCREASED: More gap */
+  gap: 12px;
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  padding: 20px 40px; /* MASSIVE INCREASE: Much more padding */
+  padding: 0;
 }
 
 .loading-indicator {
@@ -87,12 +90,12 @@
 }
 
 .total-reviews {
-  font-size: 1.2rem; /* INCREASED: Bigger font */
+  font-size: 1rem;
   color: #aaa;
   font-weight: 500;
   letter-spacing: 0.5px;
-  padding: 20px 40px 20px 60px; /* MASSIVE INCREASE: Much more padding everywhere, especially left */
-  margin-top: 20px; /* INCREASED: Much more top margin */
+  padding: 0;
+  margin: 0;
 }
 
 /* Year Navigation */
@@ -102,7 +105,7 @@
   gap: 12px;
   background: rgba(0, 0, 0, 0.4);
   border-radius: 16px;
-  padding: 12px; /* INCREASED: More padding around navigation */
+  padding: 12px;
   border: 1px solid rgba(79, 172, 254, 0.2);
   backdrop-filter: blur(10px);
 }
@@ -161,20 +164,19 @@
   border: 2px solid #444;
   color: white;
   border-radius: 12px;
-  padding: 14px 24px; /* INCREASED: More padding for better spacing */
+  padding: 12px 40px 12px 20px;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
   appearance: none;
-  min-width: 120px; /* INCREASED: Wider select box */
+  min-width: 100px;
   text-align: center;
   position: relative;
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234facfe' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-  background-position: right 16px center; /* ADJUSTED: More space for arrow */
+  background-position: right 12px center;
   background-repeat: no-repeat;
   background-size: 16px;
-  padding-right: 48px; /* INCREASED: More right padding for arrow */
 }
 
 .year-select:focus {
@@ -256,34 +258,27 @@
   font-weight: 500;
 }
 
-/* Heatmap Grid - MONTH-SEPARATED LAYOUT */
+/* FIXED: Heatmap Grid with proper spacing */
 .heatmap-grid {
-  margin-bottom: 80px; /* INCREASED: Much more space below */
+  margin-bottom: 40px; /* Increased bottom margin */
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   width: 100%;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 16px;
-  padding: 80px 60px; /* MASSIVE INCREASE: Much more padding inside grid */
+  padding: 30px; /* Increased padding */
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Main Grid Container - EXTREME SPACING */
+/* CRITICAL FIX: Proper grid layout for day alignment */
 .heatmap-main-grid {
-  display: flex;
-  gap: 40px; /* MASSIVE: Much more gap between day labels and months */
-  align-items: flex-start;
-  justify-content: flex-start;
+  display: grid;
+  grid-template-columns: 80px 1fr; /* Fixed width for day labels */
+  gap: 20px; /* Increased gap */
+  align-items: start;
   width: 100%;
   overflow-x: auto;
-  overflow-y: visible;
   scrollbar-width: thin;
   scrollbar-color: #4facfe transparent;
-  margin: 0;
-  padding: 30px 0; /* Much more top/bottom padding */
 }
 
 .heatmap-main-grid::-webkit-scrollbar {
@@ -304,55 +299,47 @@
   background: #00f2fe;
 }
 
-/* Day Labels Column - EXACT ALIGNMENT CALCULATION */
+/* FIXED: Day labels with fine-tuned vertical alignment */
 .day-labels {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  width: 70px;
-  /* CRITICAL: Calculate exact padding to match month label height + month spacing */
-  padding-top: calc(20px + 20px + 8px); /* month label font + margin + padding */
-  flex-shrink: 0;
-  /* CRITICAL: Calculate exact height = (day box height + gap) * 7 - gap */
-  height: calc((16px + 4px) * 7 - 4px); /* 136px total */
-  margin-right: 30px;
-  position: relative;
+  display: grid;
+  grid-template-rows: 16px repeat(7, 16px); /* REDUCED: Even smaller spacer */
+  gap: 2px; /* Match the heatmap gap exactly */
+  width: 80px;
+  justify-self: end;
+  align-items: center;
+  text-align: right;
+  margin-top: 12px; /* INCREASED: Move up a bit more */
+}
+
+/* Empty space to align with month labels */
+.day-labels .spacer {
+  grid-row: 1;
+  height: 16px; /* Match the reduced spacer height */
 }
 
 .day-labels span {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #888;
   font-weight: 600;
-  text-align: right;
-  /* CRITICAL: Each span height must match day box height + spacing */
-  height: 16px; /* Match day box height exactly */
-  line-height: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-right: 8px;
+  height: 16px; /* Exact height match */
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-  padding-right: 8px;
-  overflow: visible;
-  /* Add visual debugging - remove this later */
-  /* border: 1px solid red; */
 }
 
-/* MONTH-SEPARATED CONTAINER - MASSIVE SPACING */
+/* FIXED: Month Container with proper spacing */
 .heatmap-months-container {
   display: flex;
-  gap: 60px; /* MASSIVE: Even more space between months */
-  flex-shrink: 0;
+  gap: 20px; /* Increased spacing between months */
+  align-items: start;
   overflow-x: auto;
-  padding: 0 30px; /* More left/right padding */
-  justify-content: flex-start;
-  align-items: flex-start;
-  width: 100%;
-  min-width: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #4facfe transparent;
 }
 
-/* Ensure horizontal scrolling works properly */
 .heatmap-months-container::-webkit-scrollbar {
   height: 8px;
 }
@@ -371,32 +358,30 @@
   background: #00f2fe;
 }
 
-/* Individual Month Group - EXACT SPACING CALCULATION */
+/* FIXED: Individual Month Group */
 .heatmap-month-group {
   display: flex;
   flex-direction: column;
   align-items: center;
   flex-shrink: 0;
-  position: relative;
-  padding-top: 8px;
 }
 
-/* Vertical Month Label - EXACT SIZE FOR ALIGNMENT */
+/* FIXED: Month Label with reduced spacing to align with day labels */
 .month-label-vertical {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #888;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 20px; /* EXACT: This must match day-labels padding calculation */
+  letter-spacing: 0.6px;
   text-align: center;
-  height: 20px; /* EXACT: Fixed height for consistent alignment */
+  margin-bottom: 8px; /* REDUCED: Less margin to align with day labels */
+  height: 16px; /* REDUCED: Fixed height to match day label spacer */
+  padding: 6px 0; /* REDUCED: Less padding */
   display: flex;
   align-items: center;
   justify-content: center;
   transition: color 0.3s ease;
   user-select: none;
-  padding: 0; /* REMOVE padding that throws off alignment */
 }
 
 .month-label-vertical:hover {
@@ -406,31 +391,32 @@
 /* Month Weeks Container */
 .heatmap-month-weeks {
   display: flex;
-  gap: 3px;
+  gap: 4px; /* Increased gap between weeks */
   flex-shrink: 0;
 }
 
 .heatmap-week {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  min-width: 12px;
+  gap: 2px; /* Match day-labels gap */
+  min-width: 16px; /* Increased minimum width */
 }
 
-/* Heatmap Days - SAME AS BEFORE */
+/* FIXED: Heatmap Days with exact dimensions */
 .heatmap-day {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
+  width: 16px; /* Increased size */
+  height: 16px; /* Increased size to match day labels */
+  border-radius: 3px;
   cursor: pointer;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 6px;
+  font-size: 7px;
   font-weight: bold;
   transition: all 0.2s ease;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 /* Empty days (spacers) */
@@ -487,7 +473,7 @@
 
 /* Day count text */
 .day-count {
-  font-size: 5px;
+  font-size: 6px;
   font-weight: 700;
   opacity: 0.9;
   pointer-events: none;
@@ -495,13 +481,13 @@
   user-select: none;
 }
 
-/* Stats Section */
+/* FIXED: Stats Section with much better spacing */
 .heatmap-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 32px;
-  margin-bottom: 40px;
-  padding: 40px 36px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 24px; /* Increased gap */
+  margin-bottom: 32px; /* Increased bottom margin */
+  padding: 32px 28px; /* Increased padding */
   background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.05) 100%);
   border-radius: 16px;
   border: 1px solid rgba(79, 172, 254, 0.2);
@@ -511,7 +497,7 @@
 .stat-item {
   text-align: center;
   transition: all 0.3s ease;
-  padding: 16px;
+  padding: 20px 16px; /* Increased padding */
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -545,7 +531,7 @@
   font-size: 2rem;
   font-weight: 800;
   color: #4facfe;
-  margin-bottom: 8px;
+  margin-bottom: 12px; /* Increased spacing between value and label */
   text-shadow: 0 0 15px rgba(79, 172, 254, 0.4);
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   -webkit-background-clip: text;
@@ -559,6 +545,7 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   font-weight: 600;
+  margin: 0;
 }
 
 /* Legend */
@@ -572,7 +559,7 @@
   padding: 20px 28px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  margin-top: 8px;
+  margin-top: 16px; /* Increased top margin */
 }
 
 .legend-text {
@@ -585,12 +572,12 @@
 
 .legend-squares {
   display: flex;
-  gap: 3px;
+  gap: 4px; /* Increased gap */
 }
 
 .legend-square {
-  width: 12px;
-  height: 12px;
+  width: 16px; /* Match heatmap day size */
+  height: 16px;
   border-radius: 3px;
   transition: all 0.2s ease;
   cursor: pointer;
@@ -626,7 +613,7 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .flashcard-heatmap {
-    padding: 36px 32px 24px 32px;
+    padding: 28px 24px;
     margin: 30px auto;
     width: 100%;
   }
@@ -634,13 +621,13 @@
   .heatmap-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 24px;
-    padding: 16px 12px 0 12px;
+    gap: 20px;
+    margin-bottom: 30px; /* Maintained spacing */
   }
   
   .heatmap-title-section {
     align-self: stretch;
-    padding: 8px 16px;
+    gap: 12px; /* Reduced but still spacious */
   }
   
   .year-navigation {
@@ -649,62 +636,64 @@
   
   .heatmap-header h3 {
     font-size: 1.3rem;
-    padding: 6px 12px;
+    gap: 8px;
   }
   
   .total-reviews {
     font-size: 0.9rem;
-    padding: 6px 12px 6px 20px; /* Added left padding on mobile too */
   }
 
-  /* Month layout adjustments for mobile */
+  /* Mobile heatmap adjustments */
   .heatmap-main-grid {
-    gap: 8px;
-  }
-  
-  .heatmap-months-container {
-    gap: 15px; /* Reduced spacing for mobile */
-  }
-  
-  .heatmap-month-weeks {
-    gap: 2px;
-  }
-  
-  .heatmap-week {
-    gap: 2px;
-    min-width: 10px;
+    grid-template-columns: 60px 1fr;
+    gap: 16px;
   }
   
   .day-labels {
-    width: 45px;
-    height: 110px; /* Adjusted for mobile with new padding */
-    padding: 32px 0 16px 0; /* Scaled padding for mobile */
-    margin-right: 12px;
+    width: 60px;
+    grid-template-rows: 32px repeat(7, 12px); /* Adjusted for mobile */
   }
   
   .day-labels span {
-    font-size: 0.7rem; /* Slightly smaller on mobile */
-    padding-right: 2px;
+    font-size: 0.7rem;
+    height: 12px;
+    padding-right: 4px;
   }
   
-  .heatmap-day {
-    width: 10px;
-    height: 10px;
+  .heatmap-months-container {
+    gap: 16px;
   }
   
   .month-label-vertical {
     font-size: 0.7rem;
-    margin-bottom: 6px;
+    margin-bottom: 12px;
+    height: 16px;
+    padding: 8px 0;
+  }
+  
+  .heatmap-day {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .heatmap-week {
+    min-width: 12px;
   }
   
   .heatmap-stats {
     grid-template-columns: repeat(2, 1fr);
-    padding: 28px 24px;
-    gap: 24px;
+    padding: 24px 20px;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  
+  .stat-item {
+    padding: 16px 12px;
   }
   
   .stat-value {
     font-size: 1.6rem;
+    margin-bottom: 8px;
   }
   
   .stat-label {
@@ -716,8 +705,8 @@
   }
   
   .legend-square {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
   }
   
   .year-nav-btn {
@@ -727,94 +716,90 @@
   }
   
   .year-select {
-    padding: 10px 16px;
+    padding: 10px 32px 10px 16px;
     font-size: 0.9rem;
     min-width: 90px;
   }
   
   .heatmap-legend {
-    padding: 18px 24px;
-    gap: 14px;
+    padding: 16px 20px;
+    gap: 12px;
+    margin-top: 12px;
   }
   
   .heatmap-grid {
-    padding: 32px 24px;
+    padding: 24px 20px;
+    margin-bottom: 30px;
   }
 }
 
 @media (max-width: 480px) {
   .flashcard-heatmap {
-    padding: 32px 28px 20px 28px;
+    padding: 24px 20px;
     margin: 20px auto;
     width: 100%;
   }
   
   .heatmap-header {
-    padding: 12px 8px 0 8px;
+    gap: 16px;
+    margin-bottom: 24px;
   }
   
   .heatmap-header h3 {
     font-size: 1.1rem;
-    padding: 4px 8px;
-  }
-  
-  .total-reviews {
-    padding: 4px 8px;
-  }
-  
-  .heatmap-title-section {
-    padding: 6px 12px;
-  }
-
-  /* Small mobile month layout */
-  .heatmap-main-grid {
     gap: 6px;
   }
   
-  .heatmap-months-container {
-    gap: 12px; /* Further reduced spacing for small mobile */
-  }
-  
-  .heatmap-month-weeks {
-    gap: 1px;
-  }
-  
-  .heatmap-week {
-    min-width: 8px;
-    gap: 1px;
-  }
-  
   .total-reviews {
-    padding: 4px 8px 4px 16px; /* Added left padding on small mobile too */
+    font-size: 0.85rem;
+  }
+  
+  .heatmap-title-section {
+    gap: 8px;
   }
 
+  /* Small mobile heatmap adjustments */
+  .heatmap-main-grid {
+    grid-template-columns: 50px 1fr;
+    gap: 12px;
+  }
+  
   .day-labels {
-    width: 40px;
-    height: 94px; /* Adjusted for small mobile with new padding */
-    padding: 28px 0 12px 0; /* Scaled padding for small mobile */
-    margin-right: 10px;
+    width: 50px;
+    grid-template-rows: 28px repeat(7, 10px);
   }
   
   .day-labels span {
-    font-size: 0.65rem; /* Smaller on small mobile */
+    font-size: 0.65rem;
+    height: 10px;
     padding-right: 2px;
   }
   
-  .heatmap-day {
-    width: 8px;
-    height: 8px;
+  .heatmap-months-container {
+    gap: 12px;
   }
   
   .month-label-vertical {
     font-size: 0.65rem;
-    margin-bottom: 4px;
-    min-height: 12px;
+    margin-bottom: 10px;
+    height: 14px;
+    padding: 6px 0;
+  }
+  
+  .heatmap-day {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .heatmap-week {
+    min-width: 10px;
   }
   
   .heatmap-stats {
     grid-template-columns: 1fr;
-    gap: 20px;
-    padding: 24px 20px;
+    gap: 16px;
+    padding: 20px 16px;
+    margin-bottom: 20px;
   }
   
   .stat-item {
@@ -822,7 +807,7 @@
     justify-content: space-between;
     align-items: center;
     text-align: left;
-    padding: 18px 24px;
+    padding: 16px 20px;
   }
   
   .stat-value {
@@ -837,7 +822,7 @@
   }
   
   .year-navigation {
-    padding: 6px;
+    padding: 8px;
     gap: 8px;
   }
   
@@ -848,18 +833,29 @@
   }
   
   .year-select {
-    padding: 8px 12px;
+    padding: 8px 28px 8px 12px;
     font-size: 0.8rem;
     min-width: 80px;
   }
   
   .heatmap-legend {
-    padding: 16px 20px;
-    gap: 12px;
+    padding: 14px 16px;
+    gap: 10px;
+    margin-top: 10px;
   }
   
   .heatmap-grid {
-    padding: 28px 20px;
+    padding: 20px 16px;
+    margin-bottom: 24px;
+  }
+  
+  .legend-squares {
+    gap: 3px;
+  }
+  
+  .legend-square {
+    width: 10px;
+    height: 10px;
   }
 }
 

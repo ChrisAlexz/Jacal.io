@@ -1,4 +1,4 @@
-// src/components/Home.jsx - FIXED: Ensure logged-in class is properly applied
+// src/components/Home.jsx - FIXED: Updated class names to match new CSS
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
@@ -456,8 +456,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Stats Section */}
-        <section className="stats-section">
+        {/* FIXED: Stats Section with circular progress indicators */}
+        <section className="marketing-stats-section">
           <div className="container">
             <div className="section-header">
               <div className="section-badge">Science-backed learning</div>
@@ -466,22 +466,94 @@ export default function Home() {
                 Spaced repetition has been extensively studied and validated by cognitive scientists worldwide.
               </p>
             </div>
-            <div className="stats-grid">
-              <div className="stat-item">
-                <div className="stat-number">85%</div>
-                <div className="stat-label">Better retention vs traditional methods</div>
+            <div className="marketing-stats-grid">
+              <div className="marketing-stat-item">
+                <div className="marketing-stat-circle">
+                  <svg viewBox="0 0 100 100">
+                    <circle 
+                      className="circle-bg" 
+                      cx="50" 
+                      cy="50" 
+                      r="45"
+                    />
+                    <circle 
+                      className="circle-progress" 
+                      cx="50" 
+                      cy="50" 
+                      r="45"
+                      strokeDasharray="283"
+                      strokeDashoffset="42.45" // 85% of 283 = 240.55, so offset = 283 - 240.55 = 42.45
+                    />
+                  </svg>
+                  <div className="marketing-stat-number">85%</div>
+                </div>
+                <div className="marketing-stat-label">Better retention vs traditional methods</div>
               </div>
-              <div className="stat-item">
-                <div className="stat-number">50%</div>
-                <div className="stat-label">Less time needed to memorize</div>
+              <div className="marketing-stat-item">
+                <div className="marketing-stat-circle">
+                  <svg viewBox="0 0 100 100">
+                    <circle 
+                      className="circle-bg" 
+                      cx="50" 
+                      cy="50" 
+                      r="45"
+                    />
+                    <circle 
+                      className="circle-progress" 
+                      cx="50" 
+                      cy="50" 
+                      r="45"
+                      strokeDasharray="283"
+                      strokeDashoffset="141.5" // 50% of 283 = 141.5, so offset = 283 - 141.5 = 141.5
+                    />
+                  </svg>
+                  <div className="marketing-stat-number">50%</div>
+                </div>
+                <div className="marketing-stat-label">Less time needed to memorize</div>
               </div>
-              <div className="stat-item">
-                <div className="stat-number">3x</div>
-                <div className="stat-label">Faster learning with spaced intervals</div>
+              <div className="marketing-stat-item">
+                <div className="marketing-stat-circle">
+                  <svg viewBox="0 0 100 100">
+                    <circle 
+                      className="circle-bg" 
+                      cx="50" 
+                      cy="50" 
+                      r="45"
+                    />
+                    <circle 
+                      className="circle-progress" 
+                      cx="50" 
+                      cy="50" 
+                      r="45"
+                      strokeDasharray="283"
+                      strokeDashoffset="188.67" // Roughly 33% for "3x" = 94.33, so offset = 283 - 94.33 = 188.67
+                    />
+                  </svg>
+                  <div className="marketing-stat-number">3x</div>
+                </div>
+                <div className="marketing-stat-label">Faster learning with spaced intervals</div>
               </div>
-              <div className="stat-item">
-                <div className="stat-number">95%</div>
-                <div className="stat-label">Retention after optimal intervals</div>
+              <div className="marketing-stat-item">
+                <div className="marketing-stat-circle">
+                  <svg viewBox="0 0 100 100">
+                    <circle 
+                      className="circle-bg" 
+                      cx="50" 
+                      cy="50" 
+                      r="45"
+                    />
+                    <circle 
+                      className="circle-progress" 
+                      cx="50" 
+                      cy="50" 
+                      r="45"
+                      strokeDasharray="283"
+                      strokeDashoffset="14.15" // 95% of 283 = 268.85, so offset = 283 - 268.85 = 14.15
+                    />
+                  </svg>
+                  <div className="marketing-stat-number">95%</div>
+                </div>
+                <div className="marketing-stat-label">Retention after optimal intervals</div>
               </div>
             </div>
           </div>

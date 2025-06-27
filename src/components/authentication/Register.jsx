@@ -1,10 +1,10 @@
-// src/components/authentication/Register.jsx - FIXED OAuth redirects
+// src/components/authentication/Register.jsx - Clean Production Version
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import UserAuthContext from '../context/UserAuthContext';
 import { supabase } from '../../supabase';
 import { emailService } from '../../api/emailService';
-import getEnvironmentConfig from '../../config/environment'; // Import environment config
+import getEnvironmentConfig from '../../config/environment';
 import { 
   FaEye, 
   FaEyeSlash, 
@@ -21,7 +21,7 @@ import '../../styles/Register.css';
 export default function Register() {
   const navigate = useNavigate();
   const { login, isLoggedIn } = useContext(UserAuthContext);
-  const envConfig = getEnvironmentConfig(); // Get environment config
+  const envConfig = getEnvironmentConfig();
 
   // Form states
   const [formData, setFormData] = useState({
@@ -171,7 +171,6 @@ export default function Register() {
         await handleSignIn();
       }
     } catch (err) {
-      console.error('Auth error:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
@@ -181,15 +180,12 @@ export default function Register() {
   // Handle sign up with Jacal custom emails
   const handleSignUp = async () => {
     try {
-      console.log('🚀 Starting Jacal sign up with custom emails...');
-      
       if (useCustomEmail) {
         // Try custom Jacal email service first
         try {
           await handleJacalCustomSignUp();
           return;
         } catch (customError) {
-          console.warn('⚠️ Custom Jacal email service failed, falling back to Supabase:', customError.message);
           setUseCustomEmail(false);
           // Fall through to Supabase default
         }
@@ -199,21 +195,18 @@ export default function Register() {
       await handleSupabaseSignUp();
 
     } catch (error) {
-      console.error('❌ Sign up error:', error);
       setError(`Failed to create account: ${error.message}`);
     }
   };
 
   // Custom Jacal sign up with beautiful emails
   const handleJacalCustomSignUp = async () => {
-    console.log('📧 Using Jacal custom email service...');
-    
     // Create user in Supabase with email confirmation disabled initially
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
-        emailRedirectTo: envConfig.redirectUrl, // Use environment-based redirect
+        emailRedirectTo: envConfig.redirectUrl,
         data: {
           name: formData.fullName.trim(),
           picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullName)}&background=4facfe&color=fff&size=200`,
@@ -235,8 +228,6 @@ export default function Register() {
       throw new Error('Failed to create account. Please try again.');
     }
 
-    console.log('✅ User created in Supabase:', userId);
-
     // Generate and store custom verification token
     const verificationToken = emailService.generateVerificationToken();
     
@@ -247,7 +238,7 @@ export default function Register() {
       'email_confirmation'
     );
 
-    // Create confirmation URL - Use environment config
+    // Create confirmation URL
     const confirmationUrl = `${envConfig.baseUrl}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(formData.email)}`;
 
     // Send beautiful Jacal confirmation email
@@ -256,8 +247,6 @@ export default function Register() {
       confirmationUrl,
       formData.fullName.trim()
     );
-
-    console.log('✅ Beautiful Jacal confirmation email sent successfully!');
 
     setMessage(
       `🎉 Welcome to Jacal, ${formData.fullName}! We've sent a beautiful welcome email to ${formData.email}. Check your inbox for our custom verification link to start your learning journey!`
@@ -274,13 +263,11 @@ export default function Register() {
 
   // Fallback to Supabase's built-in email verification
   const handleSupabaseSignUp = async () => {
-    console.log('📧 Using Supabase email service as fallback...');
-    
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
-        emailRedirectTo: envConfig.redirectUrl, // Use environment-based redirect
+        emailRedirectTo: envConfig.redirectUrl,
         data: {
           name: formData.fullName.trim(),
           picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullName)}&background=4facfe&color=fff&size=200`
@@ -295,8 +282,6 @@ export default function Register() {
         throw new Error(signUpError.message);
       }
     }
-
-    console.log('✅ Supabase confirmation email sent successfully!');
 
     setMessage(
       `Welcome ${formData.fullName}! A confirmation email has been sent to ${formData.email}. Please check your inbox and click the verification link to activate your account.`
@@ -335,21 +320,15 @@ export default function Register() {
     }
   };
 
-  // Handle Google sign in - FIXED with environment config
+  // Handle Google sign in
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
     
-    console.log('🔍 Google OAuth config:', {
-      redirectTo: envConfig.redirectUrl,
-      environment: envConfig.isLocal ? 'local' : envConfig.isStaging ? 'staging' : 'production',
-      baseUrl: envConfig.baseUrl
-    });
-    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: envConfig.redirectUrl, // Use environment-based redirect URL
+        redirectTo: envConfig.redirectUrl,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -359,7 +338,6 @@ export default function Register() {
     });
     
     if (error) {
-      console.error('❌ Google OAuth error:', error);
       setError('Failed to sign in with Google. Please try again.');
       setLoading(false);
     }
@@ -394,24 +372,6 @@ export default function Register() {
               : 'Continue mastering new skills with Jacal'
             }
           </p>
-          
-          {/* Show environment and email service status in development */}
-          {process.env.NODE_ENV === 'development' && (
-            <div style={{ 
-              fontSize: '0.7rem', 
-              color: '#666', 
-              marginTop: '8px',
-              padding: '6px 10px',
-              background: envConfig.isLocal ? 'rgba(40, 167, 69, 0.1)' : 'rgba(255, 193, 7, 0.1)',
-              borderRadius: '4px',
-              border: `1px solid ${envConfig.isLocal ? 'rgba(40, 167, 69, 0.3)' : 'rgba(255, 193, 7, 0.3)'}`,
-              lineHeight: 1.4
-            }}>
-              <div><strong>Env:</strong> {envConfig.isLocal ? 'Local' : envConfig.isStaging ? 'Staging' : 'Production'}</div>
-              <div><strong>Redirect:</strong> {envConfig.redirectUrl}</div>
-              <div><strong>Email:</strong> {useCustomEmail ? 'Jacal Custom (Resend)' : 'Supabase Default'}</div>
-            </div>
-          )}
         </div>
 
         {/* Alert Messages */}
@@ -630,7 +590,7 @@ export default function Register() {
           </div>
         )}
 
-        {/* Success Message with Resend Option */}
+        {/* Success Message with Visual Enhancement */}
         {message && isSignUp && (
           <div className="terms-privacy" style={{ marginTop: '24px' }}>
             <div style={{ 
