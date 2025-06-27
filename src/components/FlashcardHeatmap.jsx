@@ -1,4 +1,4 @@
-// src/components/FlashcardHeatmap.jsx - Working Heatmap Component with FIXED Month Positioning
+// src/components/FlashcardHeatmap.jsx - Working Heatmap Component with MONTH-SEPARATED Layout
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import UserAuthContext from './context/UserAuthContext';
 import { 
@@ -109,68 +109,83 @@ const FlashcardHeatmap = ({ className = '' }) => {
   };
 
   /**
-   * Group days into weeks for display - BACK TO VERTICAL LAYOUT
+   * Group days into months with proper week separation - ALWAYS SHOW ALL 12 MONTHS
    */
-  const groupIntoWeeks = (days) => {
-    if (!days || days.length === 0) return [];
-
-    const weeks = [];
-    let currentWeek = [];
-
-    // Find the first day and determine starting day of week
-    const firstDate = new Date(days[0].date + 'T00:00:00');
-    const dayOfWeek = firstDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-
-    // Add empty cells for days before the year starts
-    for (let i = 0; i < dayOfWeek; i++) {
-      currentWeek.push(null);
-    }
-
-    // Add all days
-    days.forEach(day => {
-      currentWeek.push(day);
-      
-      if (currentWeek.length === 7) {
-        weeks.push([...currentWeek]);
-        currentWeek = [];
-      }
-    });
-
-    // Fill the last week if needed
-    while (currentWeek.length > 0 && currentWeek.length < 7) {
-      currentWeek.push(null);
-    }
-    if (currentWeek.length > 0) {
-      weeks.push(currentWeek);
-    }
-
-    return weeks;
-  };
-
-  /**
-   * Get month labels for the year - FIXED VERSION
-   */
-  const getMonthLabels = () => {
-    const months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
-    ];
+  const groupIntoMonths = (days) => {
+    console.log('🗓️ Input days for groupIntoMonths:', days?.length || 0);
     
-    return months.map((month, index) => ({
-      name: month,
-      weekOffset: getWeekOffset(selectedYear, index)
-    }));
-  };
+    const months = [];
+    
+    // ALWAYS CREATE ALL 12 MONTHS regardless of data
+    for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
+      console.log(`📅 Processing month ${monthIndex} (${new Date(selectedYear, monthIndex, 1).toLocaleDateString('en-US', { month: 'short' })})`);
+      
+      // Get the first and last day of the month
+      const firstDay = new Date(selectedYear, monthIndex, 1);
+      const lastDay = new Date(selectedYear, monthIndex + 1, 0);
+      
+      console.log(`📅 Month ${monthIndex}: ${firstDay.toDateString()} to ${lastDay.toDateString()}`);
+      
+      // Calculate weeks for this month
+      const monthWeeks = [];
+      
+      // Find the start of the first week (Sunday before or on the first day)
+      const firstWeekStart = new Date(firstDay);
+      firstWeekStart.setDate(firstDay.getDate() - firstDay.getDay());
+      
+      // Create weeks for this month
+      const weekStart = new Date(firstWeekStart);
+      
+      while (weekStart <= lastDay) {
+        const week = [];
+        
+        for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+          const currentDate = new Date(weekStart);
+          currentDate.setDate(weekStart.getDate() + dayOfWeek);
+          
+          if (currentDate.getMonth() === monthIndex && currentDate.getFullYear() === selectedYear) {
+            // Find the day data for this date
+            const dateStr = currentDate.toISOString().split('T')[0];
+            const dayData = days ? days.find(d => d.date === dateStr) : null;
+            
+            // ALWAYS create day data, whether it exists or not
+            week.push(dayData || {
+              date: dateStr,
+              count: 0,
+              cardsStudied: 0,
+              sessionCount: 0,
+              masterAgainCount: 0,
+              level: 0
+            });
+          } else {
+            // Empty slot for days outside this month
+            week.push(null);
+          }
+        }
+        
+        // Only add weeks that have at least one day from this month
+        if (week.some(day => day !== null)) {
+          monthWeeks.push(week);
+        }
+        
+        // Move to next week
+        weekStart.setDate(weekStart.getDate() + 7);
+      }
 
-  /**
-   * Calculate week offset for month labels - CORRECTED VERSION
-   */
-  const getWeekOffset = (year, monthIndex) => {
-    const firstDayOfYear = new Date(year, 0, 1);
-    const firstDayOfMonth = new Date(year, monthIndex, 1);
-    const daysDiff = Math.floor((firstDayOfMonth - firstDayOfYear) / (1000 * 60 * 60 * 24));
-    const firstDayWeekday = firstDayOfYear.getDay();
-    return Math.floor((daysDiff + firstDayWeekday) / 7);
+      // ALWAYS add the month, even if no weeks (shouldn't happen but safety check)
+      const monthName = new Date(selectedYear, monthIndex, 1).toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+      
+      console.log(`📅 Adding month ${monthIndex} (${monthName}) with ${monthWeeks.length} weeks`);
+      
+      months.push({
+        monthIndex,
+        monthName,
+        weeks: monthWeeks
+      });
+    }
+
+    console.log('🗓️ Final months array:', months.map(m => `${m.monthName}(${m.weeks.length} weeks)`));
+    return months;
   };
 
   // Effect to fetch data when dependencies change
@@ -192,8 +207,7 @@ const FlashcardHeatmap = ({ className = '' }) => {
   // Don't render if user is not logged in
   if (!user) return null;
 
-  const weeks = groupIntoWeeks(heatmapData);
-  const monthLabels = getMonthLabels();
+  const monthsData = groupIntoMonths(heatmapData);
   const today = getTodayLocalDate();
 
   return (
@@ -206,7 +220,7 @@ const FlashcardHeatmap = ({ className = '' }) => {
             {loading && <span className="loading-indicator">⟳</span>}
           </h3>
           <span className="total-reviews">
-            {stats.totalReviews} reviews in {selectedYear}
+               {stats.totalReviews} reviews in {selectedYear}
           </span>
         </div>
 
@@ -260,22 +274,9 @@ const FlashcardHeatmap = ({ className = '' }) => {
         </div>
       )}
 
-      {/* Heatmap Grid - BACK TO VERTICAL LAYOUT */}
+      {/* Heatmap Grid - MONTH-SEPARATED LAYOUT */}
       {!loading && !error && (
         <div className="heatmap-grid">
-          {/* Month Labels */}
-          <div className="month-labels">
-            {monthLabels.map((month, index) => (
-              <span
-                key={month.name}
-                className="month-label"
-                style={{ left: `${month.weekOffset * 15 + 45}px` }}
-              >
-                {month.name}
-              </span>
-            ))}
-          </div>
-
           {/* Main Grid */}
           <div className="heatmap-main-grid">
             {/* Day Labels */}
@@ -289,36 +290,48 @@ const FlashcardHeatmap = ({ className = '' }) => {
               <span>Sat</span>
             </div>
 
-            {/* Heatmap */}
-            <div className="heatmap-weeks">
-              {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="heatmap-week">
-                  {week.map((day, dayIndex) => {
-                    if (!day) {
-                      return <div key={`${weekIndex}-${dayIndex}`} className="heatmap-day empty" />;
-                    }
+            {/* Monthly Heatmap Groups */}
+            <div className="heatmap-months-container">
+              {monthsData.map((month, monthIndex) => (
+                <div key={month.monthIndex} className="heatmap-month-group">
+                  {/* Month Label */}
+                  <div className="month-label-vertical">
+                    {month.monthName}
+                  </div>
+                  
+                  {/* Month Weeks */}
+                  <div className="heatmap-month-weeks">
+                    {month.weeks.map((week, weekIndex) => (
+                      <div key={`${month.monthIndex}-${weekIndex}`} className="heatmap-week">
+                        {week.map((day, dayIndex) => {
+                          if (!day) {
+                            return <div key={`${month.monthIndex}-${weekIndex}-${dayIndex}`} className="heatmap-day empty" />;
+                          }
 
-                    const isToday = day.date === today;
-                    const tooltipText = `${day.count} reviews on ${day.date}${isToday ? ' (Today)' : ''}${
-                      day.cardsStudied > 0 ? `\n${day.cardsStudied} cards studied` : ''
-                    }${day.sessionCount > 0 ? `\n${day.sessionCount} sessions` : ''}${
-                      day.masterAgainCount > 0 ? `\n${day.masterAgainCount} master again sessions` : ''
-                    }`;
+                          const isToday = day.date === today;
+                          const tooltipText = `${day.count} reviews on ${day.date}${isToday ? ' (Today)' : ''}${
+                            day.cardsStudied > 0 ? `\n${day.cardsStudied} cards studied` : ''
+                          }${day.sessionCount > 0 ? `\n${day.sessionCount} sessions` : ''}${
+                            day.masterAgainCount > 0 ? `\n${day.masterAgainCount} master again sessions` : ''
+                          }`;
 
-                    return (
-                      <div
-                        key={`${weekIndex}-${dayIndex}`}
-                        className={`heatmap-day ${isToday ? 'today' : ''}`}
-                        data-level={day.level}
-                        data-today={isToday}
-                        title={tooltipText}
-                      >
-                        {day.count > 0 && day.count < 100 && (
-                          <span className="day-count">{day.count}</span>
-                        )}
+                          return (
+                            <div
+                              key={`${month.monthIndex}-${weekIndex}-${dayIndex}`}
+                              className={`heatmap-day ${isToday ? 'today' : ''}`}
+                              data-level={day.level}
+                              data-today={isToday}
+                              title={tooltipText}
+                            >
+                              {day.count > 0 && day.count < 100 && (
+                                <span className="day-count">{day.count}</span>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>

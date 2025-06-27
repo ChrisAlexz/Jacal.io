@@ -1564,13 +1564,54 @@
 }
 
 /* FIXED: Ensure all major sections in logged-in home are properly contained */
-.home-container.logged-in > * {
+/* FIXED: More specific targeting for signed-in home container children to exclude heatmap */
+.home-container.logged-in > .welcome-section,
+.home-container.logged-in > .stats-section,
+.home-container.logged-in > .quick-actions-section,
+.home-container.logged-in > .recent-section {
   max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
   width: 100%;
   position: relative;
   z-index: 1;
+}
+
+/* CRITICAL: Exclude heatmap from container constraints */
+.home-container.logged-in .flashcard-heatmap {
+  max-width: 1200px !important;
+  width: calc(100% - 80px) !important;
+  margin: 40px auto !important;
+  position: relative !important;
+  z-index: 10 !important;
+  /* Ensure the heatmap's internal elements aren't constrained */
+}
+
+.home-container.logged-in .flashcard-heatmap * {
+  max-width: none !important;
+  margin-left: initial !important;
+  margin-right: initial !important;
+  width: auto !important;
+}
+
+/* SPECIFIC OVERRIDES for heatmap internal containers */
+.home-container.logged-in .flashcard-heatmap .heatmap-grid {
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  width: 100% !important;
+}
+
+.home-container.logged-in .flashcard-heatmap .heatmap-main-grid {
+  max-width: none !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+.home-container.logged-in .flashcard-heatmap .heatmap-months-container {
+  max-width: none !important;
+  margin: 0 !important;
+  width: 100% !important;
 }
 
 /* FIXED: Specific overrides for sections that should maintain their existing margins */
