@@ -1,5 +1,5 @@
-// src/components/FlashcardHeatmap.jsx - FIXED WITH INLINE STYLES
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+// src/components/FlashcardHeatmap.jsx - STALE CLOSURE FIX
+import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import UserAuthContext from './context/UserAuthContext';
 import { 
   getYearReviewStats, 
@@ -19,6 +19,10 @@ const FlashcardHeatmap = ({ className = '' }) => {
     totalReviews: 0,
     todayReviews: 0
   });
+  
+  // FIX: Use ref to store the actual longest streak value to avoid stale closure
+  const longestStreakRef = useRef(0);
+  
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -39,15 +43,11 @@ const FlashcardHeatmap = ({ className = '' }) => {
     setError(null);
 
     try {
-      console.log(`📊 Fetching heatmap data for ${selectedYear}`);
-      
       // Get review stats for the selected year
       const [reviewStats, totalReviews] = await Promise.all([
         getYearReviewStats(user.id, selectedYear),
         getTotalReviewCount(user.id)
       ]);
-
-      console.log(`📈 Found ${reviewStats.length} days with reviews`);
 
       // Create a map for faster lookups
       const reviewMap = new Map();
@@ -81,6 +81,9 @@ const FlashcardHeatmap = ({ className = '' }) => {
       const todayStr = getTodayLocalDate();
       const todayStats = reviewMap.get(todayStr);
 
+      // FIX: Store the correct value in ref to avoid stale closure
+      longestStreakRef.current = streaks.longestStreak;
+
       setStats({
         currentStreak: streaks.currentStreak,
         longestStreak: streaks.longestStreak,
@@ -88,9 +91,7 @@ const FlashcardHeatmap = ({ className = '' }) => {
         todayReviews: todayStats?.reviews_count || 0
       });
 
-      console.log('✅ Heatmap data loaded successfully');
     } catch (err) {
-      console.error('❌ Error fetching heatmap data:', err);
       setError('Failed to load heatmap data');
     } finally {
       setLoading(false);
@@ -109,31 +110,19 @@ const FlashcardHeatmap = ({ className = '' }) => {
   };
 
   /**
-   * Group days into months with proper week separation - ALWAYS SHOW ALL 12 MONTHS
+   * Group days into months with proper week separation
    */
   const groupIntoMonths = (days) => {
-    console.log('🗓️ Input days for groupIntoMonths:', days?.length || 0);
-    
     const months = [];
     
-    // ALWAYS CREATE ALL 12 MONTHS regardless of data
     for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
-      console.log(`📅 Processing month ${monthIndex} (${new Date(selectedYear, monthIndex, 1).toLocaleDateString('en-US', { month: 'short' })})`);
-      
-      // Get the first and last day of the month
       const firstDay = new Date(selectedYear, monthIndex, 1);
       const lastDay = new Date(selectedYear, monthIndex + 1, 0);
       
-      console.log(`📅 Month ${monthIndex}: ${firstDay.toDateString()} to ${lastDay.toDateString()}`);
-      
-      // Calculate weeks for this month
       const monthWeeks = [];
-      
-      // Find the start of the first week (Sunday before or on the first day)
       const firstWeekStart = new Date(firstDay);
       firstWeekStart.setDate(firstDay.getDate() - firstDay.getDay());
       
-      // Create weeks for this month
       const weekStart = new Date(firstWeekStart);
       
       while (weekStart <= lastDay) {
@@ -144,11 +133,9 @@ const FlashcardHeatmap = ({ className = '' }) => {
           currentDate.setDate(weekStart.getDate() + dayOfWeek);
           
           if (currentDate.getMonth() === monthIndex && currentDate.getFullYear() === selectedYear) {
-            // Find the day data for this date
             const dateStr = currentDate.toISOString().split('T')[0];
             const dayData = days ? days.find(d => d.date === dateStr) : null;
             
-            // ALWAYS create day data, whether it exists or not
             week.push(dayData || {
               date: dateStr,
               count: 0,
@@ -158,24 +145,18 @@ const FlashcardHeatmap = ({ className = '' }) => {
               level: 0
             });
           } else {
-            // Empty slot for days outside this month
             week.push(null);
           }
         }
         
-        // Only add weeks that have at least one day from this month
         if (week.some(day => day !== null)) {
           monthWeeks.push(week);
         }
         
-        // Move to next week
         weekStart.setDate(weekStart.getDate() + 7);
       }
 
-      // ALWAYS add the month, even if no weeks (shouldn't happen but safety check)
       const monthName = new Date(selectedYear, monthIndex, 1).toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
-      
-      console.log(`📅 Adding month ${monthIndex} (${monthName}) with ${monthWeeks.length} weeks`);
       
       months.push({
         monthIndex,
@@ -184,7 +165,6 @@ const FlashcardHeatmap = ({ className = '' }) => {
       });
     }
 
-    console.log('🗓️ Final months array:', months.map(m => `${m.monthName}(${m.weeks.length} weeks)`));
     return months;
   };
 
@@ -196,7 +176,6 @@ const FlashcardHeatmap = ({ className = '' }) => {
   // Effect to listen for heatmap refresh events
   useEffect(() => {
     const handleRefresh = () => {
-      console.log('🔄 Heatmap refresh event received');
       fetchHeatmapData();
     };
 
@@ -212,23 +191,23 @@ const FlashcardHeatmap = ({ className = '' }) => {
 
   return (
     <div className={`flashcard-heatmap ${className}`}>
-      {/* Header - FIXED WITH INLINE STYLES + MOBILE RESPONSIVE */}
+      {/* Header */}
       <div className="heatmap-header" style={{ position: 'relative' }}>
         <div 
           className="heatmap-title-section"
           style={{ 
-            paddingTop: window.innerWidth <= 768 ? '20px' : '32px',    // RESPONSIVE TOP SPACING
-            paddingLeft: window.innerWidth <= 768 ? '20px' : '40px',   // RESPONSIVE LEFT SPACING
-            paddingBottom: window.innerWidth <= 768 ? '16px' : '24px', // RESPONSIVE BOTTOM SPACING
+            paddingTop: window.innerWidth <= 768 ? '20px' : '32px',
+            paddingLeft: window.innerWidth <= 768 ? '20px' : '40px',
+            paddingBottom: window.innerWidth <= 768 ? '16px' : '24px',
             display: 'flex',
             flexDirection: 'column',
-            gap: window.innerWidth <= 768 ? '12px' : '16px'             // RESPONSIVE GAP
+            gap: window.innerWidth <= 768 ? '12px' : '16px'
           }}
         >
           <h3 style={{ 
             margin: '0', 
             padding: '0',
-            fontSize: window.innerWidth <= 768 ? '1.3rem' : '1.6rem'   // RESPONSIVE FONT SIZE
+            fontSize: window.innerWidth <= 768 ? '1.3rem' : '1.6rem'
           }}>
             📊 Study Activity
             {loading && <span className="loading-indicator">⟳</span>}
@@ -236,9 +215,9 @@ const FlashcardHeatmap = ({ className = '' }) => {
           <span 
             className="total-reviews"
             style={{ 
-              paddingLeft: window.innerWidth <= 768 ? '16px' : '24px',  // RESPONSIVE LEFT SPACING
+              paddingLeft: window.innerWidth <= 768 ? '16px' : '24px',
               margin: '0',
-              fontSize: window.innerWidth <= 768 ? '0.9rem' : '1rem'    // RESPONSIVE FONT SIZE
+              fontSize: window.innerWidth <= 768 ? '0.9rem' : '1rem'
             }}
           >
             {stats.totalReviews} reviews in {selectedYear}
@@ -247,15 +226,15 @@ const FlashcardHeatmap = ({ className = '' }) => {
 
         <div 
           style={{
-            position: window.innerWidth <= 768 ? 'static' : 'absolute', // MOBILE: USE NORMAL FLOW
+            position: window.innerWidth <= 768 ? 'static' : 'absolute',
             top: window.innerWidth <= 768 ? 'auto' : '32px',
             right: window.innerWidth <= 768 ? 'auto' : '40px',
             zIndex: 10,
-            marginTop: window.innerWidth <= 768 ? '20px' : '0',         // MOBILE: ADD TOP MARGIN
+            marginTop: window.innerWidth <= 768 ? '20px' : '0',
             display: 'flex',
-            justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-start', // MOBILE: CENTER
-            paddingRight: window.innerWidth <= 768 ? '20px' : '0',     // MOBILE: RIGHT PADDING
-            paddingLeft: window.innerWidth <= 768 ? '20px' : '0'       // MOBILE: LEFT PADDING
+            justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-start',
+            paddingRight: window.innerWidth <= 768 ? '20px' : '0',
+            paddingLeft: window.innerWidth <= 768 ? '20px' : '0'
           }}
         >
           <div className="year-navigation">
@@ -265,7 +244,7 @@ const FlashcardHeatmap = ({ className = '' }) => {
               disabled={loading || selectedYear <= availableYears[availableYears.length - 1]}
               title="Previous year"
               style={{
-                width: window.innerWidth <= 768 ? '36px' : '40px',      // MOBILE: SMALLER BUTTONS
+                width: window.innerWidth <= 768 ? '36px' : '40px',
                 height: window.innerWidth <= 768 ? '36px' : '40px',
                 fontSize: window.innerWidth <= 768 ? '1rem' : '1.2rem'
               }}
@@ -279,7 +258,7 @@ const FlashcardHeatmap = ({ className = '' }) => {
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
               disabled={loading}
               style={{
-                padding: window.innerWidth <= 768 ? '10px 32px 10px 16px' : '12px 40px 12px 20px', // MOBILE: SMALLER PADDING
+                padding: window.innerWidth <= 768 ? '10px 32px 10px 16px' : '12px 40px 12px 20px',
                 fontSize: window.innerWidth <= 768 ? '0.9rem' : '1rem',
                 minWidth: window.innerWidth <= 768 ? '90px' : '100px'
               }}
@@ -295,7 +274,7 @@ const FlashcardHeatmap = ({ className = '' }) => {
               disabled={loading || selectedYear >= new Date().getFullYear()}
               title="Next year"
               style={{
-                width: window.innerWidth <= 768 ? '36px' : '40px',      // MOBILE: SMALLER BUTTONS
+                width: window.innerWidth <= 768 ? '36px' : '40px',
                 height: window.innerWidth <= 768 ? '36px' : '40px',
                 fontSize: window.innerWidth <= 768 ? '1rem' : '1.2rem'
               }}
@@ -324,13 +303,12 @@ const FlashcardHeatmap = ({ className = '' }) => {
         </div>
       )}
 
-      {/* Heatmap Grid - MONTH-SEPARATED LAYOUT */}
+      {/* Heatmap Grid */}
       {!loading && !error && (
         <div className="heatmap-grid">
-          {/* Main Grid */}
           <div className="heatmap-main-grid">
             <div className="day-labels">
-              <div className="spacer"></div> {/* CRITICAL: Empty spacer to align with month labels */}
+              <div className="spacer"></div>
               <span>Sun</span>
               <span>Mon</span>
               <span>Tue</span>
@@ -340,16 +318,13 @@ const FlashcardHeatmap = ({ className = '' }) => {
               <span>Sat</span>
             </div>
 
-            {/* Monthly Heatmap Groups */}
             <div className="heatmap-months-container">
               {monthsData.map((month, monthIndex) => (
                 <div key={month.monthIndex} className="heatmap-month-group">
-                  {/* Month Label */}
                   <div className="month-label-vertical">
                     {month.monthName}
                   </div>
                   
-                  {/* Month Weeks */}
                   <div className="heatmap-month-weeks">
                     {month.weeks.map((week, weekIndex) => (
                       <div key={`${month.monthIndex}-${weekIndex}`} className="heatmap-week">
@@ -389,15 +364,15 @@ const FlashcardHeatmap = ({ className = '' }) => {
         </div>
       )}
 
-      {/* Stats - MOBILE RESPONSIVE */}
+      {/* Stats - FIX: Use ref value to avoid stale closure */}
       {!loading && !error && (
         <div 
           className="heatmap-stats" 
           style={{ 
-            marginTop: window.innerWidth <= 768 ? '24px' : '40px',     // RESPONSIVE TOP MARGIN
-            gridTemplateColumns: window.innerWidth <= 768 ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(140px, 1fr))', // MOBILE: 2 COLUMNS
-            gap: window.innerWidth <= 768 ? '16px' : '24px',           // RESPONSIVE GAP
-            padding: window.innerWidth <= 768 ? '20px 16px' : '32px 28px' // RESPONSIVE PADDING
+            marginTop: window.innerWidth <= 768 ? '24px' : '40px',
+            gridTemplateColumns: window.innerWidth <= 768 ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: window.innerWidth <= 768 ? '16px' : '24px',
+            padding: window.innerWidth <= 768 ? '20px 16px' : '32px 28px'
           }}
         >
           <div className="stat-item">
@@ -409,7 +384,7 @@ const FlashcardHeatmap = ({ className = '' }) => {
             <div className="stat-label">Current Streak</div>
           </div>
           <div className="stat-item">
-            <div className="stat-value">{stats.longestStreak}</div>
+            <div className="stat-value">{longestStreakRef.current}</div>
             <div className="stat-label">Longest Streak</div>
           </div>
           <div className="stat-item">

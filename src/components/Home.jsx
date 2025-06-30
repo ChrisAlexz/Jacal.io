@@ -1,4 +1,4 @@
-// src/components/Home.jsx - FIXED: Updated class names to match new CSS
+// src/components/Home.jsx - CLEAN VERSION
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
@@ -44,7 +44,6 @@ export default function Home() {
         .eq('user_id', user.id);
 
       if (cardsError) {
-        console.error('Error fetching user cards');
         setStats({ totalSets: 0, totalCards: 0, studiedToday: 0 });
         setLoading(false);
         return;
@@ -92,7 +91,6 @@ export default function Home() {
             .single();
 
           if (setError) {
-            console.warn('Error fetching individual set');
             continue;
           }
 
@@ -100,7 +98,6 @@ export default function Home() {
             setsData.push(setData);
           }
         } catch (error) {
-          console.warn('Exception fetching individual set');
           continue;
         }
       }
@@ -123,7 +120,10 @@ export default function Home() {
               .eq('set_id', set.id);
 
             if (countError) {
-              console.warn('Error counting cards for set');
+              return {
+                ...set,
+                card_count: 0
+              };
             }
 
             return {
@@ -131,7 +131,6 @@ export default function Home() {
               card_count: count || 0
             };
           } catch (error) {
-            console.warn('Exception counting cards for set');
             return {
               ...set,
               card_count: 0
@@ -158,7 +157,6 @@ export default function Home() {
       await getLastStudiedSet(setsWithCounts);
 
     } catch (error) {
-      console.error('Error in fetchStats');
       setStats({ totalSets: 0, totalCards: 0, studiedToday: 0 });
       setRecentSets([]);
       setLastStudiedSet(null);
@@ -248,7 +246,6 @@ export default function Home() {
       }
 
     } catch (error) {
-      console.error('Error getting last studied set:', error);
       // Fallback to most recently updated set
       const setsWithCards = availableSets.filter(set => set.card_count > 0);
       if (setsWithCards.length > 0) {
@@ -456,7 +453,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* FIXED: Stats Section with circular progress indicators */}
+        {/* Stats Section with circular progress indicators */}
         <section className="marketing-stats-section">
           <div className="container">
             <div className="section-header">
@@ -482,7 +479,7 @@ export default function Home() {
                       cy="50" 
                       r="45"
                       strokeDasharray="283"
-                      strokeDashoffset="42.45" // 85% of 283 = 240.55, so offset = 283 - 240.55 = 42.45
+                      strokeDashoffset="42.45"
                     />
                   </svg>
                   <div className="marketing-stat-number">85%</div>
@@ -504,7 +501,7 @@ export default function Home() {
                       cy="50" 
                       r="45"
                       strokeDasharray="283"
-                      strokeDashoffset="141.5" // 50% of 283 = 141.5, so offset = 283 - 141.5 = 141.5
+                      strokeDashoffset="141.5"
                     />
                   </svg>
                   <div className="marketing-stat-number">50%</div>
@@ -526,7 +523,7 @@ export default function Home() {
                       cy="50" 
                       r="45"
                       strokeDasharray="283"
-                      strokeDashoffset="188.67" // Roughly 33% for "3x" = 94.33, so offset = 283 - 94.33 = 188.67
+                      strokeDashoffset="188.67"
                     />
                   </svg>
                   <div className="marketing-stat-number">3x</div>
@@ -548,7 +545,7 @@ export default function Home() {
                       cy="50" 
                       r="45"
                       strokeDasharray="283"
-                      strokeDashoffset="14.15" // 95% of 283 = 268.85, so offset = 283 - 268.85 = 14.15
+                      strokeDashoffset="14.15"
                     />
                   </svg>
                   <div className="marketing-stat-number">95%</div>
@@ -655,7 +652,7 @@ export default function Home() {
     );
   }
 
-  // SIGNED-IN USER DASHBOARD - With correct className
+  // SIGNED-IN USER DASHBOARD
   return (
     <div className={containerClassName}>
       {/* Welcome Section */}
