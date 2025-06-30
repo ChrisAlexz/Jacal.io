@@ -1,9 +1,9 @@
-// src/components/authentication/Register.jsx - Clean Production Version
+// src/components/authentication/Register.jsx - FIXED to prevent Supabase emails
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import UserAuthContext from '../context/UserAuthContext';
 import { supabase } from '../../supabase';
-import { emailService } from '../../api/emailService';
+import { emailService } from '../../utils/emailService';
 import getEnvironmentConfig from '../../config/environment';
 import { 
   FaEye, 
@@ -40,7 +40,6 @@ export default function Register() {
   const [validationErrors, setValidationErrors] = useState({});
   const [isSignUp, setIsSignUp] = useState(true);
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [] });
-  const [useCustomEmail, setUseCustomEmail] = useState(emailService.isConfigured());
 
   // Redirect if already logged in
   useEffect(() => {
@@ -171,129 +170,95 @@ export default function Register() {
         await handleSignIn();
       }
     } catch (err) {
+      console.error('Form submission error:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle sign up with Jacal custom emails
+  // FIXED: Handle sign up without triggering Supabase emails
   const handleSignUp = async () => {
     try {
-      if (useCustomEmail) {
-        // Try custom Jacal email service first
-        try {
-          await handleJacalCustomSignUp();
-          return;
-        } catch (customError) {
-          setUseCustomEmail(false);
-          // Fall through to Supabase default
+      console.log('🔄 Starting custom signup process...');
+
+      // STEP 1: Create user account with Supabase (no email confirmation)
+      // This should NOT trigger any emails if you disabled email confirmation in dashboard
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          // IMPORTANT: No emailRedirectTo - this prevents automatic emails
+          data: {
+            name: formData.fullName.trim(),
+            picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullName)}&background=4facfe&color=fff&size=200`,
+            email_verified: false
+          }
         }
+      });
+
+      if (signUpError) {
+        console.error('❌ Supabase signup error:', signUpError);
+        if (signUpError.message.includes('already registered')) {
+          setError('An account with this email already exists. Try signing in instead.');
+        } else {
+          setError(signUpError.message);
+        }
+        return;
       }
 
-      // Fallback to Supabase's built-in email verification
-      await handleSupabaseSignUp();
+      const userId = authData.user?.id;
+      if (!userId) {
+        console.error('❌ No user ID returned from Supabase');
+        setError('Failed to create account. Please try again.');
+        return;
+      }
+
+      console.log('✅ Supabase user created:', userId);
+
+      // STEP 2: Generate our custom verification token
+      const verificationToken = emailService.generateVerificationToken();
+      console.log('✅ Generated verification token');
+      
+      // STEP 3: Store verification token in our custom table
+      await emailService.storeVerificationToken(
+        userId, 
+        formData.email, 
+        verificationToken, 
+        'email_confirmation'
+      );
+      console.log('✅ Stored verification token in database');
+
+      // STEP 4: Create confirmation URL for our custom verification
+      const confirmationUrl = `${envConfig.baseUrl}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(formData.email)}`;
+      console.log('✅ Generated confirmation URL');
+
+      // STEP 5: Send our beautiful Hostinger email
+      console.log('📧 Sending confirmation email via Hostinger...');
+      await emailService.sendConfirmationEmail(
+        formData.email,
+        confirmationUrl,
+        formData.fullName.trim()
+      );
+      console.log('✅ Hostinger email sent successfully');
+
+      // Success message
+      setMessage(
+        `🎉 Welcome to Jacal, ${formData.fullName}! We've sent a beautiful welcome email to ${formData.email} via our Hostinger email service. Check your inbox for the verification link to start your learning journey!`
+      );
+      
+      // Clear form after successful sign up
+      setFormData({
+        fullName: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+      });
 
     } catch (error) {
-      setError(`Failed to create account: ${error.message}`);
+      console.error('❌ Custom signup process error:', error);
+      setError(`Failed to send verification email: ${error.message}`);
     }
-  };
-
-  // Custom Jacal sign up with beautiful emails
-  const handleJacalCustomSignUp = async () => {
-    // Create user in Supabase with email confirmation disabled initially
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-      options: {
-        emailRedirectTo: envConfig.redirectUrl,
-        data: {
-          name: formData.fullName.trim(),
-          picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullName)}&background=4facfe&color=fff&size=200`,
-          email_verified: false
-        }
-      }
-    });
-
-    if (signUpError) {
-      if (signUpError.message.includes('already registered')) {
-        throw new Error('An account with this email already exists. Try signing in instead.');
-      } else {
-        throw new Error(signUpError.message);
-      }
-    }
-
-    const userId = authData.user?.id;
-    if (!userId) {
-      throw new Error('Failed to create account. Please try again.');
-    }
-
-    // Generate and store custom verification token
-    const verificationToken = emailService.generateVerificationToken();
-    
-    await emailService.storeVerificationToken(
-      userId, 
-      formData.email, 
-      verificationToken, 
-      'email_confirmation'
-    );
-
-    // Create confirmation URL
-    const confirmationUrl = `${envConfig.baseUrl}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(formData.email)}`;
-
-    // Send beautiful Jacal confirmation email
-    await emailService.sendConfirmationEmail(
-      formData.email,
-      confirmationUrl,
-      formData.fullName.trim()
-    );
-
-    setMessage(
-      `🎉 Welcome to Jacal, ${formData.fullName}! We've sent a beautiful welcome email to ${formData.email}. Check your inbox for our custom verification link to start your learning journey!`
-    );
-    
-    // Clear form after successful sign up
-    setFormData({
-      fullName: '',
-      email: '',
-      password: '',
-      confirmPassword: ''
-    });
-  };
-
-  // Fallback to Supabase's built-in email verification
-  const handleSupabaseSignUp = async () => {
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-      options: {
-        emailRedirectTo: envConfig.redirectUrl,
-        data: {
-          name: formData.fullName.trim(),
-          picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullName)}&background=4facfe&color=fff&size=200`
-        }
-      }
-    });
-
-    if (signUpError) {
-      if (signUpError.message.includes('already registered')) {
-        throw new Error('An account with this email already exists. Try signing in instead.');
-      } else {
-        throw new Error(signUpError.message);
-      }
-    }
-
-    setMessage(
-      `Welcome ${formData.fullName}! A confirmation email has been sent to ${formData.email}. Please check your inbox and click the verification link to activate your account.`
-    );
-    
-    // Clear form after successful sign up
-    setFormData({
-      fullName: '',
-      email: '',
-      password: '',
-      confirmPassword: ''
-    });
   };
 
   // Handle sign in
@@ -590,44 +555,41 @@ export default function Register() {
           </div>
         )}
 
-        {/* Success Message with Visual Enhancement */}
+        {/* Success Message Enhancement */}
         {message && isSignUp && (
           <div className="terms-privacy" style={{ marginTop: '24px' }}>
             <div style={{ 
-              background: useCustomEmail ? 'linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(79, 172, 254, 0.05) 100%)' : 'rgba(40, 167, 69, 0.1)', 
-              border: `1px solid ${useCustomEmail ? 'rgba(79, 172, 254, 0.3)' : 'rgba(40, 167, 69, 0.3)'}`,
+              background: 'linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.05) 100%)', 
+              border: '1px solid rgba(79, 172, 254, 0.3)',
               borderRadius: '12px',
               padding: '20px',
               marginBottom: '20px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ fontSize: '2rem' }}>{useCustomEmail ? '🎨' : '📧'}</div>
+                <div style={{ fontSize: '2rem' }}>🎨</div>
                 <div>
-                  <strong style={{ color: useCustomEmail ? '#4facfe' : '#28a745', fontSize: '1.1rem' }}>
-                    {useCustomEmail ? 'Beautiful Email Sent!' : 'Check Your Email!'}
+                  <strong style={{ color: '#4facfe', fontSize: '1.1rem' }}>
+                    Beautiful Email Sent via Hostinger!
                   </strong>
                   <p style={{ 
-                    color: useCustomEmail ? '#4facfe' : '#28a745', 
+                    color: '#4facfe', 
                     margin: '4px 0 0 0', 
                     fontSize: '0.9rem', 
                     lineHeight: 1.5 
                   }}>
-                    {useCustomEmail 
-                      ? "We've sent you a gorgeous, custom-designed welcome email with your verification link."
-                      : "We've sent a verification email to your inbox."
-                    }
+                    We've sent you a gorgeous, custom-designed welcome email using our Hostinger SMTP service.
                   </p>
                 </div>
               </div>
               
               <div style={{
-                background: useCustomEmail ? 'rgba(79, 172, 254, 0.1)' : '#f8f9fa',
+                background: 'rgba(79, 172, 254, 0.1)',
                 padding: '12px',
                 borderRadius: '8px',
-                borderLeft: `4px solid ${useCustomEmail ? '#4facfe' : '#28a745'}`
+                borderLeft: '4px solid #4facfe'
               }}>
                 <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
-                  💡 <strong>Pro tip:</strong> {useCustomEmail ? 'Look for the beautifully designed Jacal email - it stands out!' : 'Check your spam folder if you don\'t see it in a few minutes!'}
+                  💡 <strong>Pro tip:</strong> Look for the beautifully designed Jacal email - it stands out from regular emails!
                 </p>
               </div>
             </div>

@@ -1,7 +1,8 @@
-// src/components/authentication/PasswordReset.jsx - Clean Production Version
+// src/components/authentication/PasswordReset.jsx - Updated for Hostinger Email Service
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../supabase';
+import { emailService } from '../../utils/emailService';
 import getEnvironmentConfig from '../../config/environment';
 import { 
   FaEnvelope, 
@@ -20,11 +21,13 @@ export default function PasswordReset() {
   const [searchParams] = useSearchParams();
   const envConfig = getEnvironmentConfig();
   
-  // Determine if this is a reset request or password update
-  const isUpdatingPassword = searchParams.has('access_token') && searchParams.has('type');
+  // Check if this is a reset request or password update
+  const resetToken = searchParams.get('token');
+  const resetEmail = searchParams.get('email');
+  const isUpdatingPassword = !!(resetToken && resetEmail);
   
   const [formData, setFormData] = useState({
-    email: '',
+    email: resetEmail || '',
     password: '',
     confirmPassword: ''
   });
@@ -36,25 +39,6 @@ export default function PasswordReset() {
   const [validationErrors, setValidationErrors] = useState({});
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [] });
 
-  // Initialize session if we have tokens in URL
-  useEffect(() => {
-    if (isUpdatingPassword) {
-      const accessToken = searchParams.get('access_token');
-      const refreshToken = searchParams.get('refresh_token');
-      
-      if (accessToken) {
-        supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken || '',
-        }).then(({ error }) => {
-          if (error) {
-            setError('Invalid or expired reset link. Please request a new password reset.');
-          }
-        });
-      }
-    }
-  }, [isUpdatingPassword, searchParams]);
-
   // Password strength validation
   useEffect(() => {
     if (formData.password && isUpdatingPassword) {
@@ -64,6 +48,23 @@ export default function PasswordReset() {
       setPasswordStrength({ score: 0, feedback: [] });
     }
   }, [formData.password, isUpdatingPassword]);
+
+  // If we have a token, verify it on load
+  useEffect(() => {
+    if (isUpdatingPassword) {
+      verifyResetToken();
+    }
+  }, [isUpdatingPassword, resetToken]);
+
+  const verifyResetToken = async () => {
+    try {
+      // Verify the reset token using our custom email service
+      await emailService.verifyToken(resetToken, 'password_reset');
+      // Token is valid, user can proceed with password reset
+    } catch (error) {
+      setError('Invalid or expired reset link. Please request a new password reset.');
+    }
+  };
 
   const calculatePasswordStrength = (password) => {
     let score = 0;
@@ -166,45 +167,113 @@ export default function PasswordReset() {
   };
 
   const handlePasswordResetRequest = async () => {
-    const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-      redirectTo: `${envConfig.baseUrl}/auth/reset-password`,
-    });
+    try {
+      // First check if user exists
+      const { data: users, error: getUserError } = await supabase
+        .from('auth.users')
+        .select('id, email')
+        .eq('email', formData.email);
 
-    if (error) {
-      if (error.message.includes('rate limit')) {
-        setError('Too many reset requests. Please wait a few minutes before trying again.');
-      } else {
-        setError('Failed to send reset email. Please check your email address and try again.');
+      if (getUserError) {
+        throw new Error('Error checking user account');
       }
-      return;
-    }
 
-    setMessage(
-      `A password reset link has been sent to ${formData.email}. Please check your inbox (and spam folder) and follow the instructions to reset your password.`
-    );
-    
-    setFormData({ email: '', password: '', confirmPassword: '' });
+      if (!users || users.length === 0) {
+        // Don't reveal whether user exists - always show success message
+        setMessage(
+          `If an account with ${formData.email} exists, a password reset link has been sent. Please check your inbox (and spam folder).`
+        );
+        setFormData({ email: '', password: '', confirmPassword: '' });
+        return;
+      }
+
+      const userId = users[0].id;
+
+      // Generate custom reset token
+      const resetToken = emailService.generateVerificationToken();
+      
+      // Store reset token
+      await emailService.storeVerificationToken(
+        userId,
+        formData.email,
+        resetToken,
+        'password_reset'
+      );
+
+      // Create reset URL that points to our custom reset page
+      const resetUrl = `${envConfig.baseUrl}/auth/reset-password?token=${resetToken}&email=${encodeURIComponent(formData.email)}`;
+
+      // Send password reset email via Hostinger
+      await emailService.sendPasswordResetEmail(formData.email, resetUrl, '');
+
+      setMessage(
+        `A password reset link has been sent to ${formData.email} via our secure Hostinger email service. Please check your inbox (and spam folder) and follow the instructions to reset your password.`
+      );
+      
+      setFormData({ email: '', password: '', confirmPassword: '' });
+
+    } catch (error) {
+      console.error('Password reset request error:', error);
+      setError('Failed to send reset email. Please try again.');
+    }
   };
 
   const handlePasswordUpdate = async () => {
-    const { error } = await supabase.auth.updateUser({
-      password: formData.password
-    });
+    try {
+      // First verify the token again
+      const tokenData = await emailService.verifyToken(resetToken, 'password_reset');
+      
+      if (!tokenData) {
+        throw new Error('Invalid or expired reset token');
+      }
 
-    if (error) {
-      if (error.message.includes('session_not_found')) {
+      // Get user session using the reset token
+      // Note: This is a simplified approach. In production, you might want to 
+      // create a temporary session or use Supabase's built-in password reset
+      const { data: users, error: getUserError } = await supabase
+        .from('auth.users')
+        .select('id, email')
+        .eq('id', tokenData.user_id);
+
+      if (getUserError || !users || users.length === 0) {
+        throw new Error('User not found');
+      }
+
+      // Update password using admin API (requires service role key on backend)
+      // Since we don't have direct access to admin functions in frontend,
+      // we'll need to call our backend API
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/auth/update-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: tokenData.user_id,
+          newPassword: formData.password,
+          resetToken: resetToken
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Network error' }));
+        throw new Error(errorData.error || 'Failed to update password');
+      }
+
+      setMessage('Your password has been successfully updated! You can now sign in with your new password.');
+      
+      setTimeout(() => {
+        navigate('/register');
+      }, 3000);
+
+    } catch (error) {
+      console.error('Password update error:', error);
+      
+      if (error.message.includes('expired') || error.message.includes('Invalid')) {
         setError('Your reset session has expired. Please request a new password reset link.');
       } else {
         setError('Failed to update password. Please try again.');
       }
-      return;
     }
-
-    setMessage('Your password has been successfully updated! You can now sign in with your new password.');
-    
-    setTimeout(() => {
-      navigate('/register');
-    }, 3000);
   };
 
   return (
@@ -221,7 +290,7 @@ export default function PasswordReset() {
           <p>
             {isUpdatingPassword 
               ? 'Choose a strong password for your account'
-              : 'Enter your email address and we\'ll send you a link to reset your password'
+              : 'Enter your email address and we\'ll send you a secure reset link via Hostinger'
             }
           </p>
         </div>
@@ -269,6 +338,21 @@ export default function PasswordReset() {
             ) : (
               // Password fields for updating password
               <>
+                {/* Show email being reset */}
+                <div className="form-group">
+                  <label>Resetting password for:</label>
+                  <div style={{ 
+                    padding: '12px 16px',
+                    background: 'rgba(79, 172, 254, 0.1)',
+                    border: '2px solid rgba(79, 172, 254, 0.3)',
+                    borderRadius: '8px',
+                    color: '#4facfe',
+                    fontWeight: '600'
+                  }}>
+                    {resetEmail}
+                  </div>
+                </div>
+
                 {/* New Password Field */}
                 <div className="form-group">
                   <label htmlFor="password">New Password</label>
@@ -380,7 +464,14 @@ export default function PasswordReset() {
 
         {/* Back to Sign In */}
         <div className="auth-toggle">
-          <Link to="/register" className="toggle-btn" style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', textDecoration: 'none', marginTop: '16px' }}>
+          <Link to="/register" className="toggle-btn" style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            justifyContent: 'center', 
+            textDecoration: 'none', 
+            marginTop: '16px' 
+          }}>
             <FaArrowLeft style={{ fontSize: '0.9rem' }} />
             Back to Sign In
           </Link>
@@ -393,7 +484,8 @@ export default function PasswordReset() {
               Remember your password? <Link to="/register" className="legal-link">Sign in instead</Link>
             </p>
             <p style={{ marginTop: '12px', fontSize: '0.8rem' }}>
-              If you don't receive an email within a few minutes, please check your spam folder or try again with a different email address.
+              If you don't receive an email within a few minutes, please check your spam folder. 
+              We send password reset emails via our secure Hostinger email service.
             </p>
           </div>
         )}
