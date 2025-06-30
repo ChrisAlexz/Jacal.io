@@ -1,4 +1,4 @@
-// src/components/authentication/Register.jsx - FIXED to prevent Supabase emails
+// src/components/authentication/Register.jsx - COMPLETE FILE, NO QUEUE LOGIC
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import UserAuthContext from '../context/UserAuthContext';
@@ -23,7 +23,6 @@ export default function Register() {
   const { login, isLoggedIn } = useContext(UserAuthContext);
   const envConfig = getEnvironmentConfig();
 
-  // Form states
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -32,8 +31,6 @@ export default function Register() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
-  // UI states
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -41,14 +38,12 @@ export default function Register() {
   const [isSignUp, setIsSignUp] = useState(true);
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [] });
 
-  // Redirect if already logged in
   useEffect(() => {
     if (isLoggedIn) {
       navigate('/');
     }
   }, [isLoggedIn, navigate]);
 
-  // Real-time password strength validation
   useEffect(() => {
     if (formData.password) {
       const strength = calculatePasswordStrength(formData.password);
@@ -58,7 +53,6 @@ export default function Register() {
     }
   }, [formData.password]);
 
-  // Calculate password strength
   const calculatePasswordStrength = (password) => {
     let score = 0;
     const feedback = [];
@@ -81,7 +75,6 @@ export default function Register() {
     return { score, feedback };
   };
 
-  // Get password strength color and label
   const getPasswordStrengthInfo = () => {
     switch (passwordStrength.score) {
       case 0:
@@ -94,25 +87,20 @@ export default function Register() {
     }
   };
 
-  // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Clear validation error for this field
     if (validationErrors[name]) {
       setValidationErrors(prev => ({ ...prev, [name]: null }));
     }
     
-    // Clear general errors when user starts typing
     if (error) setError(null);
   };
 
-  // Comprehensive form validation
   const validateForm = () => {
     const errors = {};
 
-    // Full name validation (only for sign up)
     if (isSignUp) {
       if (!formData.fullName.trim()) {
         errors.fullName = 'Full name is required';
@@ -121,7 +109,6 @@ export default function Register() {
       }
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email) {
       errors.email = 'Email is required';
@@ -129,7 +116,6 @@ export default function Register() {
       errors.email = 'Please enter a valid email address';
     }
 
-    // Password validation
     if (!formData.password) {
       errors.password = 'Password is required';
     } else if (isSignUp) {
@@ -140,7 +126,6 @@ export default function Register() {
       }
     }
 
-    // Confirm password validation (only for sign up)
     if (isSignUp) {
       if (!formData.confirmPassword) {
         errors.confirmPassword = 'Please confirm your password';
@@ -153,7 +138,6 @@ export default function Register() {
     return Object.keys(errors).length === 0;
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -170,25 +154,20 @@ export default function Register() {
         await handleSignIn();
       }
     } catch (err) {
-      console.error('Form submission error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      setError(err.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // FIXED: Handle sign up without triggering Supabase emails
+  // SIMPLE: Just create account and send email
   const handleSignUp = async () => {
     try {
-      console.log('🔄 Starting custom signup process...');
-
-      // STEP 1: Create user account with Supabase (no email confirmation)
-      // This should NOT trigger any emails if you disabled email confirmation in dashboard
+      // Create user account
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
-          // IMPORTANT: No emailRedirectTo - this prevents automatic emails
           data: {
             name: formData.fullName.trim(),
             picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullName)}&background=4facfe&color=fff&size=200`,
@@ -198,56 +177,45 @@ export default function Register() {
       });
 
       if (signUpError) {
-        console.error('❌ Supabase signup error:', signUpError);
         if (signUpError.message.includes('already registered')) {
-          setError('An account with this email already exists. Try signing in instead.');
+          throw new Error('An account with this email already exists. Try signing in instead.');
         } else {
-          setError(signUpError.message);
+          throw new Error(signUpError.message);
         }
-        return;
       }
 
       const userId = authData.user?.id;
       if (!userId) {
-        console.error('❌ No user ID returned from Supabase');
-        setError('Failed to create account. Please try again.');
-        return;
+        throw new Error('Failed to create account. Please try again.');
       }
 
-      console.log('✅ Supabase user created:', userId);
-
-      // STEP 2: Generate our custom verification token
+      // Generate verification token
       const verificationToken = emailService.generateVerificationToken();
-      console.log('✅ Generated verification token');
       
-      // STEP 3: Store verification token in our custom table
+      // Store verification token
       await emailService.storeVerificationToken(
         userId, 
         formData.email, 
         verificationToken, 
         'email_confirmation'
       );
-      console.log('✅ Stored verification token in database');
 
-      // STEP 4: Create confirmation URL for our custom verification
+      // Create confirmation URL
       const confirmationUrl = `${envConfig.baseUrl}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(formData.email)}`;
-      console.log('✅ Generated confirmation URL');
 
-      // STEP 5: Send our beautiful Hostinger email
-      console.log('📧 Sending confirmation email via Hostinger...');
+      // Send email - SIMPLE, NO QUEUE
       await emailService.sendConfirmationEmail(
         formData.email,
         confirmationUrl,
         formData.fullName.trim()
       );
-      console.log('✅ Hostinger email sent successfully');
-
-      // Success message
+      
+      // Success!
       setMessage(
-        `🎉 Welcome to Jacal, ${formData.fullName}! We've sent a beautiful welcome email to ${formData.email} via our Hostinger email service. Check your inbox for the verification link to start your learning journey!`
+        `🎉 Welcome to Jacal, ${formData.fullName}! We've sent a beautiful welcome email to ${formData.email}. Check your inbox for the verification link to start your learning journey!`
       );
       
-      // Clear form after successful sign up
+      // Clear form
       setFormData({
         fullName: '',
         email: '',
@@ -256,12 +224,10 @@ export default function Register() {
       });
 
     } catch (error) {
-      console.error('❌ Custom signup process error:', error);
-      setError(`Failed to send verification email: ${error.message}`);
+      throw error;
     }
   };
 
-  // Handle sign in
   const handleSignIn = async () => {
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email: formData.email,
@@ -285,7 +251,6 @@ export default function Register() {
     }
   };
 
-  // Handle Google sign in
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
@@ -308,7 +273,6 @@ export default function Register() {
     }
   };
 
-  // Toggle between sign up and sign in
   const toggleMode = () => {
     setIsSignUp(!isSignUp);
     setError(null);
@@ -325,7 +289,6 @@ export default function Register() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        {/* Header */}
         <div className="auth-header">
           <div className="auth-icon">
             <FaUser />
@@ -339,7 +302,6 @@ export default function Register() {
           </p>
         </div>
 
-        {/* Alert Messages */}
         {error && (
           <div className="alert alert-error">
             <FaExclamationTriangle />
@@ -354,10 +316,8 @@ export default function Register() {
           </div>
         )}
 
-        {/* Main Form */}
         {!message && (
           <form className="auth-form" onSubmit={handleSubmit}>
-            {/* Full Name Field (Sign Up Only) */}
             {isSignUp && (
               <div className="form-group">
                 <label htmlFor="fullName">Full Name</label>
@@ -380,7 +340,6 @@ export default function Register() {
               </div>
             )}
 
-            {/* Email Field */}
             <div className="form-group">
               <label htmlFor="email">Email Address</label>
               <div className={`input-wrapper ${validationErrors.email ? 'error' : ''}`}>
@@ -401,7 +360,6 @@ export default function Register() {
               )}
             </div>
 
-            {/* Password Field */}
             <div className="form-group">
               <label htmlFor="password">Password</label>
               <div className={`input-wrapper ${validationErrors.password ? 'error' : ''}`}>
@@ -429,7 +387,6 @@ export default function Register() {
                 <span className="error-text">{validationErrors.password}</span>
               )}
               
-              {/* Password Strength Indicator (Sign Up Only) */}
               {isSignUp && formData.password && (
                 <div className="password-strength">
                   <div className="strength-bar">
@@ -460,7 +417,6 @@ export default function Register() {
               )}
             </div>
 
-            {/* Confirm Password Field (Sign Up Only) */}
             {isSignUp && (
               <div className="form-group">
                 <label htmlFor="confirmPassword">Confirm Password</label>
@@ -491,7 +447,6 @@ export default function Register() {
               </div>
             )}
 
-            {/* Submit Button */}
             <button 
               type="submit" 
               className="submit-btn"
@@ -509,7 +464,6 @@ export default function Register() {
           </form>
         )}
 
-        {/* Google Sign In (only if no success message) */}
         {!message && (
           <>
             <div className="divider">
@@ -531,7 +485,6 @@ export default function Register() {
           </>
         )}
 
-        {/* Toggle Mode */}
         <div className="auth-toggle">
           <p>
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}
@@ -546,7 +499,6 @@ export default function Register() {
           </p>
         </div>
 
-        {/* Forgot Password Link (Sign In Only) */}
         {!isSignUp && (
           <div className="forgot-password">
             <Link to="/auth/reset-password" className="forgot-link">
@@ -555,48 +507,6 @@ export default function Register() {
           </div>
         )}
 
-        {/* Success Message Enhancement */}
-        {message && isSignUp && (
-          <div className="terms-privacy" style={{ marginTop: '24px' }}>
-            <div style={{ 
-              background: 'linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.05) 100%)', 
-              border: '1px solid rgba(79, 172, 254, 0.3)',
-              borderRadius: '12px',
-              padding: '20px',
-              marginBottom: '20px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ fontSize: '2rem' }}>🎨</div>
-                <div>
-                  <strong style={{ color: '#4facfe', fontSize: '1.1rem' }}>
-                    Beautiful Email Sent via Hostinger!
-                  </strong>
-                  <p style={{ 
-                    color: '#4facfe', 
-                    margin: '4px 0 0 0', 
-                    fontSize: '0.9rem', 
-                    lineHeight: 1.5 
-                  }}>
-                    We've sent you a gorgeous, custom-designed welcome email using our Hostinger SMTP service.
-                  </p>
-                </div>
-              </div>
-              
-              <div style={{
-                background: 'rgba(79, 172, 254, 0.1)',
-                padding: '12px',
-                borderRadius: '8px',
-                borderLeft: '4px solid #4facfe'
-              }}>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
-                  💡 <strong>Pro tip:</strong> Look for the beautifully designed Jacal email - it stands out from regular emails!
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Terms and Privacy (Sign Up Only) */}
         {isSignUp && !message && (
           <div className="terms-privacy">
             <p>
