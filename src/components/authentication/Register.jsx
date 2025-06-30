@@ -161,78 +161,55 @@ export default function Register() {
   };
 
   // CUSTOM SIGNUP - CALLS VERCEL SERVERLESS FUNCTIONS OR LOCAL API
-  const handleCustomSignUp = async () => {
-    try {
-      // For development: use relative /api path, for production: use current domain
-      const isDev = window.location.hostname === 'localhost';
-      const baseUrl = isDev ? '' : window.location.origin; // Empty string uses relative paths in dev
-      
-      console.log('🔄 Attempting signup with API:', `${baseUrl}/api/auth/signup`);
-      
-      const requestData = {
-        email: formData.email,
-        password: formData.password,
-        fullName: formData.fullName.trim()
-      };
-      
-      const response = await fetch(`${baseUrl}/api/auth/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-      });
+// Replace your handleCustomSignUp function in Register.jsx with this:
 
-      console.log('📡 Response status:', response.status);
+const handleCustomSignUp = async () => {
+  try {
+    console.log('🚀 Starting signup process...');
+    
+    const requestData = {
+      email: formData.email,
+      password: formData.password,
+      fullName: formData.fullName.trim()
+    };
+    
+    console.log('📤 Sending signup request to API...');
+    
+    const response = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    });
 
-      // Handle fetch errors
-      if (!response) {
-        throw new Error('Network error: Could not connect to server.');
-      }
+    console.log('📡 Response status:', response.status);
 
-      // Check content type
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const textResponse = await response.text();
-        console.error('❌ Non-JSON response:', textResponse);
-        throw new Error(`Server returned invalid response. Expected JSON but got: ${contentType || 'unknown'}`);
-      }
-
-      // Parse JSON response
-      let data;
-      try {
-        data = await response.json();
-        console.log('✅ Parsed response:', data);
-      } catch (jsonError) {
-        console.error('❌ JSON parse error:', jsonError);
-        throw new Error('Invalid response from server. Please try again.');
-      }
-
-      // Handle HTTP errors
-      if (!response.ok) {
-        const errorMessage = data.error || data.message || `HTTP ${response.status}: ${response.statusText}`;
-        throw new Error(errorMessage);
-      }
-
-      // Success!
-      setMessage(
-        `🎉 Welcome to Jacal, ${formData.fullName}! We've sent a verification email to ${formData.email}. Check your inbox and click the verification link to activate your account!`
-      );
-      
-      // Clear form
-      setFormData({
-        fullName: '',
-        email: '',
-        password: '',
-        confirmPassword: ''
-      });
-
-    } catch (error) {
-      console.error('❌ Signup error:', error);
-      throw error;
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('❌ API Error:', errorData);
+      throw new Error(errorData.error || `HTTP ${response.status}: Server error`);
     }
-  };
+
+    const data = await response.json();
+    console.log('✅ Signup success:', data);
+
+    setMessage(data.message || `Account created successfully! Verification email sent to ${formData.email}.`);
+    
+    // Clear form on success
+    setFormData({
+      fullName: '',
+      email: '',
+      password: '',
+      confirmPassword: ''
+    });
+
+  } catch (error) {
+    console.error('❌ Signup error:', error);
+    setError(error.message || 'Signup failed. Please try again.');
+  }
+};
 
   const handleSignIn = async () => {
     try {

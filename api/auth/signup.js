@@ -1,5 +1,6 @@
-import bcrypt from 'bcrypt';
+// api/auth/signup.js - Complete Hostinger email implementation
 import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 
 const supabase = createClient(
@@ -8,13 +9,13 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return res.status(200).json({ message: 'CORS OK' });
   }
 
   if (req.method !== 'POST') {
@@ -22,8 +23,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email, password, fullName, resend } = req.body;
+    const { email, password, fullName, resend } = req.body || {};
 
+    // Basic validation
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
     }
@@ -49,40 +51,45 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Full name must be at least 2 characters long' });
     }
 
+    // Check if user already exists in auth.users (NOT pending_users)
     try {
       const { data: existingUser } = await supabase.auth.admin.getUserByEmail(email);
-      if (existingUser.user) {
+      if (existingUser?.user) {
         return res.status(400).json({ error: 'An account with this email already exists. Please sign in instead.' });
       }
     } catch (adminError) {
-      console.error('Admin API error:', adminError);
+      // This is expected for new users
     }
 
-    const { data: pendingUser, error: pendingError } = await supabase
+    // Check for existing pending user and rate limiting
+    const { data: pendingUser } = await supabase
       .from('pending_users')
       .select('id, created_at')
-      .eq('email', email)
+      .eq('email', email.toLowerCase())
       .single();
 
-    if (pendingUser && !pendingError) {
-      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    if (pendingUser) {
+      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
       const createdAt = new Date(pendingUser.created_at);
       
-      if (createdAt > tenMinutesAgo) {
-        return res.status(400).json({ 
-          error: 'A verification email was recently sent to this address. Please check your email or wait 10 minutes before trying again.' 
+      if (createdAt > twoMinutesAgo) {
+        const secondsRemaining = Math.ceil((createdAt.getTime() + 120000 - Date.now()) / 1000);
+        return res.status(429).json({ 
+          error: `A verification email was recently sent. Please wait ${secondsRemaining} seconds before requesting another.`
         });
       }
       
+      // Delete old pending user
       await supabase.from('pending_users').delete().eq('id', pendingUser.id);
     }
 
-    const saltRounds = 12;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 12);
     const verificationToken = generateVerificationToken();
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
+    // Insert pending user
     const { data: newPendingUser, error: insertError } = await supabase
       .from('pending_users')
       .insert({
@@ -103,19 +110,21 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to create account. Please try again.' });
     }
 
+    // Create verification URL
     const host = req.headers.host || 'jacal.io';
-    const baseUrl = host.includes('localhost') 
-      ? 'http://localhost:3001' 
-      : `https://${host}`;
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const baseUrl = `${protocol}://${host}`;
     const verificationUrl = `${baseUrl}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
 
+    // Send verification email via Hostinger
     try {
-      await sendVerificationEmail(email, verificationUrl, fullName);
+      await sendHostingerEmail(email, verificationUrl, fullName);
     } catch (emailError) {
-      console.error('Verification email send error:', emailError);
+      console.error('Email send error:', emailError);
+      // Clean up pending user if email fails
       await supabase.from('pending_users').delete().eq('id', newPendingUser.id);
       return res.status(500).json({ 
-        error: 'Failed to send verification email. Please try again or contact support if the problem persists.' 
+        error: 'Failed to send verification email. Please try again.' 
       });
     }
 
@@ -135,13 +144,13 @@ export default async function handler(req, res) {
 
 async function handleResendVerification(req, res, email, fullName) {
   try {
-    const { data: pendingUser, error: findError } = await supabase
+    const { data: pendingUser } = await supabase
       .from('pending_users')
       .select('*')
       .eq('email', email.toLowerCase())
       .single();
 
-    if (findError || !pendingUser) {
+    if (!pendingUser) {
       return res.status(400).json({ error: 'No pending verification found for this email address' });
     }
 
@@ -158,17 +167,15 @@ async function handleResendVerification(req, res, email, fullName) {
       .eq('id', pendingUser.id);
 
     if (updateError) {
-      console.error('Error updating pending user token:', updateError);
       return res.status(500).json({ error: 'Failed to resend verification email' });
     }
 
     const host = req.headers.host || 'jacal.io';
-    const baseUrl = host.includes('localhost') 
-      ? 'http://localhost:3001' 
-      : `https://${host}`;
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const baseUrl = `${protocol}://${host}`;
     const verificationUrl = `${baseUrl}/auth/verify-email?token=${newVerificationToken}&email=${encodeURIComponent(email)}`;
 
-    await sendVerificationEmail(email, verificationUrl, fullName || pendingUser.full_name);
+    await sendHostingerEmail(email, verificationUrl, fullName || pendingUser.full_name);
 
     return res.status(200).json({
       success: true,
@@ -188,7 +195,11 @@ function generateVerificationToken() {
   return `jacal_${timestamp}_${randomPart1}_${randomPart2}`;
 }
 
-async function sendVerificationEmail(email, confirmationUrl, userName) {
+async function sendHostingerEmail(email, confirmationUrl, userName) {
+  if (!process.env.HOSTINGER_EMAIL_USER || !process.env.HOSTINGER_EMAIL_PASSWORD) {
+    throw new Error('Hostinger email credentials not configured');
+  }
+
   const transporter = nodemailer.createTransporter({
     host: 'smtp.hostinger.com',
     port: 587,
@@ -204,56 +215,45 @@ async function sendVerificationEmail(email, confirmationUrl, userName) {
   
   const emailHtml = `
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
   <title>Welcome to Jacal!</title>
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; margin: 0; }
-    .container { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
-    .header { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 50px 30px; text-align: center; }
-    .logo { width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2.5rem; }
-    .header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 10px; }
-    .content { padding: 40px 30px; }
-    .greeting { color: #2d3748; font-size: 1.8rem; font-weight: 700; margin-bottom: 20px; }
-    .intro { color: #4a5568; font-size: 1rem; line-height: 1.7; margin-bottom: 30px; }
-    .cta-container { text-align: center; margin: 35px 0; }
-    .cta-button { display: inline-block; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; text-decoration: none; padding: 18px 35px; border-radius: 12px; font-weight: 700; font-size: 1.1rem; }
-    .warning { background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border: 2px solid #ffc107; border-radius: 12px; padding: 20px; margin: 25px 0; text-align: center; color: #856404; font-weight: 600; }
-    .footer { background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%); color: white; padding: 30px; text-align: center; }
-    .footer a { color: #90cdf4; text-decoration: none; }
-  </style>
 </head>
-<body>
-  <div class="container">
-    <div class="header">
-      <div class="logo">🧠</div>
-      <h1>Welcome to Jacal!</h1>
-      <p>Your intelligent learning journey starts here</p>
+<body style="font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px;">
+  <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+    <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 40px; text-align: center;">
+      <h1 style="margin: 0; font-size: 2rem;">🧠 Welcome to Jacal!</h1>
+      <p style="margin: 10px 0 0 0; opacity: 0.9;">Your intelligent learning journey starts here</p>
     </div>
-    <div class="content">
-      <h2 class="greeting">Hi ${safeName || 'there'}! 👋</h2>
-      <p class="intro">🎉 <strong>Congratulations!</strong> You've joined thousands of students revolutionizing their learning with <strong>Jacal</strong>. We're thrilled to welcome you!</p>
-      <p class="intro">To start creating flashcards, please verify your email address:</p>
-      <div class="cta-container">
-        <a href="${confirmationUrl}" class="cta-button">✅ Verify Email & Start Learning</a>
+    <div style="padding: 40px;">
+      <h2 style="color: #4facfe; margin-top: 0;">Hi ${safeName || 'there'}! 👋</h2>
+      <p style="color: #333; line-height: 1.6;">Thanks for joining Jacal! To start creating flashcards and begin your learning journey, please verify your email address:</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${confirmationUrl}" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; display: inline-block; font-weight: 600;">
+          ✅ Verify Email & Start Learning
+        </a>
       </div>
-      <div class="warning">⏰ <strong>Security Notice:</strong> This verification link expires in 24 hours.</div>
-      <p style="text-align: center; color: #718096; font-style: italic; margin-top: 30px;">Happy learning,<br><strong>The Jacal Team</strong> 🎓</p>
+      <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 16px; margin: 20px 0;">
+        <strong style="color: #856404;">⏰ Important:</strong> This verification link expires in 24 hours for your security.
+      </div>
+      <p style="color: #666; margin-top: 30px;">Happy learning,<br><strong>The Jacal Team</strong> 🎓</p>
     </div>
-    <div class="footer">
-      <p><strong>🧠 Jacal Learning Platform</strong></p>
-      <p>📧 <a href="mailto:${process.env.HOSTINGER_EMAIL_USER}">${process.env.HOSTINGER_EMAIL_USER}</a></p>
+    <div style="background: #2d3748; color: white; padding: 20px; text-align: center;">
+      <p style="margin: 0;"><strong>🧠 Jacal Learning Platform</strong></p>
+      <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.8;">📧 ${process.env.HOSTINGER_EMAIL_USER}</p>
     </div>
   </div>
 </body>
 </html>`;
 
-  await transporter.sendMail({
+  const result = await transporter.sendMail({
     from: `"Jacal Learning Platform" <${process.env.HOSTINGER_EMAIL_USER}>`,
     to: email,
     subject: '🎓 Welcome to Jacal! Verify your email to start learning',
     html: emailHtml
   });
+
+  console.log('✅ Hostinger email sent successfully:', result.messageId);
+  return result;
 }
