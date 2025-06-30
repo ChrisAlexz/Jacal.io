@@ -1,8 +1,6 @@
-// src/components/authentication/EmailVerification.jsx - Updated for Hostinger Email Service
+// src/components/authentication/EmailVerification.jsx - Updated for Custom Backend
 import React, { useEffect, useState, useContext } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { supabase } from '../../supabase';
-import { emailService } from '../../utils/emailService';
 import UserAuthContext from '../context/UserAuthContext';
 import { FaCheckCircle, FaExclamationTriangle, FaSpinner, FaEnvelope } from 'react-icons/fa';
 import '../../styles/Register.css';
@@ -33,59 +31,39 @@ export default function EmailVerification() {
 
   const verifyEmailToken = async (token, email) => {
     try {
-      // Verify token using our custom email service
-      const tokenData = await emailService.verifyToken(token, 'email_confirmation');
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
       
-      if (!tokenData) {
-        setStatus('expired');
-        setMessage('This verification link has expired. Please request a new one.');
-        return;
-      }
+      const response = await fetch(`${API_BASE_URL}/api/auth/verify-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          token: token,
+          email: email
+        })
+      });
 
-      // IMPORTANT: Update the user's email_confirmed status in Supabase
-      // Since we're handling email verification manually, we need to confirm the user
-      const { data: userData, error: getUserError } = await supabase
-        .from('auth.users')
-        .select('id, email_confirmed_at')
-        .eq('id', tokenData.user_id)
-        .single();
+      const data = await response.json();
 
-      if (getUserError) {
-        // Try alternative method if direct auth.users access fails
-        const { data: { user }, error: currentUserError } = await supabase.auth.getUser();
-        
-        if (currentUserError || !user || user.email !== email) {
-          console.error('Could not verify user for email confirmation');
+      if (!response.ok) {
+        if (data.error && data.error.includes('expired')) {
+          setStatus('expired');
+          setMessage('This verification link has expired. Please request a new one.');
+        } else if (data.error && data.error.includes('used')) {
+          setStatus('success');
+          setMessage('This email has already been verified! You can sign in to your account.');
+          setTimeout(() => {
+            navigate('/register?verified=true');
+          }, 3000);
+        } else {
           setStatus('error');
-          setMessage('Could not verify your account. Please try signing in.');
-          return;
+          setMessage(data.error || 'Verification failed. Please try again or contact support.');
         }
-
-        // User is already logged in and email matches, consider it verified
-        setStatus('success');
-        setMessage('Your email has been successfully verified! You can now use all features of Jacal.');
-        
-        setTimeout(() => {
-          navigate('/register?verified=true');
-        }, 3000);
         return;
       }
 
-      // If we have user data, mark email as confirmed
-      if (userData && !userData.email_confirmed_at) {
-        // Update email confirmation status
-        const { error: updateError } = await supabase.auth.admin.updateUserById(
-          tokenData.user_id,
-          { email_confirm: true }
-        );
-
-        if (updateError) {
-          console.error('Error confirming email:', updateError);
-          // Don't fail the verification if we can't update the admin way
-          // The token verification was successful, so consider it verified
-        }
-      }
-
+      // Success
       setStatus('success');
       setMessage('Your email has been successfully verified! You can now sign in to your account and start learning with Jacal.');
 
@@ -95,20 +73,8 @@ export default function EmailVerification() {
 
     } catch (error) {
       console.error('Verification error:', error);
-      
-      if (error.message.includes('expired')) {
-        setStatus('expired');
-        setMessage('This verification link has expired. Please request a new one.');
-      } else if (error.message.includes('used')) {
-        setStatus('success');
-        setMessage('This email has already been verified! You can sign in to your account.');
-        setTimeout(() => {
-          navigate('/register?verified=true');
-        }, 3000);
-      } else {
-        setStatus('error');
-        setMessage('Verification failed. Please try again or contact support.');
-      }
+      setStatus('error');
+      setMessage('Verification failed due to a network error. Please try again.');
     }
   };
 
@@ -118,41 +84,33 @@ export default function EmailVerification() {
     setResendLoading(true);
 
     try {
-      // Get user by email to resend verification
-      const { data: users, error: getUserError } = await supabase
-        .from('auth.users')
-        .select('id, email')
-        .eq('email', userEmail);
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+      
+      // Try to resend by calling the signup endpoint with special flag
+      const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: userEmail,
+          password: 'resend_verification', // Special flag
+          fullName: '',
+          resend: true
+        })
+      });
 
-      if (getUserError || !users || users.length === 0) {
-        throw new Error('User not found');
+      if (response.ok) {
+        setMessage(`A new verification email has been sent to ${userEmail}. Please check your inbox.`);
+        setStatus('success');
+      } else {
+        const errorData = await response.json();
+        setMessage(errorData.error || 'Failed to resend verification email. Please try again later or contact support.');
       }
-
-      const userId = users[0].id;
-
-      // Generate new token
-      const newToken = emailService.generateVerificationToken();
-      
-      // Store new verification token
-      await emailService.storeVerificationToken(
-        userId,
-        userEmail,
-        newToken,
-        'email_confirmation'
-      );
-
-      // Create new confirmation URL
-      const confirmationUrl = `${window.location.origin}/auth/verify-email?token=${newToken}&email=${encodeURIComponent(userEmail)}`;
-
-      // Send new verification email via Hostinger
-      await emailService.sendConfirmationEmail(userEmail, confirmationUrl, '');
-      
-      setMessage(`A new verification email has been sent to ${userEmail} via our Hostinger email service. Please check your inbox.`);
-      setStatus('success');
 
     } catch (error) {
       console.error('Resend verification error:', error);
-      setMessage('Failed to resend verification email. Please try again later or contact support.');
+      setMessage('Failed to resend verification email due to a network error. Please try again later.');
     } finally {
       setResendLoading(false);
     }

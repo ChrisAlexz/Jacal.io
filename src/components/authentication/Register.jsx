@@ -1,9 +1,8 @@
-// src/components/authentication/Register.jsx - COMPLETE FILE, NO QUEUE LOGIC
+// src/components/authentication/Register.jsx - UPDATED FOR VERCEL FUNCTIONS
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import UserAuthContext from '../context/UserAuthContext';
 import { supabase } from '../../supabase';
-import { emailService } from '../../utils/emailService';
 import getEnvironmentConfig from '../../config/environment';
 import { 
   FaEye, 
@@ -149,70 +148,76 @@ export default function Register() {
 
     try {
       if (isSignUp) {
-        await handleSignUp();
+        await handleCustomSignUp();
       } else {
         await handleSignIn();
       }
     } catch (err) {
+      console.error('Form submission error:', err);
       setError(err.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // SIMPLE: Just create account and send email
-  const handleSignUp = async () => {
+  // CUSTOM SIGNUP - CALLS VERCEL SERVERLESS FUNCTIONS OR LOCAL API
+  const handleCustomSignUp = async () => {
     try {
-      // Create user account
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      // For development: use relative /api path, for production: use current domain
+      const isDev = window.location.hostname === 'localhost';
+      const baseUrl = isDev ? '' : window.location.origin; // Empty string uses relative paths in dev
+      
+      console.log('🔄 Attempting signup with API:', `${baseUrl}/api/auth/signup`);
+      
+      const requestData = {
         email: formData.email,
         password: formData.password,
-        options: {
-          data: {
-            name: formData.fullName.trim(),
-            picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.fullName)}&background=4facfe&color=fff&size=200`,
-            email_verified: false
-          }
-        }
+        fullName: formData.fullName.trim()
+      };
+      
+      const response = await fetch(`${baseUrl}/api/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(requestData)
       });
 
-      if (signUpError) {
-        if (signUpError.message.includes('already registered')) {
-          throw new Error('An account with this email already exists. Try signing in instead.');
-        } else {
-          throw new Error(signUpError.message);
-        }
+      console.log('📡 Response status:', response.status);
+
+      // Handle fetch errors
+      if (!response) {
+        throw new Error('Network error: Could not connect to server.');
       }
 
-      const userId = authData.user?.id;
-      if (!userId) {
-        throw new Error('Failed to create account. Please try again.');
+      // Check content type
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('❌ Non-JSON response:', textResponse);
+        throw new Error(`Server returned invalid response. Expected JSON but got: ${contentType || 'unknown'}`);
       }
 
-      // Generate verification token
-      const verificationToken = emailService.generateVerificationToken();
-      
-      // Store verification token
-      await emailService.storeVerificationToken(
-        userId, 
-        formData.email, 
-        verificationToken, 
-        'email_confirmation'
-      );
+      // Parse JSON response
+      let data;
+      try {
+        data = await response.json();
+        console.log('✅ Parsed response:', data);
+      } catch (jsonError) {
+        console.error('❌ JSON parse error:', jsonError);
+        throw new Error('Invalid response from server. Please try again.');
+      }
 
-      // Create confirmation URL
-      const confirmationUrl = `${envConfig.baseUrl}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(formData.email)}`;
+      // Handle HTTP errors
+      if (!response.ok) {
+        const errorMessage = data.error || data.message || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage);
+      }
 
-      // Send email - SIMPLE, NO QUEUE
-      await emailService.sendConfirmationEmail(
-        formData.email,
-        confirmationUrl,
-        formData.fullName.trim()
-      );
-      
       // Success!
       setMessage(
-        `🎉 Welcome to Jacal, ${formData.fullName}! We've sent a beautiful welcome email to ${formData.email}. Check your inbox for the verification link to start your learning journey!`
+        `🎉 Welcome to Jacal, ${formData.fullName}! We've sent a verification email to ${formData.email}. Check your inbox and click the verification link to activate your account!`
       );
       
       // Clear form
@@ -224,30 +229,36 @@ export default function Register() {
       });
 
     } catch (error) {
+      console.error('❌ Signup error:', error);
       throw error;
     }
   };
 
   const handleSignIn = async () => {
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email: formData.email,
-      password: formData.password,
-    });
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
 
-    if (signInError) {
-      if (signInError.message.includes('Invalid login credentials')) {
-        setError('Invalid email or password. Please check your credentials and try again.');
-      } else if (signInError.message.includes('Email not confirmed')) {
-        setError('Please check your email and click the confirmation link before signing in.');
-      } else {
-        setError(signInError.message);
+      if (signInError) {
+        if (signInError.message.includes('Invalid login credentials')) {
+          setError('Invalid email or password. Please check your credentials and try again.');
+        } else if (signInError.message.includes('Email not confirmed')) {
+          setError('Please check your email and click the confirmation link before signing in.');
+        } else {
+          setError(signInError.message);
+        }
+        return;
       }
-      return;
-    }
 
-    if (data.user) {
-      login(data.user);
-      navigate('/');
+      if (data.user) {
+        login(data.user);
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Sign in error:', error);
+      setError('An error occurred during sign in. Please try again.');
     }
   };
 
@@ -255,20 +266,26 @@ export default function Register() {
     setLoading(true);
     setError(null);
     
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: envConfig.redirectUrl,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-          scope: 'openid profile email',
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: envConfig.redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+            scope: 'openid profile email',
+          },
         },
-      },
-    });
-    
-    if (error) {
-      setError('Failed to sign in with Google. Please try again.');
+      });
+      
+      if (error) {
+        setError('Failed to sign in with Google. Please try again.');
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Google sign in error:', error);
+      setError('An error occurred with Google sign in. Please try again.');
       setLoading(false);
     }
   };
@@ -517,7 +534,171 @@ export default function Register() {
             </p>
           </div>
         )}
+
+        {message && isSignUp && (
+          <div className="terms-privacy" style={{ marginTop: '24px' }}>
+            <div style={{ 
+              background: 'rgba(40, 167, 69, 0.1)', 
+              border: '1px solid rgba(40, 167, 69, 0.3)',
+              borderRadius: '12px',
+              padding: '16px',
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <FaEnvelope style={{ color: '#28a745' }} />
+                <strong style={{ color: '#28a745' }}>Check Your Email</strong>
+              </div>
+              <p style={{ 
+                color: '#28a745', 
+                margin: 0, 
+                fontSize: '0.9rem', 
+                lineHeight: 1.5 
+              }}>
+                We've sent a verification link to your email address. 
+                Please click the link to activate your account and start learning!
+              </p>
+            </div>
+            
+            <ResendVerificationButton 
+              email={formData.email} 
+              userName={formData.fullName}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+// Resend Verification Component
+const ResendVerificationButton = ({ email, userName }) => {
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
+  const [canResend, setCanResend] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          setCanResend(true);
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleResendVerification = async () => {
+    if (!email) return;
+
+    setResendLoading(true);
+    setResendMessage('');
+
+    try {
+      const baseUrl = '';  // Use relative paths for both dev and prod
+      
+      const response = await fetch(`${baseUrl}/api/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: email,
+          password: 'resend_verification',
+          fullName: userName || '',
+          resend: true
+        })
+      });
+
+      if (response.ok) {
+        setResendMessage('✅ Verification email sent successfully!');
+        setCanResend(false);
+        setCountdown(60);
+
+        const timer = setInterval(() => {
+          setCountdown(prev => {
+            if (prev <= 1) {
+              setCanResend(true);
+              clearInterval(timer);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        setResendMessage('❌ Failed to send verification email. Please try again.');
+      }
+
+    } catch (error) {
+      setResendMessage('❌ Failed to send verification email. Please try again.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ textAlign: 'center' }}>
+      {resendMessage && (
+        <p style={{ 
+          color: resendMessage.includes('✅') ? '#28a745' : '#ff4757',
+          fontSize: '0.9rem',
+          marginBottom: '12px',
+          fontWeight: '500'
+        }}>
+          {resendMessage}
+        </p>
+      )}
+      
+      <button
+        onClick={handleResendVerification}
+        disabled={!canResend || resendLoading}
+        style={{
+          background: canResend ? 'rgba(79, 172, 254, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+          border: `2px solid ${canResend ? 'rgba(79, 172, 254, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
+          borderRadius: '8px',
+          padding: '8px 16px',
+          color: canResend ? '#4facfe' : '#666',
+          fontSize: '0.85rem',
+          cursor: canResend ? 'pointer' : 'not-allowed',
+          transition: 'all 0.3s ease',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          margin: '0 auto',
+          minWidth: '180px'
+        }}
+      >
+        {resendLoading ? (
+          <>
+            <FaSpinner className="spinner" style={{ fontSize: '0.8rem' }} />
+            Sending...
+          </>
+        ) : canResend ? (
+          <>
+            <FaEnvelope style={{ fontSize: '0.8rem' }} />
+            Resend Email
+          </>
+        ) : (
+          <>
+            <FaSpinner style={{ fontSize: '0.8rem' }} />
+            Resend in {countdown}s
+          </>
+        )}
+      </button>
+      
+      <p style={{ 
+        color: '#999', 
+        fontSize: '0.8rem', 
+        marginTop: '12px',
+        lineHeight: 1.4 
+      }}>
+        Didn't receive the email? Check your spam folder or try resending.
+      </p>
+    </div>
+  );
+};

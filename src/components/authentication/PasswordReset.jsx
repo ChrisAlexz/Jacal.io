@@ -1,8 +1,6 @@
-// src/components/authentication/PasswordReset.jsx - Updated for Hostinger Email Service
+// src/components/authentication/PasswordReset.jsx - Updated for Custom Backend
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase } from '../../supabase';
-import { emailService } from '../../utils/emailService';
 import getEnvironmentConfig from '../../config/environment';
 import { 
   FaEnvelope, 
@@ -48,23 +46,6 @@ export default function PasswordReset() {
       setPasswordStrength({ score: 0, feedback: [] });
     }
   }, [formData.password, isUpdatingPassword]);
-
-  // If we have a token, verify it on load
-  useEffect(() => {
-    if (isUpdatingPassword) {
-      verifyResetToken();
-    }
-  }, [isUpdatingPassword, resetToken]);
-
-  const verifyResetToken = async () => {
-    try {
-      // Verify the reset token using our custom email service
-      await emailService.verifyToken(resetToken, 'password_reset');
-      // Token is valid, user can proceed with password reset
-    } catch (error) {
-      setError('Invalid or expired reset link. Please request a new password reset.');
-    }
-  };
 
   const calculatePasswordStrength = (password) => {
     let score = 0;
@@ -168,43 +149,23 @@ export default function PasswordReset() {
 
   const handlePasswordResetRequest = async () => {
     try {
-      // First check if user exists
-      const { data: users, error: getUserError } = await supabase
-        .from('auth.users')
-        .select('id, email')
-        .eq('email', formData.email);
-
-      if (getUserError) {
-        throw new Error('Error checking user account');
-      }
-
-      if (!users || users.length === 0) {
-        // Don't reveal whether user exists - always show success message
-        setMessage(
-          `If an account with ${formData.email} exists, a password reset link has been sent. Please check your inbox (and spam folder).`
-        );
-        setFormData({ email: '', password: '', confirmPassword: '' });
-        return;
-      }
-
-      const userId = users[0].id;
-
-      // Generate custom reset token
-      const resetToken = emailService.generateVerificationToken();
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
       
-      // Store reset token
-      await emailService.storeVerificationToken(
-        userId,
-        formData.email,
-        resetToken,
-        'password_reset'
-      );
+      const response = await fetch(`${API_BASE_URL}/api/auth/reset-password-request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: formData.email
+        })
+      });
 
-      // Create reset URL that points to our custom reset page
-      const resetUrl = `${envConfig.baseUrl}/auth/reset-password?token=${resetToken}&email=${encodeURIComponent(formData.email)}`;
+      const data = await response.json();
 
-      // Send password reset email via Hostinger
-      await emailService.sendPasswordResetEmail(formData.email, resetUrl, '');
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send reset email');
+      }
 
       setMessage(
         `A password reset link has been sent to ${formData.email} via our secure Hostinger email service. Please check your inbox (and spam folder) and follow the instructions to reset your password.`
@@ -220,43 +181,33 @@ export default function PasswordReset() {
 
   const handlePasswordUpdate = async () => {
     try {
-      // First verify the token again
-      const tokenData = await emailService.verifyToken(resetToken, 'password_reset');
+      // First, we need to get the user ID from the token verification
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
       
-      if (!tokenData) {
-        throw new Error('Invalid or expired reset token');
-      }
-
-      // Get user session using the reset token
-      // Note: This is a simplified approach. In production, you might want to 
-      // create a temporary session or use Supabase's built-in password reset
-      const { data: users, error: getUserError } = await supabase
-        .from('auth.users')
-        .select('id, email')
-        .eq('id', tokenData.user_id);
-
-      if (getUserError || !users || users.length === 0) {
-        throw new Error('User not found');
-      }
-
-      // Update password using admin API (requires service role key on backend)
-      // Since we don't have direct access to admin functions in frontend,
-      // we'll need to call our backend API
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/auth/update-password`, {
+      // We'll send the token to our backend to verify and update the password
+      const response = await fetch(`${API_BASE_URL}/api/auth/update-password`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          userId: tokenData.user_id,
+          userId: 'verify_via_token', // Backend will verify the token and get user ID
           newPassword: formData.password,
           resetToken: resetToken
-        }),
+        })
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Network error' }));
-        throw new Error(errorData.error || 'Failed to update password');
+        if (data.error && data.error.includes('expired')) {
+          setError('Your reset session has expired. Please request a new password reset link.');
+        } else if (data.error && data.error.includes('Invalid')) {
+          setError('Invalid reset link. Please request a new password reset.');
+        } else {
+          setError(data.error || 'Failed to update password. Please try again.');
+        }
+        return;
       }
 
       setMessage('Your password has been successfully updated! You can now sign in with your new password.');
@@ -267,12 +218,7 @@ export default function PasswordReset() {
 
     } catch (error) {
       console.error('Password update error:', error);
-      
-      if (error.message.includes('expired') || error.message.includes('Invalid')) {
-        setError('Your reset session has expired. Please request a new password reset link.');
-      } else {
-        setError('Failed to update password. Please try again.');
-      }
+      setError('Failed to update password due to a network error. Please try again.');
     }
   };
 
