@@ -1,6 +1,7 @@
-// src/components/authentication/PasswordReset.jsx - Updated for Custom Backend
+// src/components/authentication/PasswordReset.jsx - Updated for Local Development
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { supabase } from '../../supabase';
 import getEnvironmentConfig from '../../config/environment';
 import { 
   FaEnvelope, 
@@ -149,65 +150,38 @@ export default function PasswordReset() {
 
   const handlePasswordResetRequest = async () => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+      console.log('🔐 Requesting password reset via Supabase...');
       
-      const response = await fetch(`${API_BASE_URL}/api/auth/reset-password-request`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: formData.email
-        })
+      // Use Supabase's built-in password reset (like we do for signup)
+      const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send reset email');
+      if (error) {
+        throw new Error(error.message);
       }
 
-      setMessage(
-        `A password reset link has been sent to ${formData.email} via our secure Hostinger email service. Please check your inbox (and spam folder) and follow the instructions to reset your password.`
-      );
+      setMessage(`A password reset link has been sent to ${formData.email} from support@jacal.io. Please check your inbox and follow the instructions to reset your password.`);
       
       setFormData({ email: '', password: '', confirmPassword: '' });
 
     } catch (error) {
       console.error('Password reset request error:', error);
-      setError('Failed to send reset email. Please try again.');
+      setError(error.message || 'Failed to send reset email. Please try again.');
     }
   };
 
   const handlePasswordUpdate = async () => {
     try {
-      // First, we need to get the user ID from the token verification
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+      console.log('🔑 Updating password via Supabase...');
       
-      // We'll send the token to our backend to verify and update the password
-      const response = await fetch(`${API_BASE_URL}/api/auth/update-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId: 'verify_via_token', // Backend will verify the token and get user ID
-          newPassword: formData.password,
-          resetToken: resetToken
-        })
+      // Use Supabase's built-in password update
+      const { error } = await supabase.auth.updateUser({
+        password: formData.password
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (data.error && data.error.includes('expired')) {
-          setError('Your reset session has expired. Please request a new password reset link.');
-        } else if (data.error && data.error.includes('Invalid')) {
-          setError('Invalid reset link. Please request a new password reset.');
-        } else {
-          setError(data.error || 'Failed to update password. Please try again.');
-        }
-        return;
+      if (error) {
+        throw new Error(error.message);
       }
 
       setMessage('Your password has been successfully updated! You can now sign in with your new password.');
@@ -218,7 +192,12 @@ export default function PasswordReset() {
 
     } catch (error) {
       console.error('Password update error:', error);
-      setError('Failed to update password due to a network error. Please try again.');
+      
+      if (error.message.includes('session')) {
+        setError('Your reset session has expired. Please request a new password reset link.');
+      } else {
+        setError(error.message || 'Failed to update password. Please try again.');
+      }
     }
   };
 
@@ -236,9 +215,14 @@ export default function PasswordReset() {
           <p>
             {isUpdatingPassword 
               ? 'Choose a strong password for your account'
-              : 'Enter your email address and we\'ll send you a secure reset link via Hostinger'
+              : 'Enter your email address and we\'ll send you a secure reset link'
             }
           </p>
+          {envConfig.isLocal && (
+            <p style={{ fontSize: '0.8rem', color: '#ffc107', marginTop: '8px' }}>
+              🔧 Local Development Mode
+            </p>
+          )}
         </div>
 
         {/* Alert Messages */}
@@ -429,9 +413,8 @@ export default function PasswordReset() {
             <p>
               Remember your password? <Link to="/register" className="legal-link">Sign in instead</Link>
             </p>
-            <p style={{ marginTop: '12px', fontSize: '0.8rem' }}>
-              If you don't receive an email within a few minutes, please check your spam folder. 
-              We send password reset emails via our secure Hostinger email service.
+            <p style={{ marginTop: '12px', fontSize: '0.8rem', color: '#666' }}>
+              Password reset emails are sent from support@jacal.io using Supabase's secure system.
             </p>
           </div>
         )}
@@ -442,6 +425,23 @@ export default function PasswordReset() {
             <p style={{ color: '#4facfe', fontWeight: '500' }}>
               Redirecting to sign in page in a few seconds...
             </p>
+          </div>
+        )}
+
+        {/* Debug info for local development */}
+        {envConfig.isLocal && (
+          <div style={{ 
+            marginTop: '20px', 
+            padding: '10px', 
+            background: 'rgba(255, 193, 7, 0.1)',
+            borderRadius: '8px',
+            fontSize: '0.8rem',
+            color: '#856404'
+          }}>
+            <strong>🔧 Debug Info:</strong><br/>
+            Mode: {isUpdatingPassword ? 'Password Update' : 'Reset Request'}<br/>
+            {resetToken && `Reset Token: ${resetToken.substring(0, 20)}...`}<br/>
+            Email: {resetEmail || formData.email}
           </div>
         )}
       </div>

@@ -1,4 +1,4 @@
-// src/components/authentication/Register.jsx - UPDATED FOR VERCEL FUNCTIONS
+// src/components/authentication/Register.jsx - CLEAN REGISTER ONLY
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import UserAuthContext from '../context/UserAuthContext';
@@ -160,56 +160,110 @@ export default function Register() {
     }
   };
 
-  // CUSTOM SIGNUP - CALLS VERCEL SERVERLESS FUNCTIONS OR LOCAL API
-// Replace your handleCustomSignUp function in Register.jsx with this:
+  const handleCustomSignUp = async () => {
+    try {
+      console.log('🚀 Starting signup process...');
+      console.log('🌍 Environment config:', envConfig);
+      
+      const requestData = {
+        email: formData.email,
+        password: formData.password,
+        fullName: formData.fullName.trim()
+      };
+      
+      if (envConfig.isLocal) {
+        // For local development: Use ONLY our custom email server (bypass Supabase rate limits)
+        console.log('📧 Using custom email server to bypass Supabase rate limits...');
+        
+        try {
+          // Check if email server is running
+          const healthCheck = await fetch('http://localhost:3002/api/health');
+          if (!healthCheck.ok) {
+            throw new Error('Local email server is not running. Please start it with: npm run start:dev');
+          }
 
-const handleCustomSignUp = async () => {
-  try {
-    console.log('🚀 Starting signup process...');
-    
-    const requestData = {
-      email: formData.email,
-      password: formData.password,
-      fullName: formData.fullName.trim()
-    };
-    
-    console.log('📤 Sending signup request to API...');
-    
-    const response = await fetch('/api/auth/signup', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestData)
-    });
+          // Send signup request to our custom server
+          const emailResponse = await fetch('http://localhost:3002/api/auth/signup', {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+          });
 
-    console.log('📡 Response status:', response.status);
+          if (!emailResponse.ok) {
+            const errorData = await emailResponse.json();
+            throw new Error(errorData.error || 'Failed to create account');
+          }
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('❌ API Error:', errorData);
-      throw new Error(errorData.error || `HTTP ${response.status}: Server error`);
+          const emailData = await emailResponse.json();
+          console.log('✅ Custom signup successful:', emailData);
+
+          setMessage(`Account created successfully! A beautiful verification email has been sent to ${requestData.email} from our custom email service. Please check your inbox and click the verification link to activate your account.`);
+
+        } catch (emailError) {
+          console.error('📧 Custom signup failed:', emailError.message);
+          
+          if (emailError.message.includes('server is not running')) {
+            setError('Email server is not running. Please make sure you started both servers with: npm run start:dev');
+          } else {
+            setError(emailError.message || 'Signup failed. Please try again.');
+          }
+          return;
+        }
+        
+      } else {
+        // For production, use Vercel functions
+        const apiUrl = '/api/auth/signup';
+        
+        console.log('📤 Sending signup request to:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestData)
+        });
+
+        console.log('📡 Response status:', response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ Raw error response:', errorText);
+          
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch (parseError) {
+            throw new Error('Server error - please try again later');
+          }
+          
+          console.error('❌ API Error:', errorData);
+          throw new Error(errorData.error || `HTTP ${response.status}: Server error`);
+        }
+
+        const data = await response.json();
+        console.log('✅ Signup success:', data);
+
+        setMessage(data.message || `Account created successfully! Verification email sent to ${formData.email}.`);
+      }
+      
+      // Clear form on success
+      setFormData({
+        fullName: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+      });
+
+    } catch (error) {
+      console.error('❌ Signup error:', error);
+      setError(error.message || 'Signup failed. Please try again.');
     }
-
-    const data = await response.json();
-    console.log('✅ Signup success:', data);
-
-    setMessage(data.message || `Account created successfully! Verification email sent to ${formData.email}.`);
-    
-    // Clear form on success
-    setFormData({
-      fullName: '',
-      email: '',
-      password: '',
-      confirmPassword: ''
-    });
-
-  } catch (error) {
-    console.error('❌ Signup error:', error);
-    setError(error.message || 'Signup failed. Please try again.');
-  }
-};
+  };
 
   const handleSignIn = async () => {
     try {
@@ -294,6 +348,11 @@ const handleCustomSignUp = async () => {
               : 'Continue mastering new skills with Jacal'
             }
           </p>
+          {envConfig.isLocal && (
+            <p style={{ fontSize: '0.8rem', color: '#ffc107', marginTop: '8px' }}>
+              🔧 Local Development Mode - Custom Email Service
+            </p>
+          )}
         </div>
 
         {error && (
@@ -523,7 +582,7 @@ const handleCustomSignUp = async () => {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                 <FaEnvelope style={{ color: '#28a745' }} />
-                <strong style={{ color: '#28a745' }}>Check Your Email</strong>
+                <strong style={{ color: '#28a745' }}>Success!</strong>
               </div>
               <p style={{ 
                 color: '#28a745', 
@@ -531,151 +590,48 @@ const handleCustomSignUp = async () => {
                 fontSize: '0.9rem', 
                 lineHeight: 1.5 
               }}>
-                We've sent a verification link to your email address. 
-                Please click the link to activate your account and start learning!
+                {message}
               </p>
             </div>
             
-            <ResendVerificationButton 
-              email={formData.email} 
-              userName={formData.fullName}
-            />
+            {envConfig.isLocal && (
+              <div style={{
+                background: 'rgba(33, 150, 243, 0.1)',
+                border: '1px solid rgba(33, 150, 243, 0.3)',
+                borderRadius: '8px',
+                padding: '12px',
+                marginTop: '12px'
+              }}>
+                <p style={{ 
+                  color: '#1976d2', 
+                  margin: 0, 
+                  fontSize: '0.85rem',
+                  fontWeight: '500'
+                }}>
+                  💡 <strong>Local Development:</strong> Using our custom Hostinger email service with beautiful HTML templates. Check your email for the verification link!
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Debug info for local development */}
+        {envConfig.isLocal && (
+          <div style={{ 
+            marginTop: '20px', 
+            padding: '10px', 
+            background: 'rgba(255, 193, 7, 0.1)',
+            borderRadius: '8px',
+            fontSize: '0.8rem',
+            color: '#856404'
+          }}>
+            <strong>🔧 Debug Info:</strong><br/>
+            Environment: {envConfig.isLocal ? 'Local' : 'Production'}<br/>
+            Email Service: Custom Hostinger SMTP<br/>
+            Frontend URL: {envConfig.baseUrl}
           </div>
         )}
       </div>
     </div>
   );
 }
-
-// Resend Verification Component
-const ResendVerificationButton = ({ email, userName }) => {
-  const [resendLoading, setResendLoading] = useState(false);
-  const [resendMessage, setResendMessage] = useState('');
-  const [canResend, setCanResend] = useState(false);
-  const [countdown, setCountdown] = useState(60);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          setCanResend(true);
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const handleResendVerification = async () => {
-    if (!email) return;
-
-    setResendLoading(true);
-    setResendMessage('');
-
-    try {
-      const baseUrl = '';  // Use relative paths for both dev and prod
-      
-      const response = await fetch(`${baseUrl}/api/auth/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: email,
-          password: 'resend_verification',
-          fullName: userName || '',
-          resend: true
-        })
-      });
-
-      if (response.ok) {
-        setResendMessage('✅ Verification email sent successfully!');
-        setCanResend(false);
-        setCountdown(60);
-
-        const timer = setInterval(() => {
-          setCountdown(prev => {
-            if (prev <= 1) {
-              setCanResend(true);
-              clearInterval(timer);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-      } else {
-        setResendMessage('❌ Failed to send verification email. Please try again.');
-      }
-
-    } catch (error) {
-      setResendMessage('❌ Failed to send verification email. Please try again.');
-    } finally {
-      setResendLoading(false);
-    }
-  };
-
-  return (
-    <div style={{ textAlign: 'center' }}>
-      {resendMessage && (
-        <p style={{ 
-          color: resendMessage.includes('✅') ? '#28a745' : '#ff4757',
-          fontSize: '0.9rem',
-          marginBottom: '12px',
-          fontWeight: '500'
-        }}>
-          {resendMessage}
-        </p>
-      )}
-      
-      <button
-        onClick={handleResendVerification}
-        disabled={!canResend || resendLoading}
-        style={{
-          background: canResend ? 'rgba(79, 172, 254, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-          border: `2px solid ${canResend ? 'rgba(79, 172, 254, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
-          borderRadius: '8px',
-          padding: '8px 16px',
-          color: canResend ? '#4facfe' : '#666',
-          fontSize: '0.85rem',
-          cursor: canResend ? 'pointer' : 'not-allowed',
-          transition: 'all 0.3s ease',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
-          margin: '0 auto',
-          minWidth: '180px'
-        }}
-      >
-        {resendLoading ? (
-          <>
-            <FaSpinner className="spinner" style={{ fontSize: '0.8rem' }} />
-            Sending...
-          </>
-        ) : canResend ? (
-          <>
-            <FaEnvelope style={{ fontSize: '0.8rem' }} />
-            Resend Email
-          </>
-        ) : (
-          <>
-            <FaSpinner style={{ fontSize: '0.8rem' }} />
-            Resend in {countdown}s
-          </>
-        )}
-      </button>
-      
-      <p style={{ 
-        color: '#999', 
-        fontSize: '0.8rem', 
-        marginTop: '12px',
-        lineHeight: 1.4 
-      }}>
-        Didn't receive the email? Check your spam folder or try resending.
-      </p>
-    </div>
-  );
-};

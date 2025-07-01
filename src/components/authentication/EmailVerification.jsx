@@ -1,7 +1,9 @@
-// src/components/authentication/EmailVerification.jsx - Updated for Custom Backend
+// src/components/authentication/EmailVerification.jsx - Updated for Custom Tokens
 import React, { useEffect, useState, useContext } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { supabase } from '../../supabase';
 import UserAuthContext from '../context/UserAuthContext';
+import getEnvironmentConfig from '../../config/environment';
 import { FaCheckCircle, FaExclamationTriangle, FaSpinner, FaEnvelope } from 'react-icons/fa';
 import '../../styles/Register.css';
 
@@ -9,6 +11,7 @@ export default function EmailVerification() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { login } = useContext(UserAuthContext);
+  const envConfig = getEnvironmentConfig();
   
   const [status, setStatus] = useState('verifying');
   const [message, setMessage] = useState('Verifying your email address...');
@@ -31,45 +34,100 @@ export default function EmailVerification() {
 
   const verifyEmailToken = async (token, email) => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
-      
-      const response = await fetch(`${API_BASE_URL}/api/auth/verify-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          token: token,
-          email: email
-        })
-      });
+      if (envConfig.isLocal) {
+        // For local development, use our custom verification endpoint
+        console.log('🔍 Verifying custom token in local development...');
+        
+        const response = await fetch('http://localhost:3002/api/auth/verify-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            token: token,
+            email: email
+          })
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
-        if (data.error && data.error.includes('expired')) {
-          setStatus('expired');
-          setMessage('This verification link has expired. Please request a new one.');
-        } else if (data.error && data.error.includes('used')) {
+        if (!response.ok) {
+          if (data.error && data.error.includes('expired')) {
+            setStatus('expired');
+            setMessage('This verification link has expired. Please request a new one.');
+          } else {
+            setStatus('error');
+            setMessage(data.error || 'Verification failed. Please try again or contact support.');
+          }
+          return;
+        }
+
+        // Success - now update the user in Supabase to mark them as verified
+        try {
+          const { data: { user }, error: getUserError } = await supabase.auth.getUser();
+          
+          if (user && user.email === email) {
+            // User is already signed in, just update their metadata
+            const { error: updateError } = await supabase.auth.updateUser({
+              data: { email_verified: true }
+            });
+            
+            if (updateError) {
+              console.warn('Failed to update user metadata:', updateError.message);
+            }
+          }
+          
           setStatus('success');
-          setMessage('This email has already been verified! You can sign in to your account.');
+          setMessage('Your email has been successfully verified! You can now sign in to your account and start learning with Jacal.');
+
           setTimeout(() => {
             navigate('/register?verified=true');
           }, 3000);
-        } else {
-          setStatus('error');
-          setMessage(data.error || 'Verification failed. Please try again or contact support.');
+
+        } catch (supabaseError) {
+          console.warn('Supabase update error:', supabaseError);
+          // Still mark as success since our verification worked
+          setStatus('success');
+          setMessage('Your email has been successfully verified! You can now sign in to your account.');
+          
+          setTimeout(() => {
+            navigate('/register?verified=true');
+          }, 3000);
         }
-        return;
+
+      } else {
+        // For production, use the production verification endpoint
+        const response = await fetch('/api/auth/verify-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            token: token,
+            email: email
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          if (data.error && data.error.includes('expired')) {
+            setStatus('expired');
+            setMessage('This verification link has expired. Please request a new one.');
+          } else {
+            setStatus('error');
+            setMessage(data.error || 'Verification failed. Please try again or contact support.');
+          }
+          return;
+        }
+
+        setStatus('success');
+        setMessage('Your email has been successfully verified! You can now sign in to your account and start learning with Jacal.');
+
+        setTimeout(() => {
+          navigate('/register?verified=true');
+        }, 3000);
       }
-
-      // Success
-      setStatus('success');
-      setMessage('Your email has been successfully verified! You can now sign in to your account and start learning with Jacal.');
-
-      setTimeout(() => {
-        navigate('/register?verified=true');
-      }, 3000);
 
     } catch (error) {
       console.error('Verification error:', error);
@@ -84,28 +142,49 @@ export default function EmailVerification() {
     setResendLoading(true);
 
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
-      
-      // Try to resend by calling the signup endpoint with special flag
-      const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: userEmail,
-          password: 'resend_verification', // Special flag
-          fullName: '',
-          resend: true
-        })
-      });
+      if (envConfig.isLocal) {
+        // Use custom email server for resend
+        const response = await fetch('http://localhost:3002/api/auth/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: userEmail,
+            password: 'resend_verification',
+            fullName: '',
+            resend: true
+          })
+        });
 
-      if (response.ok) {
-        setMessage(`A new verification email has been sent to ${userEmail}. Please check your inbox.`);
-        setStatus('success');
+        if (response.ok) {
+          setMessage(`A new verification email has been sent to ${userEmail} via our custom email service. Please check your inbox.`);
+          setStatus('success');
+        } else {
+          const errorData = await response.json();
+          setMessage(errorData.error || 'Failed to resend verification email. Please try again later or contact support.');
+        }
       } else {
-        const errorData = await response.json();
-        setMessage(errorData.error || 'Failed to resend verification email. Please try again later or contact support.');
+        // Production resend
+        const response = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: userEmail,
+            password: 'resend_verification',
+            fullName: '',
+            resend: true
+          })
+        });
+
+        if (response.ok) {
+          setMessage(`A new verification email has been sent to ${userEmail}. Please check your inbox.`);
+          setStatus('success');
+        } else {
+          setMessage('Failed to resend verification email. Please try again later or contact support.');
+        }
       }
 
     } catch (error) {
@@ -162,6 +241,11 @@ export default function EmailVerification() {
           <p style={{ color: '#aaa', lineHeight: 1.6 }}>
             {message}
           </p>
+          {envConfig.isLocal && (
+            <p style={{ fontSize: '0.8rem', color: '#ffc107', marginTop: '8px' }}>
+              🔧 Local Development Mode - Custom Verification
+            </p>
+          )}
         </div>
 
         {(status === 'expired' || status === 'error') && (
@@ -178,7 +262,7 @@ export default function EmailVerification() {
               {resendLoading ? (
                 <>
                   <FaSpinner className="spinner" />
-                  Sending via Hostinger...
+                  Sending via Custom Email Service...
                 </>
               ) : (
                 <>
@@ -250,6 +334,23 @@ export default function EmailVerification() {
                 <li>Contact support if the problem persists</li>
               </ul>
             </div>
+          </div>
+        )}
+
+        {/* Debug info for local development */}
+        {envConfig.isLocal && (
+          <div style={{ 
+            marginTop: '20px', 
+            padding: '10px', 
+            background: 'rgba(255, 193, 7, 0.1)',
+            borderRadius: '8px',
+            fontSize: '0.8rem',
+            color: '#856404'
+          }}>
+            <strong>🔧 Debug Info:</strong><br/>
+            Token: {searchParams.get('token')?.substring(0, 20)}...<br/>
+            Email: {userEmail}<br/>
+            Environment: Local Development
           </div>
         )}
       </div>

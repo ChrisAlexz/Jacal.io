@@ -9,7 +9,7 @@
     "@fortawesome/free-regular-svg-icons": "^6.7.2",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@fortawesome/react-fontawesome": "^0.2.2",
-    "@supabase/supabase-js": "^2.49.1",
+    "@supabase/supabase-js": "^2.50.2",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "bootstrap": "^5.3.7",
@@ -26,6 +26,9 @@
   },
   "scripts": {
     "start": "PORT=3001 react-scripts start",
+    "start:dev": "concurrently \"npm run email-server\" \"npm run start\"",
+    "start:react": "PORT=3001 react-scripts start",
+    "email-server": "node dev-email-server.js",
     "build": "CI=false react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
@@ -51,6 +54,7 @@
     ]
   },
   "devDependencies": {
+    "concurrently": "^8.2.2",
     "css-loader": "^7.1.2",
     "postcss": "^8.5.6",
     "postcss-loader": "^8.1.1",
