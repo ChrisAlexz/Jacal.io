@@ -876,3 +876,63 @@
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
   }
 }
+/* Add these styles to your existing Register.css */
+
+/* Verified input styling */
+.input-wrapper.verified {
+  border-color: #28a745 !important;
+  background: rgba(40, 167, 69, 0.05);
+}
+
+.input-wrapper.verified input {
+  background: transparent;
+  color: #155724;
+  font-weight: 500;
+}
+
+.verified-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+/* Enhanced alert styles */
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  border: 1px solid;
+}
+
+.alert-success {
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(79, 172, 254, 0.05) 100%);
+  border-color: rgba(40, 167, 69, 0.3);
+  color: #155724;
+}
+
+.alert-error {
+  background: linear-gradient(135deg, rgba(255, 71, 87, 0.1) 0%, rgba(255, 107, 53, 0.05) 100%);
+  border-color: rgba(255, 71, 87, 0.3);
+  color: #721c24;
+}
+
+.alert svg {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+/* Enhanced spinner animation */
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

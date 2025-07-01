@@ -1,6 +1,6 @@
-// src/components/authentication/Register.jsx - CLEAN REGISTER ONLY
+// src/components/authentication/Register.jsx - FIXED: Handle verified users
 import React, { useContext, useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import UserAuthContext from '../context/UserAuthContext';
 import { supabase } from '../../supabase';
 import getEnvironmentConfig from '../../config/environment';
@@ -21,10 +21,15 @@ export default function Register() {
   const navigate = useNavigate();
   const { login, isLoggedIn } = useContext(UserAuthContext);
   const envConfig = getEnvironmentConfig();
+  const [searchParams] = useSearchParams();
+
+  // FIXED: Check for verification success
+  const isVerified = searchParams.get('verified') === 'true';
+  const verifiedEmail = searchParams.get('email') || '';
 
   const [formData, setFormData] = useState({
     fullName: '',
-    email: '',
+    email: verifiedEmail, // FIXED: Pre-fill email if coming from verification
     password: '',
     confirmPassword: ''
   });
@@ -34,7 +39,7 @@ export default function Register() {
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
-  const [isSignUp, setIsSignUp] = useState(true);
+  const [isSignUp, setIsSignUp] = useState(!isVerified); // FIXED: Start in sign-in mode if verified
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [] });
 
   useEffect(() => {
@@ -42,6 +47,14 @@ export default function Register() {
       navigate('/');
     }
   }, [isLoggedIn, navigate]);
+
+  // FIXED: Show verification success message
+  useEffect(() => {
+    if (isVerified && verifiedEmail) {
+      setMessage(`🎉 Email verified successfully! You can now sign in to your account with ${verifiedEmail}.`);
+      setIsSignUp(false); // Switch to sign-in mode
+    }
+  }, [isVerified, verifiedEmail]);
 
   useEffect(() => {
     if (formData.password) {
@@ -95,6 +108,8 @@ export default function Register() {
     }
     
     if (error) setError(null);
+    // FIXED: Clear success message when user starts typing
+    if (message && !isVerified) setMessage(null);
   };
 
   const validateForm = () => {
@@ -144,7 +159,8 @@ export default function Register() {
 
     setLoading(true);
     setError(null);
-    setMessage(null);
+    // FIXED: Don't clear verification success message
+    if (!isVerified) setMessage(null);
 
     try {
       if (isSignUp) {
@@ -163,7 +179,6 @@ export default function Register() {
   const handleCustomSignUp = async () => {
     try {
       console.log('🚀 Starting signup process...');
-      console.log('🌍 Environment config:', envConfig);
       
       const requestData = {
         email: formData.email,
@@ -171,85 +186,42 @@ export default function Register() {
         fullName: formData.fullName.trim()
       };
       
-      if (envConfig.isLocal) {
-        // For local development: Use ONLY our custom email server (bypass Supabase rate limits)
-        console.log('📧 Using custom email server to bypass Supabase rate limits...');
+      const apiUrl = envConfig.isLocal 
+        ? 'http://localhost:3002/api/auth/signup'
+        : '/api/auth/signup';
+      
+      console.log('📤 Sending signup request to:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      console.log('📡 Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Raw error response:', errorText);
         
+        let errorData;
         try {
-          // Check if email server is running
-          const healthCheck = await fetch('http://localhost:3002/api/health');
-          if (!healthCheck.ok) {
-            throw new Error('Local email server is not running. Please start it with: npm run start:dev');
-          }
-
-          // Send signup request to our custom server
-          const emailResponse = await fetch('http://localhost:3002/api/auth/signup', {
-            method: 'POST',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-          });
-
-          if (!emailResponse.ok) {
-            const errorData = await emailResponse.json();
-            throw new Error(errorData.error || 'Failed to create account');
-          }
-
-          const emailData = await emailResponse.json();
-          console.log('✅ Custom signup successful:', emailData);
-
-          setMessage(`Account created successfully! A beautiful verification email has been sent to ${requestData.email} from our custom email service. Please check your inbox and click the verification link to activate your account.`);
-
-        } catch (emailError) {
-          console.error('📧 Custom signup failed:', emailError.message);
-          
-          if (emailError.message.includes('server is not running')) {
-            setError('Email server is not running. Please make sure you started both servers with: npm run start:dev');
-          } else {
-            setError(emailError.message || 'Signup failed. Please try again.');
-          }
-          return;
+          errorData = JSON.parse(errorText);
+        } catch (parseError) {
+          throw new Error('Server error - please try again later');
         }
         
-      } else {
-        // For production, use Vercel functions
-        const apiUrl = '/api/auth/signup';
-        
-        console.log('📤 Sending signup request to:', apiUrl);
-        
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(requestData)
-        });
-
-        console.log('📡 Response status:', response.status);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('❌ Raw error response:', errorText);
-          
-          let errorData;
-          try {
-            errorData = JSON.parse(errorText);
-          } catch (parseError) {
-            throw new Error('Server error - please try again later');
-          }
-          
-          console.error('❌ API Error:', errorData);
-          throw new Error(errorData.error || `HTTP ${response.status}: Server error`);
-        }
-
-        const data = await response.json();
-        console.log('✅ Signup success:', data);
-
-        setMessage(data.message || `Account created successfully! Verification email sent to ${formData.email}.`);
+        console.error('❌ API Error:', errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}: Server error`);
       }
+
+      const data = await response.json();
+      console.log('✅ Signup success:', data);
+
+      setMessage(data.message || `Account created successfully! Verification email sent to ${formData.email}.`);
       
       // Clear form on success
       setFormData({
@@ -324,11 +296,12 @@ export default function Register() {
   const toggleMode = () => {
     setIsSignUp(!isSignUp);
     setError(null);
-    setMessage(null);
+    // FIXED: Don't clear verification success message when toggling
+    if (!isVerified) setMessage(null);
     setValidationErrors({});
     setFormData({
       fullName: '',
-      email: formData.email,
+      email: formData.email, // Keep email when switching
       password: '',
       confirmPassword: ''
     });
@@ -355,6 +328,14 @@ export default function Register() {
           )}
         </div>
 
+        {/* FIXED: Show verification success prominently */}
+        {isVerified && verifiedEmail && (
+          <div className="alert alert-success" style={{ marginBottom: '20px' }}>
+            <FaCheckCircle />
+            <span>🎉 Email verified! Your account is ready. Please sign in below.</span>
+          </div>
+        )}
+
         {error && (
           <div className="alert alert-error">
             <FaExclamationTriangle />
@@ -362,14 +343,14 @@ export default function Register() {
           </div>
         )}
 
-        {message && (
+        {message && !isVerified && (
           <div className="alert alert-success">
             <FaCheckCircle />
             <span>{message}</span>
           </div>
         )}
 
-        {!message && (
+        {!message || isVerified ? (
           <form className="auth-form" onSubmit={handleSubmit}>
             {isSignUp && (
               <div className="form-group">
@@ -395,7 +376,7 @@ export default function Register() {
 
             <div className="form-group">
               <label htmlFor="email">Email Address</label>
-              <div className={`input-wrapper ${validationErrors.email ? 'error' : ''}`}>
+              <div className={`input-wrapper ${validationErrors.email ? 'error' : ''} ${isVerified ? 'verified' : ''}`}>
                 <FaEnvelope className="input-icon" />
                 <input
                   type="email"
@@ -404,9 +385,10 @@ export default function Register() {
                   placeholder="Enter your email address"
                   value={formData.email}
                   onChange={handleInputChange}
-                  disabled={loading}
+                  disabled={loading || isVerified} // FIXED: Disable if verified
                   autoComplete="email"
                 />
+                {isVerified && <FaCheckCircle className="verified-icon" style={{ color: '#28a745' }} />}
               </div>
               {validationErrors.email && (
                 <span className="error-text">{validationErrors.email}</span>
@@ -515,9 +497,9 @@ export default function Register() {
               )}
             </button>
           </form>
-        )}
+        ) : null}
 
-        {!message && (
+        {(!message || isVerified) && (
           <>
             <div className="divider">
               <span>or</span>
@@ -571,7 +553,7 @@ export default function Register() {
           </div>
         )}
 
-        {message && isSignUp && (
+        {message && isSignUp && !isVerified && (
           <div className="terms-privacy" style={{ marginTop: '24px' }}>
             <div style={{ 
               background: 'rgba(40, 167, 69, 0.1)', 
@@ -608,7 +590,7 @@ export default function Register() {
                   fontSize: '0.85rem',
                   fontWeight: '500'
                 }}>
-                  💡 <strong>Local Development:</strong> Using our custom Hostinger email service with beautiful HTML templates. Check your email for the verification link!
+                  💡 <strong>Local Development:</strong> Using custom Hostinger email service with beautiful HTML templates.
                 </p>
               </div>
             )}
@@ -627,8 +609,9 @@ export default function Register() {
           }}>
             <strong>🔧 Debug Info:</strong><br/>
             Environment: {envConfig.isLocal ? 'Local' : 'Production'}<br/>
-            Email Service: Custom Hostinger SMTP<br/>
-            Frontend URL: {envConfig.baseUrl}
+            Verified: {isVerified ? 'Yes' : 'No'}<br/>
+            Email: {verifiedEmail || 'None'}<br/>
+            Mode: {isSignUp ? 'Sign Up' : 'Sign In'}
           </div>
         )}
       </div>

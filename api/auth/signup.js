@@ -1,6 +1,5 @@
-// api/auth/signup.js - Complete Hostinger email implementation
+// api/auth/signup.js - UNIFIED: Single verification system, no conflicts
 import { createClient } from '@supabase/supabase-js';
-import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 
 const supabase = createClient(
@@ -51,78 +50,83 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Full name must be at least 2 characters long' });
     }
 
-    // Check if user already exists in auth.users (NOT pending_users)
+    // Check if user already exists in auth.users
     try {
       const { data: existingUser } = await supabase.auth.admin.getUserByEmail(email);
       if (existingUser?.user) {
         return res.status(400).json({ error: 'An account with this email already exists. Please sign in instead.' });
       }
     } catch (adminError) {
-      // This is expected for new users
+      // Expected for new users
     }
 
-    // Check for existing pending user and rate limiting
-    const { data: pendingUser } = await supabase
-      .from('pending_users')
-      .select('id, created_at')
-      .eq('email', email.toLowerCase())
-      .single();
+    // UNIFIED: Use Supabase's built-in signup with custom redirect
+    const host = req.headers.host || 'jacal.io';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const baseUrl = `${protocol}://${host}`;
 
-    if (pendingUser) {
-      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-      const createdAt = new Date(pendingUser.created_at);
-      
-      if (createdAt > twoMinutesAgo) {
-        const secondsRemaining = Math.ceil((createdAt.getTime() + 120000 - Date.now()) / 1000);
-        return res.status(429).json({ 
-          error: `A verification email was recently sent. Please wait ${secondsRemaining} seconds before requesting another.`
-        });
+    console.log('🚀 Creating user with Supabase signup...');
+
+    // Create user with Supabase but with custom email confirmation
+    const { data: authData, error: signUpError } = await supabase.auth.admin.createUser({
+      email: email.toLowerCase(),
+      password: password,
+      email_confirm: false, // We'll send our own confirmation email
+      user_metadata: {
+        name: fullName.trim(),
+        email_verified: false,
+        picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=4facfe&color=fff&size=200`
       }
-      
-      // Delete old pending user
-      await supabase.from('pending_users').delete().eq('id', pendingUser.id);
-    }
+    });
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 12);
-    const verificationToken = generateVerificationToken();
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24);
-
-    // Insert pending user
-    const { data: newPendingUser, error: insertError } = await supabase
-      .from('pending_users')
-      .insert({
-        email: email.toLowerCase(),
-        password_hash: passwordHash,
-        full_name: fullName.trim(),
-        verification_token: verificationToken,
-        expires_at: expiresAt.toISOString()
-      })
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error('Error creating pending user:', insertError);
-      if (insertError.code === '23505') {
-        return res.status(400).json({ error: 'A signup with this email is already in progress' });
+    if (signUpError) {
+      console.error('Supabase signup error:', signUpError);
+      if (signUpError.message.includes('already registered')) {
+        return res.status(400).json({ error: 'An account with this email already exists. Please sign in instead.' });
       }
       return res.status(500).json({ error: 'Failed to create account. Please try again.' });
     }
 
-    // Create verification URL
-    const host = req.headers.host || 'jacal.io';
-    const protocol = host.includes('localhost') ? 'http' : 'https';
-    const baseUrl = `${protocol}://${host}`;
-    const verificationUrl = `${baseUrl}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
+    if (!authData?.user?.id) {
+      return res.status(500).json({ error: 'Failed to create user account.' });
+    }
 
-    // Send verification email via Hostinger
+    console.log('✅ User created in Supabase:', authData.user.id);
+
+    // Generate custom verification token and store it
+    const verificationToken = generateVerificationToken();
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+
+    // Store verification token in a simple table
+    const { error: tokenError } = await supabase
+      .from('user_verifications')
+      .insert({
+        user_id: authData.user.id,
+        email: email.toLowerCase(),
+        verification_token: verificationToken,
+        expires_at: expiresAt.toISOString(),
+        verified: false
+      });
+
+    if (tokenError) {
+      console.error('Error storing verification token:', tokenError);
+      // Clean up user if token storage fails
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      return res.status(500).json({ error: 'Failed to setup verification. Please try again.' });
+    }
+
+    // Create verification URL
+    const verificationUrl = `${baseUrl}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}&user_id=${authData.user.id}`;
+
+    // Send our beautiful custom email
     try {
       await sendHostingerEmail(email, verificationUrl, fullName);
     } catch (emailError) {
       console.error('Email send error:', emailError);
-      // Clean up pending user if email fails
-      await supabase.from('pending_users').delete().eq('id', newPendingUser.id);
+      // Clean up user and token if email fails
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      await supabase.from('user_verifications').delete().eq('verification_token', verificationToken);
       return res.status(500).json({ 
         error: 'Failed to send verification email. Please try again.' 
       });
@@ -130,7 +134,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: `Verification email sent to ${email}. Please check your inbox and click the verification link to activate your account.`,
+      message: `Account created! A verification email has been sent to ${email}. Please check your inbox and click the verification link to activate your account.`,
       email: email
     });
 
@@ -144,27 +148,30 @@ export default async function handler(req, res) {
 
 async function handleResendVerification(req, res, email, fullName) {
   try {
-    const { data: pendingUser } = await supabase
-      .from('pending_users')
+    // Find existing verification
+    const { data: verification } = await supabase
+      .from('user_verifications')
       .select('*')
       .eq('email', email.toLowerCase())
+      .eq('verified', false)
       .single();
 
-    if (!pendingUser) {
+    if (!verification) {
       return res.status(400).json({ error: 'No pending verification found for this email address' });
     }
 
+    // Generate new token
     const newVerificationToken = generateVerificationToken();
     const newExpiresAt = new Date();
     newExpiresAt.setHours(newExpiresAt.getHours() + 24);
 
     const { error: updateError } = await supabase
-      .from('pending_users')
+      .from('user_verifications')
       .update({
         verification_token: newVerificationToken,
         expires_at: newExpiresAt.toISOString()
       })
-      .eq('id', pendingUser.id);
+      .eq('id', verification.id);
 
     if (updateError) {
       return res.status(500).json({ error: 'Failed to resend verification email' });
@@ -173,9 +180,9 @@ async function handleResendVerification(req, res, email, fullName) {
     const host = req.headers.host || 'jacal.io';
     const protocol = host.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${host}`;
-    const verificationUrl = `${baseUrl}/auth/verify-email?token=${newVerificationToken}&email=${encodeURIComponent(email)}`;
+    const verificationUrl = `${baseUrl}/auth/verify-email?token=${newVerificationToken}&email=${encodeURIComponent(email)}&user_id=${verification.user_id}`;
 
-    await sendHostingerEmail(email, verificationUrl, fullName || pendingUser.full_name);
+    await sendHostingerEmail(email, verificationUrl, fullName);
 
     return res.status(200).json({
       success: true,

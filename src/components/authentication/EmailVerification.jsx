@@ -1,7 +1,6 @@
-// src/components/authentication/EmailVerification.jsx - Updated for Custom Tokens
+// src/components/authentication/EmailVerification.jsx - UNIFIED: Handle magic link auto sign-in
 import React, { useEffect, useState, useContext } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { supabase } from '../../supabase';
 import UserAuthContext from '../context/UserAuthContext';
 import getEnvironmentConfig from '../../config/environment';
 import { FaCheckCircle, FaExclamationTriangle, FaSpinner, FaEnvelope } from 'react-icons/fa';
@@ -21,6 +20,7 @@ export default function EmailVerification() {
   useEffect(() => {
     const token = searchParams.get('token');
     const email = searchParams.get('email');
+    const userId = searchParams.get('user_id');
     
     if (!token || !email) {
       setStatus('error');
@@ -29,103 +29,69 @@ export default function EmailVerification() {
     }
 
     setUserEmail(email);
-    verifyEmailToken(token, email);
+    verifyEmailToken(token, email, userId);
   }, [searchParams]);
 
-  const verifyEmailToken = async (token, email) => {
+  const verifyEmailToken = async (token, email, userId) => {
     try {
-      if (envConfig.isLocal) {
-        // For local development, use our custom verification endpoint
-        console.log('🔍 Verifying custom token in local development...');
+      const apiUrl = envConfig.isLocal 
+        ? 'http://localhost:3002/api/auth/verify-email'
+        : '/api/auth/verify-email';
+
+      console.log('🔍 Verifying token via:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          token: token,
+          email: email,
+          user_id: userId
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.error && data.error.includes('expired')) {
+          setStatus('expired');
+          setMessage('This verification link has expired. Please request a new one.');
+        } else {
+          setStatus('error');
+          setMessage(data.error || 'Verification failed. Please try again or contact support.');
+        }
+        return;
+      }
+
+      // UNIFIED: Handle successful verification
+      setStatus('success');
+
+      if (data.autoSignIn && data.magicLink) {
+        // Auto sign-in with magic link
+        setMessage('Email verified successfully! Signing you in automatically...');
+        console.log('🔗 Using magic link for auto sign-in');
         
-        const response = await fetch('http://localhost:3002/api/auth/verify-email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            token: token,
-            email: email
-          })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          if (data.error && data.error.includes('expired')) {
-            setStatus('expired');
-            setMessage('This verification link has expired. Please request a new one.');
-          } else {
-            setStatus('error');
-            setMessage(data.error || 'Verification failed. Please try again or contact support.');
-          }
-          return;
-        }
-
-        // Success - now update the user in Supabase to mark them as verified
-        try {
-          const { data: { user }, error: getUserError } = await supabase.auth.getUser();
-          
-          if (user && user.email === email) {
-            // User is already signed in, just update their metadata
-            const { error: updateError } = await supabase.auth.updateUser({
-              data: { email_verified: true }
-            });
-            
-            if (updateError) {
-              console.warn('Failed to update user metadata:', updateError.message);
-            }
-          }
-          
-          setStatus('success');
-          setMessage('Your email has been successfully verified! You can now sign in to your account and start learning with Jacal.');
-
-          setTimeout(() => {
-            navigate('/register?verified=true');
-          }, 3000);
-
-        } catch (supabaseError) {
-          console.warn('Supabase update error:', supabaseError);
-          // Still mark as success since our verification worked
-          setStatus('success');
-          setMessage('Your email has been successfully verified! You can now sign in to your account.');
-          
-          setTimeout(() => {
-            navigate('/register?verified=true');
-          }, 3000);
-        }
-
-      } else {
-        // For production, use the production verification endpoint
-        const response = await fetch('/api/auth/verify-email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            token: token,
-            email: email
-          })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          if (data.error && data.error.includes('expired')) {
-            setStatus('expired');
-            setMessage('This verification link has expired. Please request a new one.');
-          } else {
-            setStatus('error');
-            setMessage(data.error || 'Verification failed. Please try again or contact support.');
-          }
-          return;
-        }
-
-        setStatus('success');
-        setMessage('Your email has been successfully verified! You can now sign in to your account and start learning with Jacal.');
-
+        // Redirect to magic link which will handle the sign-in
         setTimeout(() => {
-          navigate('/register?verified=true');
+          window.location.href = data.magicLink;
+        }, 1000);
+        
+      } else if (data.redirectToSignIn) {
+        // Manual sign-in required
+        setMessage('Email verified successfully! You can now sign in with your email and password.');
+        
+        setTimeout(() => {
+          navigate(`/register?verified=true&email=${encodeURIComponent(email)}`);
+        }, 3000);
+        
+      } else {
+        // Fallback
+        setMessage('Email verified successfully! Please sign in to continue.');
+        
+        setTimeout(() => {
+          navigate(`/register?verified=true&email=${encodeURIComponent(email)}`);
         }, 3000);
       }
 
@@ -142,49 +108,29 @@ export default function EmailVerification() {
     setResendLoading(true);
 
     try {
-      if (envConfig.isLocal) {
-        // Use custom email server for resend
-        const response = await fetch('http://localhost:3002/api/auth/signup', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            email: userEmail,
-            password: 'resend_verification',
-            fullName: '',
-            resend: true
-          })
-        });
+      const apiUrl = envConfig.isLocal 
+        ? 'http://localhost:3002/api/auth/signup'
+        : '/api/auth/signup';
 
-        if (response.ok) {
-          setMessage(`A new verification email has been sent to ${userEmail} via our custom email service. Please check your inbox.`);
-          setStatus('success');
-        } else {
-          const errorData = await response.json();
-          setMessage(errorData.error || 'Failed to resend verification email. Please try again later or contact support.');
-        }
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: userEmail,
+          password: 'resend_verification',
+          fullName: '',
+          resend: true
+        })
+      });
+
+      if (response.ok) {
+        setMessage(`A new verification email has been sent to ${userEmail}. Please check your inbox.`);
+        setStatus('success');
       } else {
-        // Production resend
-        const response = await fetch('/api/auth/signup', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            email: userEmail,
-            password: 'resend_verification',
-            fullName: '',
-            resend: true
-          })
-        });
-
-        if (response.ok) {
-          setMessage(`A new verification email has been sent to ${userEmail}. Please check your inbox.`);
-          setStatus('success');
-        } else {
-          setMessage('Failed to resend verification email. Please try again later or contact support.');
-        }
+        const errorData = await response.json();
+        setMessage(errorData.error || 'Failed to resend verification email. Please try again later or contact support.');
       }
 
     } catch (error) {
@@ -221,7 +167,7 @@ export default function EmailVerification() {
   const getStatusTitle = () => {
     switch (status) {
       case 'verifying': return 'Verifying Email...';
-      case 'success': return 'Email Verified!';
+      case 'success': return 'Success!';
       case 'expired': return 'Link Expired';
       case 'error': return 'Verification Failed';
       default: return 'Email Verification';
@@ -243,11 +189,12 @@ export default function EmailVerification() {
           </p>
           {envConfig.isLocal && (
             <p style={{ fontSize: '0.8rem', color: '#ffc107', marginTop: '8px' }}>
-              🔧 Local Development Mode - Custom Verification
+              🔧 Local Development Mode - Unified Flow
             </p>
           )}
         </div>
 
+        {/* Show resend option for failed/expired verification */}
         {(status === 'expired' || status === 'error') && (
           <div style={{ marginTop: '24px', textAlign: 'center' }}>
             <button
@@ -262,7 +209,7 @@ export default function EmailVerification() {
               {resendLoading ? (
                 <>
                   <FaSpinner className="spinner" />
-                  Sending via Custom Email Service...
+                  Sending...
                 </>
               ) : (
                 <>
@@ -274,6 +221,7 @@ export default function EmailVerification() {
           </div>
         )}
 
+        {/* Success state with auto-redirect info */}
         <div className="terms-privacy" style={{ marginTop: '24px' }}>
           {status === 'success' ? (
             <div style={{ textAlign: 'center' }}>
@@ -289,24 +237,31 @@ export default function EmailVerification() {
                   <strong style={{ color: '#28a745' }}>Email Successfully Verified!</strong>
                 </div>
                 <p style={{ margin: 0, fontSize: '0.9rem', color: '#28a745' }}>
-                  Your Jacal account is now active and ready to use.
+                  {message.includes('automatically') 
+                    ? 'Your account is now active. Signing you in automatically...' 
+                    : 'Your Jacal account is now active and ready to use.'
+                  }
                 </p>
               </div>
-              <p>
-                <Link to="/register" className="legal-link" style={{ 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  gap: '8px',
-                  background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                  color: 'white',
-                  padding: '12px 24px',
-                  borderRadius: '8px',
-                  textDecoration: 'none',
-                  fontWeight: '600'
-                }}>
-                  Continue to Sign In →
-                </Link>
-              </p>
+              
+              {/* Manual sign-in option - only show if not auto-signing in */}
+              {!message.includes('automatically') && (
+                <p>
+                  <Link to={`/register?verified=true&email=${encodeURIComponent(userEmail)}`} className="legal-link" style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '8px',
+                    background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                    color: 'white',
+                    padding: '12px 24px',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    fontWeight: '600'
+                  }}>
+                    Continue to Sign In →
+                  </Link>
+                </p>
+              )}
             </div>
           ) : (
             <p>
@@ -337,6 +292,26 @@ export default function EmailVerification() {
           </div>
         )}
 
+        {/* Progress indicator for auto sign-in */}
+        {status === 'success' && message.includes('automatically') && (
+          <div style={{ 
+            width: '100%', 
+            height: '4px', 
+            background: 'rgba(255,255,255,0.1)', 
+            borderRadius: '2px',
+            overflow: 'hidden',
+            marginTop: '24px'
+          }}>
+            <div style={{
+              width: '100%',
+              height: '100%',
+              background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+              borderRadius: '2px',
+              animation: 'progressSlide 2s ease-in-out infinite'
+            }} />
+          </div>
+        )}
+
         {/* Debug info for local development */}
         {envConfig.isLocal && (
           <div style={{ 
@@ -350,10 +325,19 @@ export default function EmailVerification() {
             <strong>🔧 Debug Info:</strong><br/>
             Token: {searchParams.get('token')?.substring(0, 20)}...<br/>
             Email: {userEmail}<br/>
-            Environment: Local Development
+            User ID: {searchParams.get('user_id')}<br/>
+            Environment: Unified Flow
           </div>
         )}
       </div>
+
+      <style>{`
+        @keyframes progressSlide {
+          0% { transform: translateX(-100%); }
+          50% { transform: translateX(0%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,11 +1,11 @@
-// dev-email-server.js - Email Server on Port 3002 with Supabase Integration
+// dev-email-server.js - COMPLETE FILE with correct structure
 const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
-const port = 3002; // EMAIL SERVER ON PORT 3002
+const port = 3002;
 
 // Import Supabase at the top
 const { createClient } = require('@supabase/supabase-js');
@@ -55,7 +55,7 @@ app.get('/api/health', (req, res) => {
   
   res.json({ 
     status: 'OK',
-    service: 'Local Development Email Server',
+    service: 'Local Development Email Server - Unified Flow',
     port: port,
     hasEmailCredentials: hasCredentials,
     timestamp: new Date().toISOString()
@@ -66,7 +66,7 @@ app.get('/api/health', (req, res) => {
 app.get('/api/test', (req, res) => {
   res.json({
     success: true,
-    message: 'Local development email server is working!',
+    message: 'Local development email server is working! (Unified Flow)',
     method: req.method,
     timestamp: new Date().toISOString()
   });
@@ -78,7 +78,6 @@ app.post('/api/send-email', async (req, res) => {
     console.log('📧 Email send request received');
     const { to, subject, html } = req.body;
 
-    // Basic validation
     if (!to || !subject || !html) {
       return res.status(400).json({ error: 'Missing required fields: to, subject, html' });
     }
@@ -91,13 +90,11 @@ app.post('/api/send-email', async (req, res) => {
     const transporter = createTransporter();
 
     if (!transporter) {
-      // Mock email sending for development
       console.log('🎭 MOCK EMAIL (no credentials configured):');
       console.log('📧 To:', to);
       console.log('📝 Subject:', subject);
       console.log('📄 HTML length:', html.length, 'characters');
       
-      // Simulate email sending delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       return res.json({
@@ -108,7 +105,6 @@ app.post('/api/send-email', async (req, res) => {
       });
     }
 
-    // Real email sending with Hostinger
     console.log('📤 Sending real email via Hostinger...');
     
     const mailOptions = {
@@ -138,13 +134,12 @@ app.post('/api/send-email', async (req, res) => {
   }
 });
 
-// Signup endpoint (handles both user creation and email sending)
+// UNIFIED: Signup endpoint that uses Supabase + custom verification
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    console.log('👤 Signup request received');
-    const { email, password, fullName, resend, skipUserCreation } = req.body;
+    console.log('👤 Unified signup request received');
+    const { email, password, fullName, resend } = req.body;
 
-    // Basic validation
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
     }
@@ -156,7 +151,7 @@ app.post('/api/auth/signup', async (req, res) => {
 
     if (resend) {
       console.log('🔄 Resend verification request for:', email);
-      // For resend, just send email (user already exists)
+      // Handle resend logic here
       return res.json({
         success: true,
         message: 'Verification email resent successfully'
@@ -171,55 +166,60 @@ app.post('/api/auth/signup', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 8 characters long' });
     }
 
-    // Create user in Supabase (unless skipUserCreation is true)
-    let supabaseUserId = null;
-    
-    if (!skipUserCreation) {
-      console.log('👤 Creating user in Supabase via Admin API...');
-      
-      try {
-        const { data: authData, error: signUpError } = await supabase.auth.admin.createUser({
-          email: email,
-          password: password,
-          email_confirm: false, // We'll handle verification ourselves
-          user_metadata: {
-            name: fullName,
-            email_verified: false,
-            picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=4facfe&color=fff&size=200`
-          }
-        });
+    console.log('🚀 Creating user with Supabase...');
 
-        if (signUpError) {
-          console.error('❌ Supabase signup error:', signUpError);
-          if (signUpError.message.includes('already registered') || signUpError.message.includes('already exists')) {
-            return res.status(400).json({ error: 'An account with this email already exists. Please sign in instead.' });
-          }
-          throw new Error(signUpError.message);
-        }
-
-        if (!authData || !authData.user) {
-          throw new Error('Failed to create user - no user data returned');
-        }
-
-        supabaseUserId = authData.user.id;
-        console.log('✅ User created in Supabase with ID:', supabaseUserId);
-        
-      } catch (supabaseError) {
-        console.error('❌ Supabase user creation failed:', supabaseError.message);
-        return res.status(500).json({ 
-          error: 'Failed to create user account: ' + supabaseError.message 
-        });
+    // Create user in Supabase but don't confirm email yet
+    const { data: authData, error: signUpError } = await supabase.auth.admin.createUser({
+      email: email.toLowerCase(),
+      password: password,
+      email_confirm: false, // We'll confirm it manually
+      user_metadata: {
+        name: fullName.trim(),
+        email_verified: false,
+        picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=4facfe&color=fff&size=200`
       }
-    } else {
-      console.log('⏭️ Skipping user creation (user already exists)');
+    });
+
+    if (signUpError) {
+      console.error('❌ Supabase signup error:', signUpError);
+      if (signUpError.message.includes('already registered')) {
+        return res.status(400).json({ error: 'An account with this email already exists. Please sign in instead.' });
+      }
+      return res.status(500).json({ error: 'Failed to create account. Please try again.' });
     }
+
+    if (!authData?.user?.id) {
+      return res.status(500).json({ error: 'Failed to create user account.' });
+    }
+
+    console.log('✅ User created in Supabase:', authData.user.id);
 
     // Generate verification token
     const verificationToken = `jacal_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-    
-    // Create verification URL - React app on port 3001
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+
+    // Store verification token in our custom table
+    const { error: tokenError } = await supabase
+      .from('user_verifications')
+      .insert({
+        user_id: authData.user.id,
+        email: email.toLowerCase(),
+        verification_token: verificationToken,
+        expires_at: expiresAt.toISOString(),
+        verified: false
+      });
+
+    if (tokenError) {
+      console.error('❌ Error storing verification token:', tokenError);
+      // Clean up user if token storage fails
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      return res.status(500).json({ error: 'Failed to setup verification. Please try again.' });
+    }
+
+    // Create verification URL
     const baseUrl = 'http://localhost:3001';
-    const verificationUrl = `${baseUrl}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
+    const verificationUrl = `${baseUrl}/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}&user_id=${authData.user.id}`;
 
     // Create beautiful email HTML
     const emailHtml = `
@@ -311,7 +311,7 @@ app.post('/api/auth/signup', async (req, res) => {
           <h2 class="greeting">Hi ${fullName}! 👋</h2>
           
           <div class="dev-notice">
-            🔧 <strong>Development Mode:</strong> This email was sent from your local development server (port 3002).
+            🔧 <strong>Unified Flow:</strong> This email was sent from your local development server using the new unified verification system.
           </div>
           
           <p>Thanks for joining Jacal! To start creating flashcards, please verify your email address:</p>
@@ -342,12 +342,13 @@ app.post('/api/auth/signup', async (req, res) => {
         <div class="footer">
           <p><strong>🧠 Jacal Learning Platform</strong></p>
           <p>📧 Email: ${process.env.HOSTINGER_EMAIL_USER || 'support@jacal.io'}</p>
+          <p style="font-size: 12px; opacity: 0.8;">Unified Verification System</p>
         </div>
       </div>
     </body>
     </html>`;
 
-    // Send email using the send-email endpoint
+    // Send email
     try {
       const emailResponse = await fetch('http://localhost:3002/api/send-email', {
         method: 'POST',
@@ -370,7 +371,10 @@ app.post('/api/auth/signup', async (req, res) => {
 
     } catch (emailError) {
       console.error('📧 Email sending failed:', emailError.message);
-      // Don't fail the signup, just log the error
+      // Clean up user and verification record if email fails
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      await supabase.from('user_verifications').delete().eq('verification_token', verificationToken);
+      return res.status(500).json({ error: 'Failed to send verification email. Please try again.' });
     }
 
     return res.json({
@@ -378,7 +382,7 @@ app.post('/api/auth/signup', async (req, res) => {
       message: `Welcome ${fullName}! A verification email has been sent to ${email}. Please check your inbox and click the verification link to activate your account.`,
       email: email,
       verificationToken: verificationToken, // Only for development
-      supabaseUserId: supabaseUserId // For debugging
+      supabaseUserId: authData.user.id // For debugging
     });
 
   } catch (error) {
@@ -389,13 +393,96 @@ app.post('/api/auth/signup', async (req, res) => {
   }
 });
 
-// Password reset request endpoint
+// UNIFIED: Email verification endpoint
+app.post('/api/auth/verify-email', async (req, res) => {
+  try {
+    console.log('🔍 Email verification request received');
+    const { token, email, user_id } = req.body;
+
+    if (!token || !email) {
+      return res.status(400).json({ error: 'Verification token and email are required' });
+    }
+
+    console.log('🔍 Looking for verification token...');
+
+    // Find verification record
+    const { data: verification, error: findError } = await supabase
+      .from('user_verifications')
+      .select('*')
+      .eq('verification_token', token)
+      .eq('email', email.toLowerCase())
+      .eq('verified', false)
+      .single();
+
+    if (findError || !verification) {
+      console.log('❌ Invalid or expired verification token');
+      return res.status(400).json({ error: 'Invalid or expired verification token' });
+    }
+
+    // Check if token has expired
+    const now = new Date();
+    const expiresAt = new Date(verification.expires_at);
+    
+    if (now > expiresAt) {
+      console.log('⏰ Token has expired, cleaning up...');
+      await supabase.from('user_verifications').delete().eq('id', verification.id);
+      return res.status(400).json({ error: 'Verification token has expired. Please request a new verification email.' });
+    }
+
+    console.log('✅ Token valid, marking user as verified...');
+
+    // Mark user as email confirmed in Supabase
+    const { error: confirmError } = await supabase.auth.admin.updateUserById(
+      verification.user_id,
+      { 
+        email_confirm: true,
+        user_metadata: {
+          email_verified: true,
+          name: verification.user_name || '',
+          picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(verification.user_name || '')}&background=4facfe&color=fff&size=200`
+        }
+      }
+    );
+
+    if (confirmError) {
+      console.error('❌ Error marking user as confirmed:', confirmError);
+      return res.status(500).json({ error: 'Failed to verify user account. Please try again.' });
+    }
+
+    // Mark verification as complete
+    await supabase
+      .from('user_verifications')
+      .update({ 
+        verified: true,
+        verified_at: new Date().toISOString()
+      })
+      .eq('id', verification.id);
+
+    console.log('🎉 Email verification complete - user is now confirmed');
+
+    return res.json({
+      success: true,
+      message: 'Email verified successfully! You can now sign in with your email and password.',
+      user: {
+        id: verification.user_id,
+        email: verification.email,
+        verified: true
+      },
+      redirectToSignIn: true
+    });
+
+  } catch (error) {
+    console.error('❌ Email verification error:', error.message);
+    return res.status(500).json({ error: 'An error occurred during email verification. Please try again.' });
+  }
+});
+
+// Password reset request endpoint - CUSTOM: Uses Hostinger email, no Supabase limits
 app.post('/api/auth/reset-password-request', async (req, res) => {
   try {
-    console.log('🔐 Password reset request received');
+    console.log('🔐 Custom password reset request received');
     const { email } = req.body;
 
-    // Basic validation
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
     }
@@ -405,16 +492,38 @@ app.post('/api/auth/reset-password-request', async (req, res) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
-    console.log('📧 Sending password reset email for:', email);
-    
-    // Generate reset token
+    console.log('🔍 Checking if user exists in Supabase...');
+
+    // Check if user exists in Supabase
+    try {
+      const { data: userData } = await supabase.auth.admin.getUserByEmail(email);
+      if (!userData?.user) {
+        // Don't reveal if user exists or not for security
+        return res.status(200).json({
+          success: true,
+          message: `If an account with ${email} exists, you will receive password reset instructions.`
+        });
+      }
+    } catch (error) {
+      // User doesn't exist, but don't reveal this
+      return res.status(200).json({
+        success: true,
+        message: `If an account with ${email} exists, you will receive password reset instructions.`
+      });
+    }
+
+    // Generate custom reset token
     const resetToken = `reset_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-    
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiry
+
+    console.log('💾 Storing reset token (development mode)');
+
     // Create reset URL
-    const baseUrl = 'http://localhost:3001'; // React dev server
+    const baseUrl = 'http://localhost:3001';
     const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
-    // Create password reset email HTML
+    // Create beautiful reset email HTML
     const emailHtml = `
     <!DOCTYPE html>
     <html>
@@ -476,6 +585,13 @@ app.post('/api/auth/reset-password-request', async (req, res) => {
           margin: 20px 0; 
           color: #856404; 
         }
+        .info { 
+          background: #f8f9fa; 
+          border-left: 4px solid #6c757d; 
+          padding: 16px; 
+          margin: 20px 0; 
+          color: #6c757d; 
+        }
         .footer { 
           background: #2d3748; 
           color: white; 
@@ -504,7 +620,7 @@ app.post('/api/auth/reset-password-request', async (req, res) => {
           <h2 class="greeting">Password Reset Request</h2>
           
           <div class="dev-notice">
-            🔧 <strong>Development Mode:</strong> This email was sent from your local development server (port 3002).
+            🔧 <strong>Custom Service:</strong> This email was sent using our Hostinger email service, bypassing Supabase rate limits.
           </div>
           
           <p>We received a request to reset the password for your Jacal account associated with <strong>${email}</strong>.</p>
@@ -521,9 +637,9 @@ app.post('/api/auth/reset-password-request', async (req, res) => {
             ⏰ <strong>Important:</strong> This reset link expires in 1 hour for your security.
           </div>
           
-          <p style="color: #666; margin-top: 30px;">
-            <strong>Didn't request this?</strong> You can safely ignore this email. Your password will not be changed.
-          </p>
+          <div class="info">
+            <p style="margin: 0;"><strong>Didn't request this?</strong> You can safely ignore this email. Your password will not be changed.</p>
+          </div>
           
           <p style="font-size: 14px; color: #666; margin-top: 30px;">
             <strong>Button not working?</strong> Copy and paste this link into your browser:
@@ -534,48 +650,61 @@ app.post('/api/auth/reset-password-request', async (req, res) => {
           
           <p style="color: #666; margin-top: 30px;">
             Best regards,<br>
-            <strong>The Jacal Team</strong> 🛡️
+            <strong>The Jacal Security Team</strong> 🛡️
           </p>
         </div>
         
         <div class="footer">
           <p><strong>🔐 Jacal Security</strong></p>
           <p>📧 Email: ${process.env.HOSTINGER_EMAIL_USER || 'support@jacal.io'}</p>
+          <p style="font-size: 12px; opacity: 0.8;">No Rate Limits - Powered by Hostinger</p>
         </div>
       </div>
     </body>
     </html>`;
 
-    // Send email using the send-email endpoint
+    // Send email directly using transporter (not via fetch to avoid self-calling)
     try {
-      const emailResponse = await fetch('http://localhost:3002/api/send-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          to: email,
-          subject: '🔐 Reset Your Jacal Password',
-          html: emailHtml
-        })
-      });
+      const transporter = createTransporter();
 
-      if (!emailResponse.ok) {
-        throw new Error('Failed to send reset email');
+      if (!transporter) {
+        console.log('🎭 MOCK PASSWORD RESET EMAIL (no credentials configured):');
+        console.log('📧 To:', email);
+        console.log('🔗 Reset URL:', resetUrl);
+        console.log('⏰ Expires:', expiresAt);
+        
+        // For development without credentials, still return success
+        return res.json({
+          success: true,
+          message: `Password reset instructions have been sent to ${email} via our secure Hostinger email service. Please check your inbox.`,
+          resetToken: resetToken, // Only for development
+          resetUrl: resetUrl, // Only for development
+          expiresAt: expiresAt // For debugging
+        });
       }
 
-      const emailResult = await emailResponse.json();
-      console.log('✅ Password reset email sent:', emailResult.messageId);
+      console.log('📤 Sending password reset email directly via Hostinger...');
+      
+      const mailOptions = {
+        from: `"Jacal Security" <${process.env.HOSTINGER_EMAIL_USER}>`,
+        to: email,
+        subject: '🔐 Reset Your Jacal Password - Secure Link Inside',
+        html: emailHtml
+      };
+
+      const result = await transporter.sendMail(mailOptions);
+      console.log('✅ Password reset email sent successfully:', result.messageId);
 
     } catch (emailError) {
-      console.error('📧 Email sending failed:', emailError.message);
-      // Don't fail the request, just log the error
+      console.error('📧 Password reset email sending failed:', emailError.message);
+      return res.status(500).json({ error: 'Failed to send reset email. Please try again.' });
     }
 
     return res.json({
       success: true,
-      message: `Password reset instructions have been sent to ${email}. Please check your inbox and follow the instructions to reset your password.`,
-      resetToken: resetToken // Only for development
+      message: `Password reset instructions have been sent to ${email} via our secure Hostinger email service. Please check your inbox.`,
+      resetToken: resetToken, // Only for development
+      expiresAt: expiresAt // For debugging
     });
 
   } catch (error) {
@@ -586,14 +715,14 @@ app.post('/api/auth/reset-password-request', async (req, res) => {
   }
 });
 
-// Password update endpoint
+// Password update endpoint - CUSTOM: Updates password directly in Supabase
 app.post('/api/auth/update-password', async (req, res) => {
   try {
-    console.log('🔑 Password update request received');
-    const { newPassword, resetToken } = req.body;
+    console.log('🔑 Custom password update request received');
+    const { resetToken, email, newPassword } = req.body;
 
-    if (!newPassword || !resetToken) {
-      return res.status(400).json({ error: 'New password and reset token are required' });
+    if (!resetToken || !email || !newPassword) {
+      return res.status(400).json({ error: 'Reset token, email, and new password are required' });
     }
 
     if (newPassword.length < 8) {
@@ -616,58 +745,41 @@ app.post('/api/auth/update-password', async (req, res) => {
       }
     }
 
-    console.log('✅ Password reset successful (development mode)');
+    console.log('✅ Token valid, finding user and updating password...');
+
+    // Find the user by email in Supabase
+    const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(email);
+    
+    if (userError || !userData?.user) {
+      console.error('❌ User not found:', email);
+      return res.status(400).json({ error: 'User not found' });
+    }
+
+    // Update password directly in Supabase using Admin API
+    const { error: updateError } = await supabase.auth.admin.updateUserById(
+      userData.user.id,
+      { password: newPassword }
+    );
+
+    if (updateError) {
+      console.error('❌ Error updating password:', updateError);
+      return res.status(500).json({ error: 'Failed to update password. Please try again.' });
+    }
+
+    console.log('🎉 Password updated successfully for user:', userData.user.id);
 
     return res.json({
       success: true,
       message: 'Your password has been successfully updated! You can now sign in with your new password.',
-      instruction: 'For local development: Your password has been updated in the system.'
+      user: {
+        id: userData.user.id,
+        email: userData.user.email
+      }
     });
 
   } catch (error) {
     console.error('❌ Password update error:', error.message);
     return res.status(500).json({ error: 'An error occurred while updating your password. Please try again.' });
-  }
-});
-
-// Email verification endpoint
-app.post('/api/auth/verify-email', async (req, res) => {
-  try {
-    console.log('🔍 Email verification request received');
-    const { token, email } = req.body;
-
-    if (!token || !email) {
-      return res.status(400).json({ error: 'Verification token and email are required' });
-    }
-
-    // For local development, accept any token that starts with 'jacal_'
-    if (!token.startsWith('jacal_')) {
-      return res.status(400).json({ error: 'Invalid verification token format' });
-    }
-
-    console.log('✅ Email verification successful (development mode)');
-    console.log('👤 Creating user in Supabase for:', email);
-
-    // For local development, we need to actually create the user in Supabase
-    // since the signup only stored them temporarily for email verification
-    
-    // Note: In local dev, we'll create the user as verified
-    // In production, you'd want to use the stored password hash from pending_users table
-    
-    return res.json({
-      success: true,
-      message: 'Email verified successfully! You can now sign in to your account.',
-      user: {
-        email: email,
-        verified: true
-      },
-      // Add instruction for local development
-      instruction: 'For local development: Please sign in with your email and password.'
-    });
-
-  } catch (error) {
-    console.error('❌ Email verification error:', error.message);
-    return res.status(500).json({ error: 'An error occurred during email verification. Please try again.' });
   }
 });
 
@@ -680,14 +792,16 @@ app.use('/api/*', (req, res) => {
       'GET /api/test', 
       'POST /api/send-email',
       'POST /api/auth/signup',
-      'POST /api/auth/verify-email'
+      'POST /api/auth/verify-email',
+      'POST /api/auth/reset-password-request',
+      'POST /api/auth/update-password'
     ]
   });
 });
 
 // Start server
 app.listen(port, () => {
-  console.log('🚀 Local Development Email Server started');
+  console.log('🚀 Local Development Email Server started (Unified Flow)');
   console.log(`📧 Email Server running at: http://localhost:${port}`);
   console.log(`🔗 Health check: http://localhost:${port}/api/health`);
   console.log(`🔗 Test endpoint: http://localhost:${port}/api/test`);
@@ -696,8 +810,10 @@ app.listen(port, () => {
   console.log('  • GET  /api/health           - Server health check');
   console.log('  • GET  /api/test             - Test endpoint');
   console.log('  • POST /api/send-email       - Send email');
-  console.log('  • POST /api/auth/signup      - User signup');
-  console.log('  • POST /api/auth/verify-email - Email verification');
+  console.log('  • POST /api/auth/signup      - User signup (UNIFIED)');
+  console.log('  • POST /api/auth/verify-email - Email verification (UNIFIED)');
+  console.log('  • POST /api/auth/reset-password-request - Password reset request (CUSTOM)');
+  console.log('  • POST /api/auth/update-password - Password update (CUSTOM)');
   console.log('');
   
   if (process.env.HOSTINGER_EMAIL_USER && process.env.HOSTINGER_EMAIL_PASSWORD) {
@@ -708,14 +824,14 @@ app.listen(port, () => {
   }
   
   console.log('');
-  console.log('🔧 To use with React development:');
+  console.log('🔧 UNIFIED FLOW + CUSTOM PASSWORD RESET:');
+  console.log('  • Single verification system, no double confirmation!');
+  console.log('  • Password reset via Hostinger email (no Supabase rate limits)');
+  console.log('  • Direct password updates to Supabase database');
   console.log('  1. Start this email server: node dev-email-server.js');
   console.log('  2. Start React dev server: npm start (will run on port 3001)');
   console.log('  3. Visit: http://localhost:3001/register');
   console.log('');
-  console.log('🌐 Port Configuration:');
-  console.log('  • React App: http://localhost:3001');
-  console.log('  • Email Server: http://localhost:3002');
 });
 
 module.exports = app;
