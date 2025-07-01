@@ -1,4 +1,4 @@
-// src/components/authentication/EmailVerification.jsx - UNIFIED: Handle magic link auto sign-in
+// src/components/authentication/EmailVerification.jsx - CLEAN: No debug info
 import React, { useEffect, useState, useContext } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import UserAuthContext from '../context/UserAuthContext';
@@ -37,8 +37,6 @@ export default function EmailVerification() {
       const apiUrl = envConfig.isLocal 
         ? 'http://localhost:3002/api/auth/verify-email'
         : '/api/auth/verify-email';
-
-      console.log('🔍 Verifying token via:', apiUrl);
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -65,21 +63,16 @@ export default function EmailVerification() {
         return;
       }
 
-      // UNIFIED: Handle successful verification
       setStatus('success');
 
       if (data.autoSignIn && data.magicLink) {
-        // Auto sign-in with magic link
         setMessage('Email verified successfully! Signing you in automatically...');
-        console.log('🔗 Using magic link for auto sign-in');
         
-        // Redirect to magic link which will handle the sign-in
         setTimeout(() => {
           window.location.href = data.magicLink;
         }, 1000);
         
       } else if (data.redirectToSignIn) {
-        // Manual sign-in required
         setMessage('Email verified successfully! You can now sign in with your email and password.');
         
         setTimeout(() => {
@@ -87,7 +80,6 @@ export default function EmailVerification() {
         }, 3000);
         
       } else {
-        // Fallback
         setMessage('Email verified successfully! Please sign in to continue.');
         
         setTimeout(() => {
@@ -96,7 +88,6 @@ export default function EmailVerification() {
       }
 
     } catch (error) {
-      console.error('Verification error:', error);
       setStatus('error');
       setMessage('Verification failed due to a network error. Please try again.');
     }
@@ -134,7 +125,6 @@ export default function EmailVerification() {
       }
 
     } catch (error) {
-      console.error('Resend verification error:', error);
       setMessage('Failed to resend verification email due to a network error. Please try again later.');
     } finally {
       setResendLoading(false);
@@ -187,14 +177,8 @@ export default function EmailVerification() {
           <p style={{ color: '#aaa', lineHeight: 1.6 }}>
             {message}
           </p>
-          {envConfig.isLocal && (
-            <p style={{ fontSize: '0.8rem', color: '#ffc107', marginTop: '8px' }}>
-              🔧 Local Development Mode - Unified Flow
-            </p>
-          )}
         </div>
 
-        {/* Show resend option for failed/expired verification */}
         {(status === 'expired' || status === 'error') && (
           <div style={{ marginTop: '24px', textAlign: 'center' }}>
             <button
@@ -221,7 +205,6 @@ export default function EmailVerification() {
           </div>
         )}
 
-        {/* Success state with auto-redirect info */}
         <div className="terms-privacy" style={{ marginTop: '24px' }}>
           {status === 'success' ? (
             <div style={{ textAlign: 'center' }}>
@@ -244,7 +227,6 @@ export default function EmailVerification() {
                 </p>
               </div>
               
-              {/* Manual sign-in option - only show if not auto-signing in */}
               {!message.includes('automatically') && (
                 <p>
                   <Link to={`/register?verified=true&email=${encodeURIComponent(userEmail)}`} className="legal-link" style={{ 
@@ -270,7 +252,6 @@ export default function EmailVerification() {
           )}
         </div>
 
-        {/* Additional Help for Failed Verification */}
         {(status === 'error' || status === 'expired') && (
           <div className="terms-privacy" style={{ marginTop: '16px' }}>
             <div style={{ 
@@ -292,7 +273,6 @@ export default function EmailVerification() {
           </div>
         )}
 
-        {/* Progress indicator for auto sign-in */}
         {status === 'success' && message.includes('automatically') && (
           <div style={{ 
             width: '100%', 
@@ -309,24 +289,6 @@ export default function EmailVerification() {
               borderRadius: '2px',
               animation: 'progressSlide 2s ease-in-out infinite'
             }} />
-          </div>
-        )}
-
-        {/* Debug info for local development */}
-        {envConfig.isLocal && (
-          <div style={{ 
-            marginTop: '20px', 
-            padding: '10px', 
-            background: 'rgba(255, 193, 7, 0.1)',
-            borderRadius: '8px',
-            fontSize: '0.8rem',
-            color: '#856404'
-          }}>
-            <strong>🔧 Debug Info:</strong><br/>
-            Token: {searchParams.get('token')?.substring(0, 20)}...<br/>
-            Email: {userEmail}<br/>
-            User ID: {searchParams.get('user_id')}<br/>
-            Environment: Unified Flow
           </div>
         )}
       </div>

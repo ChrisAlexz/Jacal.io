@@ -1,4 +1,4 @@
-// src/components/authentication/PasswordReset.jsx - CUSTOM: Bypass Supabase rate limits
+// src/components/authentication/PasswordReset.jsx - CLEAN: No debug info
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../supabase';
@@ -20,7 +20,6 @@ export default function PasswordReset() {
   const [searchParams] = useSearchParams();
   const envConfig = getEnvironmentConfig();
   
-  // Check if this is a reset request or password update
   const resetToken = searchParams.get('token');
   const resetEmail = searchParams.get('email');
   const isUpdatingPassword = !!(resetToken && resetEmail);
@@ -38,7 +37,6 @@ export default function PasswordReset() {
   const [validationErrors, setValidationErrors] = useState({});
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [] });
 
-  // Password strength validation
   useEffect(() => {
     if (formData.password && isUpdatingPassword) {
       const strength = calculatePasswordStrength(formData.password);
@@ -97,7 +95,6 @@ export default function PasswordReset() {
     const errors = {};
 
     if (isUpdatingPassword) {
-      // Validate new password
       if (!formData.password) {
         errors.password = 'New password is required';
       } else if (formData.password.length < 8) {
@@ -106,14 +103,12 @@ export default function PasswordReset() {
         errors.password = 'Password is too weak. Please follow the requirements below.';
       }
 
-      // Validate confirm password
       if (!formData.confirmPassword) {
         errors.confirmPassword = 'Please confirm your new password';
       } else if (formData.password !== formData.confirmPassword) {
         errors.confirmPassword = 'Passwords do not match';
       }
     } else {
-      // Validate email for reset request
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!formData.email) {
         errors.email = 'Email is required';
@@ -150,9 +145,6 @@ export default function PasswordReset() {
 
   const handlePasswordResetRequest = async () => {
     try {
-      console.log('🔐 Requesting password reset via custom service...');
-      
-      // CUSTOM: Use our own email service to bypass Supabase rate limits
       const apiUrl = envConfig.isLocal 
         ? 'http://localhost:3002/api/auth/reset-password-request'
         : '/api/auth/reset-password-request';
@@ -173,16 +165,13 @@ export default function PasswordReset() {
       }
 
       const data = await response.json();
-      setMessage(`Password reset instructions have been sent to ${formData.email} via our secure email service. Please check your inbox and follow the instructions.`);
+      setMessage(`Password reset instructions have been sent to ${formData.email}. Please check your inbox and follow the instructions.`);
       
       setFormData({ email: '', password: '', confirmPassword: '' });
 
     } catch (error) {
-      console.error('Password reset request error:', error);
-      
-      // FALLBACK: If custom service fails, show helpful message
       if (error.message.includes('rate limit') || error.message.includes('limit exceeded')) {
-        setError('Email rate limit reached. Please wait a few minutes before requesting another password reset, or contact support@jacal.io for assistance.');
+        setError('Email rate limit reached. Please wait a few minutes before requesting another password reset.');
       } else {
         setError(error.message || 'Failed to send reset email. Please try again.');
       }
@@ -191,9 +180,6 @@ export default function PasswordReset() {
 
   const handlePasswordUpdate = async () => {
     try {
-      console.log('🔑 Updating password via custom service...');
-      
-      // CUSTOM: Use our own password update service
       const apiUrl = envConfig.isLocal 
         ? 'http://localhost:3002/api/auth/update-password'
         : '/api/auth/update-password';
@@ -215,7 +201,6 @@ export default function PasswordReset() {
         throw new Error(errorData.error || 'Failed to update password');
       }
 
-      const data = await response.json();
       setMessage('Your password has been successfully updated! You can now sign in with your new password.');
       
       setTimeout(() => {
@@ -223,8 +208,6 @@ export default function PasswordReset() {
       }, 3000);
 
     } catch (error) {
-      console.error('Password update error:', error);
-      
       if (error.message.includes('expired')) {
         setError('Your reset link has expired. Please request a new password reset.');
       } else {
@@ -236,7 +219,6 @@ export default function PasswordReset() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        {/* Header */}
         <div className="auth-header">
           <div className="auth-icon">
             {isUpdatingPassword ? <FaLock /> : <FaEnvelope />}
@@ -247,17 +229,11 @@ export default function PasswordReset() {
           <p>
             {isUpdatingPassword 
               ? 'Choose a strong password for your account'
-              : 'Enter your email address and we\'ll send you a secure reset link via our custom email service'
+              : 'Enter your email address and we\'ll send you a secure reset link'
             }
           </p>
-          {envConfig.isLocal && (
-            <p style={{ fontSize: '0.8rem', color: '#ffc107', marginTop: '8px' }}>
-              🔧 Local Development - Custom Email Service (No Rate Limits!)
-            </p>
-          )}
         </div>
 
-        {/* Alert Messages */}
         {error && (
           <div className="alert alert-error">
             <FaExclamationTriangle />
@@ -272,11 +248,9 @@ export default function PasswordReset() {
           </div>
         )}
 
-        {/* Main Form */}
         {!message && (
           <form className="auth-form" onSubmit={handleSubmit}>
             {!isUpdatingPassword ? (
-              // Email field for reset request
               <div className="form-group">
                 <label htmlFor="email">Email Address</label>
                 <div className={`input-wrapper ${validationErrors.email ? 'error' : ''}`}>
@@ -296,24 +270,9 @@ export default function PasswordReset() {
                 {validationErrors.email && (
                   <span className="error-text">{validationErrors.email}</span>
                 )}
-                
-                {/* Info about custom email service */}
-                <div style={{
-                  background: 'rgba(33, 150, 243, 0.1)',
-                  border: '1px solid rgba(33, 150, 243, 0.3)',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  marginTop: '12px',
-                  fontSize: '0.85rem',
-                  color: '#1976d2'
-                }}>
-                  <strong>📧 Custom Email Service:</strong> We use our own Hostinger email service to bypass rate limits and ensure reliable delivery.
-                </div>
               </div>
             ) : (
-              // Password fields for updating password
               <>
-                {/* Show email being reset */}
                 <div className="form-group">
                   <label>Resetting password for:</label>
                   <div style={{ 
@@ -328,7 +287,6 @@ export default function PasswordReset() {
                   </div>
                 </div>
 
-                {/* New Password Field */}
                 <div className="form-group">
                   <label htmlFor="password">New Password</label>
                   <div className={`input-wrapper ${validationErrors.password ? 'error' : ''}`}>
@@ -357,7 +315,6 @@ export default function PasswordReset() {
                     <span className="error-text">{validationErrors.password}</span>
                   )}
                   
-                  {/* Password Strength Indicator */}
                   {formData.password && (
                     <div className="password-strength">
                       <div className="strength-bar">
@@ -388,7 +345,6 @@ export default function PasswordReset() {
                   )}
                 </div>
 
-                {/* Confirm Password Field */}
                 <div className="form-group">
                   <label htmlFor="confirmPassword">Confirm New Password</label>
                   <div className={`input-wrapper ${validationErrors.confirmPassword ? 'error' : ''}`}>
@@ -419,7 +375,6 @@ export default function PasswordReset() {
               </>
             )}
 
-            {/* Submit Button */}
             <button 
               type="submit" 
               className="submit-btn"
@@ -437,7 +392,6 @@ export default function PasswordReset() {
           </form>
         )}
 
-        {/* Back to Sign In */}
         <div className="auth-toggle">
           <Link to="/register" className="toggle-btn" style={{ 
             display: 'flex', 
@@ -452,19 +406,14 @@ export default function PasswordReset() {
           </Link>
         </div>
 
-        {/* Additional Help */}
         {!isUpdatingPassword && !message && (
           <div className="terms-privacy">
             <p>
               Remember your password? <Link to="/register" className="legal-link">Sign in instead</Link>
             </p>
-            <p style={{ marginTop: '12px', fontSize: '0.8rem', color: '#666' }}>
-              <strong>✅ No Rate Limits:</strong> Our custom Hostinger email service ensures reliable delivery without restrictions.
-            </p>
           </div>
         )}
 
-        {/* Success redirect info */}
         {message && isUpdatingPassword && (
           <div className="terms-privacy">
             <p style={{ color: '#4facfe', fontWeight: '500' }}>
@@ -473,7 +422,6 @@ export default function PasswordReset() {
           </div>
         )}
 
-        {/* Success info for reset request */}
         {message && !isUpdatingPassword && (
           <div className="terms-privacy">
             <div style={{
@@ -484,27 +432,9 @@ export default function PasswordReset() {
               marginTop: '16px'
             }}>
               <p style={{ margin: 0, fontSize: '0.9rem', color: '#155724' }}>
-                <strong>📧 Email Sent via Hostinger:</strong> Check your inbox for reset instructions. The email comes from support@jacal.io using our secure Hostinger service.
+                <strong>📧 Email Sent:</strong> Check your inbox for reset instructions. The email comes from support@jacal.io.
               </p>
             </div>
-          </div>
-        )}
-
-        {/* Debug info for local development */}
-        {envConfig.isLocal && (
-          <div style={{ 
-            marginTop: '20px', 
-            padding: '10px', 
-            background: 'rgba(255, 193, 7, 0.1)',
-            borderRadius: '8px',
-            fontSize: '0.8rem',
-            color: '#856404'
-          }}>
-            <strong>🔧 Debug Info:</strong><br/>
-            Mode: {isUpdatingPassword ? 'Password Update' : 'Reset Request'}<br/>
-            {resetToken && `Reset Token: ${resetToken.substring(0, 20)}...`}<br/>
-            Email: {resetEmail || formData.email}<br/>
-            Service: Custom Hostinger Email (No Supabase Rate Limits)
           </div>
         )}
       </div>

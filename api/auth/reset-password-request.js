@@ -1,4 +1,4 @@
-// api/auth/reset-password-request.js - CUSTOM: Use Hostinger email, bypass Supabase
+// api/auth/reset-password-request.js - FIXED: Clean email sending
 import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
 
@@ -33,20 +33,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
-    console.log('🔐 Custom password reset request for:', email);
-
-    // Check if user exists in Supabase (but don't use Supabase email!)
+    // Check if user exists in Supabase
     try {
       const { data: userData } = await supabase.auth.admin.getUserByEmail(email);
       if (!userData?.user) {
-        // Don't reveal if user exists or not for security
         return res.status(200).json({
           success: true,
           message: `If an account with ${email} exists, you will receive password reset instructions.`
         });
       }
     } catch (error) {
-      // User doesn't exist, but don't reveal this
       return res.status(200).json({
         success: true,
         message: `If an account with ${email} exists, you will receive password reset instructions.`
@@ -56,9 +52,9 @@ export default async function handler(req, res) {
     // Generate custom reset token
     const resetToken = generateResetToken();
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiry
+    expiresAt.setHours(expiresAt.getHours() + 1);
 
-    // Store reset token in our custom table
+    // Store reset token
     const { error: tokenError } = await supabase
       .from('password_resets')
       .insert({
@@ -69,7 +65,6 @@ export default async function handler(req, res) {
       });
 
     if (tokenError) {
-      console.error('Error storing reset token:', tokenError);
       return res.status(500).json({ error: 'Failed to process reset request. Please try again.' });
     }
 
@@ -79,12 +74,10 @@ export default async function handler(req, res) {
     const baseUrl = `${protocol}://${host}`;
     const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
-    // Send email via Hostinger (bypassing Supabase completely!)
+    // Send email via Hostinger
     try {
       await sendHostingerResetEmail(email, resetUrl);
     } catch (emailError) {
-      console.error('Hostinger email error:', emailError);
-      // Clean up token if email fails
       await supabase.from('password_resets').delete().eq('reset_token', resetToken);
       return res.status(500).json({ 
         error: 'Failed to send reset email. Please try again.' 
@@ -93,11 +86,10 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: `Password reset instructions have been sent to ${email} via our secure email service. Please check your inbox.`
+      message: `Password reset instructions have been sent to ${email}. Please check your inbox.`
     });
 
   } catch (error) {
-    console.error('Password reset request error:', error);
     return res.status(500).json({ 
       error: 'An error occurred. Please try again.' 
     });
@@ -113,7 +105,7 @@ function generateResetToken() {
 
 async function sendHostingerResetEmail(email, resetUrl) {
   if (!process.env.HOSTINGER_EMAIL_USER || !process.env.HOSTINGER_EMAIL_PASSWORD) {
-    throw new Error('Hostinger email credentials not configured');
+    throw new Error('Email credentials not configured');
   }
 
   const transporter = nodemailer.createTransporter({
@@ -169,7 +161,6 @@ async function sendHostingerResetEmail(email, resetUrl) {
     <div style="background: #2d3748; color: white; padding: 20px; text-align: center;">
       <p style="margin: 0;"><strong>🔐 Jacal Security</strong></p>
       <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.8;">📧 ${process.env.HOSTINGER_EMAIL_USER}</p>
-      <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.6;">Powered by Hostinger Email Service</p>
     </div>
   </div>
 </body>
@@ -182,6 +173,5 @@ async function sendHostingerResetEmail(email, resetUrl) {
     html: emailHtml
   });
 
-  console.log('✅ Hostinger password reset email sent:', result.messageId);
   return result;
 }
