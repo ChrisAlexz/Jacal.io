@@ -1,4 +1,4 @@
-// src/config/environment.js - FIXED for proper OAuth redirects
+// src/config/environment.js - FIXED for proper development detection
 const getEnvironmentConfig = () => {
   // Determine environment
   const hostname = window.location.hostname;
@@ -14,9 +14,9 @@ const getEnvironmentConfig = () => {
   let apiUrl;
   
   if (isLocal) {
-    // Local development - detect actual port
+    // Local development - FIXED: Always use port 3002 for email server
     baseUrl = `${protocol}//${hostname}${port ? `:${port}` : ''}`;
-    apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+    apiUrl = 'http://localhost:3002'; // FIXED: Force port 3002 for email server
   } else if (isStaging) {
     // Staging environment
     baseUrl = `${protocol}//${hostname}`;
@@ -30,16 +30,18 @@ const getEnvironmentConfig = () => {
   // OAuth redirect URLs
   const redirectUrl = `${baseUrl}/auth/callback`;
   
-  console.log('🌍 Environment Config:', {
-    hostname,
-    port,
-    isLocal,
-    isStaging, 
-    isProduction,
-    baseUrl,
-    redirectUrl,
-    env: process.env.NODE_ENV
-  });
+  // ENHANCED DEBUG INFO for development
+  if (isLocal) {
+    console.log('🌍 Development Environment Config:', {
+      hostname,
+      port,
+      isLocal,
+      baseUrl,
+      apiUrl,
+      emailServerUrl: 'http://localhost:3002',
+      env: process.env.NODE_ENV
+    });
+  }
 
   return {
     isLocal,
@@ -51,7 +53,7 @@ const getEnvironmentConfig = () => {
     
     // Email service config
     emailService: {
-      fromEmail: process.env.REACT_APP_FROM_EMAIL || 'noreply@jacal.io',
+      fromEmail: process.env.REACT_APP_FROM_EMAIL || 'support@jacal.io',
       fromName: process.env.REACT_APP_FROM_NAME || 'Jacal Learning Platform',
       supportEmail: process.env.REACT_APP_SUPPORT_EMAIL || 'support@jacal.io',
       websiteUrl: baseUrl

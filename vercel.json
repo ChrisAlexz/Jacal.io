@@ -14,6 +14,18 @@
       "dest": "/api/auth/verify-email.js"
     },
     {
+      "src": "/api/auth/reset-password-request",
+      "dest": "/api/auth/reset-password-request.js"
+    },
+    {
+      "src": "/api/auth/update-password",
+      "dest": "/api/auth/update-password.js"
+    },
+    {
+      "src": "/api/send-email",
+      "dest": "/api/send-email.js"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/$1"
     },

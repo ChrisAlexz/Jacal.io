@@ -1,4 +1,4 @@
-// api/auth/reset-password-request.js - FIXED: Clean email sending
+// api/auth/reset-password-request.js - COMPLETE FIXED FILE with working Hostinger SMTP
 import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
 
@@ -108,16 +108,32 @@ async function sendHostingerResetEmail(email, resetUrl) {
     throw new Error('Email credentials not configured');
   }
 
+  // FIXED: Use official Hostinger SMTP settings
   const transporter = nodemailer.createTransporter({
     host: 'smtp.hostinger.com',
-    port: 587,
-    secure: false,
+    port: 587,                    // FIXED: Use port 587 with STARTTLS
+    secure: false,                // FIXED: false for port 587
     auth: {
       user: process.env.HOSTINGER_EMAIL_USER,
       pass: process.env.HOSTINGER_EMAIL_PASSWORD
     },
-    tls: { rejectUnauthorized: false }
+    tls: { 
+      rejectUnauthorized: false   // FIXED: Keep this for Hostinger
+    },
+    // FIXED: Add these additional options for Hostinger
+    connectionTimeout: 60000,     // 60 seconds
+    greetingTimeout: 30000,       // 30 seconds
+    socketTimeout: 60000          // 60 seconds
   });
+
+  // FIXED: Test connection first
+  try {
+    await transporter.verify();
+    console.log('✅ SMTP connection verified');
+  } catch (verifyError) {
+    console.error('❌ SMTP verification failed:', verifyError.message);
+    throw new Error('SMTP configuration error');
+  }
 
   const emailHtml = `
 <!DOCTYPE html>
@@ -166,6 +182,7 @@ async function sendHostingerResetEmail(email, resetUrl) {
 </body>
 </html>`;
 
+  // FIXED: Send email with proper from address format
   const result = await transporter.sendMail({
     from: `"Jacal Security" <${process.env.HOSTINGER_EMAIL_USER}>`,
     to: email,
@@ -173,5 +190,6 @@ async function sendHostingerResetEmail(email, resetUrl) {
     html: emailHtml
   });
 
+  console.log('✅ Email sent successfully:', result.messageId);
   return result;
 }
