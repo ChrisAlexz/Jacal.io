@@ -1,6 +1,7 @@
-// src/components/authentication/PasswordReset.jsx - COMPLETE FIXED FILE
+// src/components/authentication/PasswordReset.jsx - PRODUCTION READY
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import getEnvironmentConfig from '../../config/environment';
 import { 
   FaEnvelope, 
   FaLock, 
@@ -16,6 +17,7 @@ import '../../styles/Register.css';
 export default function PasswordReset() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const envConfig = getEnvironmentConfig();
   
   const resetToken = searchParams.get('token');
   const resetEmail = searchParams.get('email');
@@ -143,13 +145,11 @@ export default function PasswordReset() {
 
   const handlePasswordResetRequest = async () => {
     try {
-      console.log('Starting password reset request for:', formData.email);
+      // FIXED: Use environment config instead of hardcoded localhost
+      const apiUrl = envConfig.isLocal 
+        ? 'http://localhost:3002/api/auth/reset-password-request'
+        : '/api/auth/reset-password-request';
       
-      // FIXED: Always use the email server in development
-      const apiUrl = 'http://localhost:3002/api/auth/reset-password-request';
-      
-      console.log('Making request to:', apiUrl);
-
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -160,19 +160,13 @@ export default function PasswordReset() {
         })
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to send reset email');
       }
 
       const data = await response.json();
-      console.log('Response data:', data);
-      
       setMessage(`Password reset instructions have been sent to ${formData.email}. Please check your inbox and follow the instructions.`);
-      
       setFormData({ email: '', password: '', confirmPassword: '' });
 
     } catch (error) {
@@ -180,7 +174,7 @@ export default function PasswordReset() {
       if (error.message.includes('rate limit') || error.message.includes('limit exceeded')) {
         setError('Email rate limit reached. Please wait a few minutes before requesting another password reset.');
       } else if (error.message.includes('Failed to fetch')) {
-        setError('Unable to connect to email server. Please make sure the email server is running on port 3002.');
+        setError('Unable to connect to the server. Please check your internet connection and try again.');
       } else {
         setError(error.message || 'Failed to send reset email. Please try again.');
       }
@@ -189,20 +183,16 @@ export default function PasswordReset() {
 
   const handlePasswordUpdate = async () => {
     try {
-      console.log('Starting password update...');
-      console.log('Reset token:', resetToken);
-      console.log('Reset email:', resetEmail);
-      
-      // FIXED: Always use the email server in development
-      const apiUrl = 'http://localhost:3002/api/auth/update-password';
-      console.log('Making request to:', apiUrl);
+      // FIXED: Use environment config instead of hardcoded localhost
+      const apiUrl = envConfig.isLocal 
+        ? 'http://localhost:3002/api/auth/update-password'
+        : '/api/auth/update-password';
 
       const requestBody = {
         resetToken: resetToken,
         email: resetEmail,
         newPassword: formData.password
       };
-      console.log('Request body:', requestBody);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -212,25 +202,12 @@ export default function PasswordReset() {
         body: JSON.stringify(requestBody)
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
-      // Check if response is actually JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const textResponse = await response.text();
-        console.error('Non-JSON response received:', textResponse);
-        throw new Error('Server returned non-JSON response. Check if email server is running on port 3002.');
-      }
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to update password');
       }
 
       const data = await response.json();
-      console.log('Success response:', data);
-      
       setMessage('Your password has been successfully updated! You can now sign in with your new password.');
       
       setTimeout(() => {
@@ -241,45 +218,11 @@ export default function PasswordReset() {
       console.error('Password update error:', error);
       if (error.message.includes('expired')) {
         setError('Your reset link has expired. Please request a new password reset.');
-      } else if (error.message.includes('Failed to fetch') || error.message.includes('port 3002')) {
-        setError('Unable to connect to email server. Please make sure the email server is running on port 3002.');
-      } else if (error.message.includes('non-JSON response')) {
-        setError('Server configuration error. Please check that the email server is running properly.');
+      } else if (error.message.includes('Failed to fetch')) {
+        setError('Unable to connect to the server. Please check your internet connection and try again.');
       } else {
         setError(error.message || 'Failed to update password. Please try again.');
       }
-    }
-  };
-
-  // DEBUGGING: Test function to check email server connection
-  const testEmailServerConnection = async () => {
-    try {
-      console.log('Testing email server connection...');
-      
-      // Test health endpoint first
-      const healthResponse = await fetch('http://localhost:3002/api/health');
-      const healthData = await healthResponse.json();
-      console.log('Health check:', healthData);
-      
-      // Test actual password reset
-      const resetResponse = await fetch('http://localhost:3002/api/auth/reset-password-request', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: 'ch408541@gmail.com'
-        })
-      });
-      
-      const resetData = await resetResponse.json();
-      console.log('Reset response:', resetData);
-      
-      alert('Check console for test results');
-      
-    } catch (error) {
-      console.error('Connection test failed:', error);
-      alert('Connection test failed - check console');
     }
   };
 
@@ -300,26 +243,6 @@ export default function PasswordReset() {
             }
           </p>
         </div>
-
-        {/* DEBUGGING: Add test button in development */}
-        {process.env.NODE_ENV === 'development' && !isUpdatingPassword && (
-          <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-            <button 
-              onClick={testEmailServerConnection}
-              style={{
-                background: '#007bff',
-                color: 'white',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '0.8rem'
-              }}
-            >
-              🔧 Test Email Server Connection
-            </button>
-          </div>
-        )}
 
         {error && (
           <div className="alert alert-error">

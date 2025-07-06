@@ -1,44 +1,46 @@
-// src/config/environment.js - FIXED for proper development detection
+// src/config/environment.js - PRODUCTION READY
 const getEnvironmentConfig = () => {
   // Determine environment
   const hostname = window.location.hostname;
   const protocol = window.location.protocol;
   const port = window.location.port;
   
-  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
-  const isStaging = hostname.includes('staging') || hostname.includes('preview');
-  const isProduction = hostname === 'jacal.io' || (!isLocal && !isStaging);
+  // Enhanced environment detection
+  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0';
+  const isStaging = hostname.includes('staging') || hostname.includes('preview') || hostname.includes('vercel.app');
+  const isProduction = hostname === 'jacal.io' || hostname.includes('jacal.io') || (!isLocal && !isStaging);
 
   // Base URL configuration
   let baseUrl;
   let apiUrl;
   
   if (isLocal) {
-    // Local development - FIXED: Always use port 3002 for email server
+    // Local development
     baseUrl = `${protocol}//${hostname}${port ? `:${port}` : ''}`;
-    apiUrl = 'http://localhost:3002'; // FIXED: Force port 3002 for email server
+    apiUrl = 'http://localhost:3002'; // Local email server
   } else if (isStaging) {
-    // Staging environment
+    // Staging environment (Vercel preview deployments)
     baseUrl = `${protocol}//${hostname}`;
-    apiUrl = process.env.REACT_APP_API_URL || `${protocol}//${hostname}`;
+    apiUrl = `${protocol}//${hostname}`; // Use Vercel serverless functions
   } else {
-    // Production
+    // Production - jacal.io
     baseUrl = 'https://jacal.io';
-    apiUrl = process.env.REACT_APP_API_URL || 'https://jacal.io';
+    apiUrl = 'https://jacal.io'; // Use Vercel serverless functions
   }
 
   // OAuth redirect URLs
   const redirectUrl = `${baseUrl}/auth/callback`;
   
-  // ENHANCED DEBUG INFO for development
-  if (isLocal) {
-    console.log('🌍 Development Environment Config:', {
+  // Only log in development
+  if (isLocal && process.env.NODE_ENV === 'development') {
+    console.log('🌍 Environment Config:', {
       hostname,
       port,
       isLocal,
+      isStaging,
+      isProduction,
       baseUrl,
       apiUrl,
-      emailServerUrl: 'http://localhost:3002',
       env: process.env.NODE_ENV
     });
   }
