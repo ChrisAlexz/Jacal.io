@@ -1,4 +1,4 @@
-// src/components/authentication/Register.jsx - CLEAN: Removed debug info
+// src/components/authentication/Register.jsx - CUSTOM EMAIL ONLY
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import UserAuthContext from '../context/UserAuthContext';
@@ -173,12 +173,7 @@ export default function Register() {
 
   const handleCustomSignUp = async () => {
     try {
-      const requestData = {
-        email: formData.email,
-        password: formData.password,
-        fullName: formData.fullName.trim()
-      };
-      
+      // Use ONLY your custom signup API
       const apiUrl = envConfig.isLocal 
         ? 'http://localhost:3002/api/auth/signup'
         : '/api/auth/signup';
@@ -189,7 +184,11 @@ export default function Register() {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(requestData)
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          fullName: formData.fullName.trim()
+        })
       });
 
       if (!response.ok) {
@@ -207,7 +206,7 @@ export default function Register() {
 
       const data = await response.json();
 
-      setMessage(data.message || `Account created successfully! Verification email sent to ${formData.email}.`);
+      setMessage(`Welcome ${formData.fullName}! A beautiful verification email has been sent to ${formData.email} from support@jacal.io. Please check your inbox and click the verification link to activate your account.`);
       
       setFormData({
         fullName: '',

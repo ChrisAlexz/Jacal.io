@@ -1,4 +1,4 @@
-// src/components/authentication/PasswordReset.jsx - PRODUCTION READY
+// src/components/authentication/PasswordReset.jsx - CUSTOM EMAIL ONLY
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import getEnvironmentConfig from '../../config/environment';
@@ -145,7 +145,7 @@ export default function PasswordReset() {
 
   const handlePasswordResetRequest = async () => {
     try {
-      // FIXED: Use environment config instead of hardcoded localhost
+      // Use ONLY your custom API
       const apiUrl = envConfig.isLocal 
         ? 'http://localhost:3002/api/auth/reset-password-request'
         : '/api/auth/reset-password-request';
@@ -166,7 +166,7 @@ export default function PasswordReset() {
       }
 
       const data = await response.json();
-      setMessage(`Password reset instructions have been sent to ${formData.email}. Please check your inbox and follow the instructions.`);
+      setMessage(`A beautiful password reset email has been sent to ${formData.email} from support@jacal.io. Please check your inbox and follow the instructions.`);
       setFormData({ email: '', password: '', confirmPassword: '' });
 
     } catch (error) {
@@ -183,7 +183,7 @@ export default function PasswordReset() {
 
   const handlePasswordUpdate = async () => {
     try {
-      // FIXED: Use environment config instead of hardcoded localhost
+      // Use ONLY your custom API
       const apiUrl = envConfig.isLocal 
         ? 'http://localhost:3002/api/auth/update-password'
         : '/api/auth/update-password';
@@ -239,7 +239,7 @@ export default function PasswordReset() {
           <p>
             {isUpdatingPassword 
               ? 'Choose a strong password for your account'
-              : 'Enter your email address and we\'ll send you a secure reset link'
+              : 'Enter your email address and we\'ll send you a beautifully designed reset link'
             }
           </p>
         </div>
@@ -393,7 +393,7 @@ export default function PasswordReset() {
               {loading ? (
                 <>
                   <FaSpinner className="spinner" />
-                  {isUpdatingPassword ? 'Updating Password...' : 'Sending Reset Email...'}
+                  {isUpdatingPassword ? 'Updating Password...' : 'Sending Beautiful Reset Email...'}
                 </>
               ) : (
                 isUpdatingPassword ? 'Update Password' : 'Send Reset Email'
@@ -442,7 +442,7 @@ export default function PasswordReset() {
               marginTop: '16px'
             }}>
               <p style={{ margin: 0, fontSize: '0.9rem', color: '#155724' }}>
-                <strong>📧 Email Sent:</strong> Check your inbox for reset instructions. The email comes from support@jacal.io.
+                <strong>📧 Beautiful Email Sent:</strong> Check your inbox for a beautifully designed reset email from support@jacal.io.
               </p>
             </div>
           </div>

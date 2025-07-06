@@ -1,4 +1,4 @@
-// src/components/authentication/EmailVerification.jsx - CLEAN: No debug info
+// src/components/authentication/EmailVerification.jsx - CUSTOM EMAIL ONLY
 import React, { useEffect, useState, useContext } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import UserAuthContext from '../context/UserAuthContext';
@@ -34,6 +34,7 @@ export default function EmailVerification() {
 
   const verifyEmailToken = async (token, email, userId) => {
     try {
+      // Use ONLY your custom verification API
       const apiUrl = envConfig.isLocal 
         ? 'http://localhost:3002/api/auth/verify-email'
         : '/api/auth/verify-email';
@@ -99,6 +100,7 @@ export default function EmailVerification() {
     setResendLoading(true);
 
     try {
+      // Use ONLY your custom signup API for resending
       const apiUrl = envConfig.isLocal 
         ? 'http://localhost:3002/api/auth/signup'
         : '/api/auth/signup';
@@ -110,14 +112,14 @@ export default function EmailVerification() {
         },
         body: JSON.stringify({
           email: userEmail,
-          password: 'resend_verification',
+          password: 'resend_verification', // Placeholder
           fullName: '',
           resend: true
         })
       });
 
       if (response.ok) {
-        setMessage(`A new verification email has been sent to ${userEmail}. Please check your inbox.`);
+        setMessage(`A new beautiful verification email has been sent to ${userEmail} from support@jacal.io. Please check your inbox.`);
         setStatus('success');
       } else {
         const errorData = await response.json();
@@ -193,12 +195,12 @@ export default function EmailVerification() {
               {resendLoading ? (
                 <>
                   <FaSpinner className="spinner" />
-                  Sending...
+                  Sending Beautiful Email...
                 </>
               ) : (
                 <>
                   <FaEnvelope />
-                  Resend Verification Email
+                  Resend Beautiful Verification Email
                 </>
               )}
             </button>
@@ -266,8 +268,8 @@ export default function EmailVerification() {
               <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
                 <li>Check your email spam/junk folder</li>
                 <li>Make sure you clicked the latest verification link</li>
-                <li>Try requesting a new verification email</li>
-                <li>Contact support if the problem persists</li>
+                <li>Try requesting a new beautiful verification email</li>
+                <li>Contact support@jacal.io if the problem persists</li>
               </ul>
             </div>
           </div>
