@@ -1,4 +1,4 @@
-// src/components/authentication/Register.jsx - CUSTOM EMAIL ONLY
+// src/components/authentication/Register.jsx - COMPLETE CUSTOM OVERRIDE
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import UserAuthContext from '../context/UserAuthContext';
@@ -160,7 +160,7 @@ export default function Register() {
 
     try {
       if (isSignUp) {
-        await handleCustomSignUp();
+        await handleCustomSignUpOnly();
       } else {
         await handleSignIn();
       }
@@ -171,9 +171,11 @@ export default function Register() {
     }
   };
 
-  const handleCustomSignUp = async () => {
+  const handleCustomSignUpOnly = async () => {
     try {
-      // Use ONLY your custom signup API
+      console.log('🚀 Using ONLY custom signup - bypassing Supabase completely');
+      
+      // COMPLETELY BYPASS SUPABASE - Use only your custom API
       const apiUrl = envConfig.isLocal 
         ? 'http://localhost:3002/api/auth/signup'
         : '/api/auth/signup';
@@ -187,12 +189,16 @@ export default function Register() {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
-          fullName: formData.fullName.trim()
+          fullName: formData.fullName.trim(),
+          customOnly: true // Flag to ensure no Supabase interference
         })
       });
 
+      console.log('📧 Custom signup response status:', response.status);
+
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ Custom signup failed:', errorText);
         
         let errorData;
         try {
@@ -205,8 +211,9 @@ export default function Register() {
       }
 
       const data = await response.json();
+      console.log('✅ Custom signup successful:', data);
 
-      setMessage(`Welcome ${formData.fullName}! A beautiful verification email has been sent to ${formData.email} from support@jacal.io. Please check your inbox and click the verification link to activate your account.`);
+      setMessage(`Welcome ${formData.fullName}! 🎉 A beautiful verification email has been sent to ${formData.email} from support@jacal.io. Please check your inbox and click the verification link to activate your account. This email was sent using our custom system!`);
       
       setFormData({
         fullName: '',
@@ -216,12 +223,14 @@ export default function Register() {
       });
 
     } catch (error) {
+      console.error('❌ Custom signup error:', error);
       setError(error.message || 'Signup failed. Please try again.');
     }
   };
 
   const handleSignIn = async () => {
     try {
+      // For sign in, we still use Supabase since the user is already created
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
@@ -464,7 +473,7 @@ export default function Register() {
               {loading ? (
                 <>
                   <FaSpinner className="spinner" />
-                  {isSignUp ? 'Creating Account...' : 'Signing In...'}
+                  {isSignUp ? 'Creating Account & Sending Beautiful Email...' : 'Signing In...'}
                 </>
               ) : (
                 isSignUp ? 'Start Learning with Jacal' : 'Sign In'
@@ -538,7 +547,7 @@ export default function Register() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                 <FaEnvelope style={{ color: '#28a745' }} />
-                <strong style={{ color: '#28a745' }}>Success!</strong>
+                <strong style={{ color: '#28a745' }}>Custom Email System Success!</strong>
               </div>
               <p style={{ 
                 color: '#28a745', 
