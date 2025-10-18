@@ -7,11 +7,8 @@ import Set from './components/Set';
 import Flashcard from './components/Flashcard';
 import FlashcardStudyPage from './components/FlashcardStudyPage';
 
-
-// Updated authentication components
+// Google OAuth authentication only
 import Register from './components/authentication/Register';
-import EmailVerification from './components/authentication/EmailVerification';
-import PasswordReset from './components/authentication/PasswordReset';
 import AuthCallback from './components/authentication/AuthCallback';
 
 import Navbar from './components/Navbar';
@@ -28,10 +25,8 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/set" element={<Set />} />
             
-            {/* Updated Authentication Routes */}
+            {/* Authentication Routes - Google OAuth only */}
             <Route path="/register" element={<Register />} />
-            <Route path="/auth/verify-email" element={<EmailVerification />} />
-            <Route path="/auth/reset-password" element={<PasswordReset />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             
             {/* Flashcard Routes */}
@@ -47,4 +42,3 @@ function App() {
 }
 
 export default App;
-
