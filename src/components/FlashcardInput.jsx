@@ -1,9 +1,8 @@
-// src/components/FlashcardInput.jsx - COMPLETE WITH ENHANCED IMAGE OCCLUSION AND CARD LIMITS - FIXED
-import React, { useState, useContext, useEffect } from 'react';
+// src/components/FlashcardInput.jsx - NO LIMITS VERSION
+import React, { useState, useContext } from 'react';
 import SimpleRichTextEditor from './SimpleRichTextEditor';
 import ImageOcclusionEditor from './ImageOcclusionEditor';
 import UserAuthContext from './context/UserAuthContext';
-import { validateLimits, createLimitWarningMessage } from '../utils/LimitValidation';
 import "../styles/FlashcardInput.css";
 
 export default function FlashcardInput({ addFlashcard, disabled, type, isPerCardMode = false, setId, currentCardCount = 0 }) {
@@ -13,23 +12,9 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
   const [currentCardType, setCurrentCardType] = useState(type || 'Basic');
   const [frontAudioUrl, setFrontAudioUrl] = useState(null);
   const [backAudioUrl, setBackAudioUrl] = useState(null);
-  const [cardLimitInfo, setCardLimitInfo] = useState(null);
 
-  // Use per-card type if in per-card mode, otherwise use set type
   const activeType = isPerCardMode ? currentCardType : (type || 'Basic');
 
-  // Check card limits when setId or currentCardCount changes
-  useEffect(() => {
-    if (setId && currentCardCount !== undefined) {
-      const checkCardLimits = async () => {
-        const limitCheck = await validateLimits.canAddCards(setId, 1);
-        setCardLimitInfo(limitCheck);
-      };
-      checkCardLimits();
-    }
-  }, [setId, currentCardCount]);
-
-  // Ensure we always have a valid card type
   const getValidCardType = (cardType) => {
     const validTypes = ['Basic', 'Basic-Type', 'Cloze', 'Image-Occlusion'];
     return validTypes.includes(cardType) ? cardType : 'Basic';
@@ -100,11 +85,10 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
       backAudio: backAudioUrl ? 'Yes' : 'No'
     });
 
-    // FIXED: Ensure frontContent and backContent are strings before calling replace
     const cleanFront = (frontContent || '').replace(/<[^>]*>/g, '').trim();
     const cleanBack = (backContent || '').replace(/<[^>]*>/g, '').trim();
 
-    // Validation based on card type - allow audio-only cards
+    // Validation based on card type
     if (finalCardType === 'Cloze') {
       if (!cleanFront && !frontAudioUrl) {
         alert('Please add front content or audio for Cloze cards.');
@@ -122,7 +106,6 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
       console.warn('⚠️ Image occlusion cards should be handled by ImageOcclusionEditor');
       return;
     } else {
-      // Basic or other types - allow audio-only cards
       if ((!cleanFront && !frontAudioUrl) || (!cleanBack && !backAudioUrl)) {
         alert('Please add content or audio for both front and back sides.');
         return;
@@ -133,18 +116,10 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
     clearContent();
   };
 
-  // FIXED: Enhanced Image Occlusion save with proper limit checking
   const handleImageOcclusionSave = async (cards) => {
     console.log('🖼️ Image occlusion save called with', cards.length, 'cards');
     
-    // CRITICAL: Check if we can add all the cards before proceeding
-    if (setId) {
-      const cardLimitCheck = await validateLimits.canAddCards(setId, cards.length);
-      if (!cardLimitCheck.canAdd) {
-        alert(`Cannot add ${cards.length} cards. ${cardLimitCheck.message || 'This would exceed the deck limit.'} You can add ${cardLimitCheck.availableSlots} more cards.`);
-        return;
-      }
-    }
+    // NO LIMIT CHECKS - All removed
     
     cards.forEach((card, index) => {
       console.log(`🃏 Adding image occlusion card ${index + 1}:`, card.title);
@@ -230,13 +205,11 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
     });
   };
 
-  // FIXED: Check if content is valid based on type - handle undefined values
   const isContentValid = () => {
     if (activeType === 'Image-Occlusion') {
-      return false; // Handled by ImageOcclusionEditor
+      return false;
     }
     
-    // FIXED: Ensure content is a string before calling replace
     const safeFrontContent = frontContent || '';
     const safeBackContent = backContent || '';
     
@@ -252,7 +225,6 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
     }
   };
 
-  // Get placeholder text based on type
   const getPlaceholders = () => {
     switch (activeType) {
       case 'Cloze':
@@ -282,29 +254,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
 
   return (
     <div className="flashcard-input">
-      {/* Card Limit Information */}
-      {cardLimitInfo && (
-        <div className={`card-limit-info ${!cardLimitInfo.canAdd ? 'limit-reached' : cardLimitInfo.availableSlots <= 5 ? 'near-limit' : ''}`}>
-          <div className="limit-header">
-            <span className="limit-icon">
-              {cardLimitInfo.availableSlots === 0 ? '🚫' : cardLimitInfo.availableSlots <= 5 ? '⚠️' : '📊'}
-            </span>
-            <span className="limit-text">
-              Cards in this deck: {cardLimitInfo.currentCount}/{cardLimitInfo.limit}
-            </span>
-          </div>
-          {cardLimitInfo.availableSlots > 0 && (
-            <div className="limit-remaining">
-              {cardLimitInfo.availableSlots} card{cardLimitInfo.availableSlots !== 1 ? 's' : ''} remaining
-            </div>
-          )}
-          {!cardLimitInfo.canAdd && (
-            <div className="limit-message">
-              This deck has reached the maximum number of cards. Please delete some cards to add new ones.
-            </div>
-          )}
-        </div>
-      )}
+      {/* NO LIMIT INFORMATION - All removed */}
 
       {/* Per-card type selector */}
       {isPerCardMode && (
@@ -315,7 +265,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
           <select
             value={currentCardType}
             onChange={(e) => setCurrentCardType(e.target.value)}
-            disabled={disabled || (cardLimitInfo && !cardLimitInfo.canAdd)}
+            disabled={disabled}
             style={{
               padding: '8px 12px',
               background: '#2a2a2a',
@@ -323,8 +273,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
               borderRadius: '8px',
               color: 'white',
               fontSize: '1rem',
-              opacity: (cardLimitInfo && !cardLimitInfo.canAdd) ? 0.5 : 1,
-              cursor: (cardLimitInfo && !cardLimitInfo.canAdd) ? 'not-allowed' : 'pointer'
+              cursor: 'pointer'
             }}
           >
             <option value="Basic">Basic</option>
@@ -335,35 +284,16 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
         </div>
       )}
 
-      {/* FIXED: Render Image Occlusion Editor only if limits allow */}
       {activeType === 'Image-Occlusion' ? (
         <>
-          {/* Show limit reached message for Image Occlusion */}
-          {cardLimitInfo && !cardLimitInfo.canAdd && (
-            <div className="image-occlusion-limit-warning">
-              <div className="limit-warning-header">
-                <span className="warning-icon">🚫</span>
-                <h4>Cannot Create Image Occlusion Cards</h4>
-              </div>
-              <p>This deck has reached the maximum number of cards ({cardLimitInfo.limit}). Please delete some existing cards before creating new image occlusion cards.</p>
-              <div className="limit-suggestion">
-                <strong>Tip:</strong> Each image occlusion can create multiple cards (one per occlusion area). Make sure you have enough space in your deck.
-              </div>
-            </div>
-          )}
-          
-          {/* Only show ImageOcclusionEditor if limits allow */}
-          {(!cardLimitInfo || cardLimitInfo.canAdd) && (
-            <ImageOcclusionEditor 
-              onSave={handleImageOcclusionSave} 
-              disabled={disabled}
-              cardLimitInfo={cardLimitInfo}
-            />
-          )}
+          {/* NO LIMIT WARNINGS - All removed */}
+          <ImageOcclusionEditor 
+            onSave={handleImageOcclusionSave} 
+            disabled={disabled}
+          />
         </>
       ) : (
         <>
-          {/* Front Side Editor with Audio Toolbar */}
           <h4>Front Side {activeType === 'Cloze' && <span>(Required)</span>}</h4>
           
           <div className="flashcard-box front-editor">
@@ -371,14 +301,13 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
               value={frontContent}
               onChange={setFrontContent}
               placeholder={placeholders.front}
-              readOnly={disabled || (cardLimitInfo && !cardLimitInfo.canAdd)}
+              readOnly={disabled}
               onAudioChange={setFrontAudioUrl}
               initialAudioUrl={frontAudioUrl}
               user={user}
             />
           </div>
 
-          {/* Back Side Editor with Audio Toolbar */}
           <h4>
             Back Side {activeType === 'Cloze' && <span>(Optional)</span>}
             {activeType === 'Basic-Type' && <span>(Exact Answer)</span>}
@@ -389,7 +318,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
               value={backContent}
               onChange={setBackContent}
               placeholder={placeholders.back}
-              readOnly={disabled || (cardLimitInfo && !cardLimitInfo.canAdd)}
+              readOnly={disabled}
               onAudioChange={setBackAudioUrl}
               initialAudioUrl={backAudioUrl}
               user={user}
@@ -408,12 +337,8 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
             <div style={{ marginBottom: '10px' }}>
               <button 
                 onClick={handleCloze} 
-                disabled={disabled || (cardLimitInfo && !cardLimitInfo.canAdd)} 
+                disabled={disabled} 
                 type="button"
-                style={{
-                  opacity: (cardLimitInfo && !cardLimitInfo.canAdd) ? 0.5 : 1,
-                  cursor: (cardLimitInfo && !cardLimitInfo.canAdd) ? 'not-allowed' : 'pointer'
-                }}
               >
                 [c] Cloze
               </button>
@@ -426,17 +351,13 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
           <button 
             className="add-flashcard-btn" 
             onClick={handleAdd} 
-            disabled={disabled || !isContentValid() || (cardLimitInfo && !cardLimitInfo.canAdd)}
+            disabled={disabled || !isContentValid()}
             style={{
-              opacity: (disabled || !isContentValid() || (cardLimitInfo && !cardLimitInfo.canAdd)) ? 0.6 : 1,
-              cursor: (disabled || !isContentValid() || (cardLimitInfo && !cardLimitInfo.canAdd)) ? 'not-allowed' : 'pointer'
+              opacity: (disabled || !isContentValid()) ? 0.6 : 1,
+              cursor: (disabled || !isContentValid()) ? 'not-allowed' : 'pointer'
             }}
           >
-            {cardLimitInfo && !cardLimitInfo.canAdd ? (
-              'Deck Full - Cannot Add More Cards'
-            ) : (
-              `Add Flashcard (${getValidCardType(activeType)})`
-            )}
+            {`Add Flashcard (${getValidCardType(activeType)})`}
           </button>
         </>
       )}

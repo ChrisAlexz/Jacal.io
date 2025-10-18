@@ -1,9 +1,8 @@
-// src/components/Flashcard.jsx - SECURE VERSION WITH CARD LIMITS AND SIMPLE IMAGE OCCLUSION FIX
+// src/components/Flashcard.jsx - NO LIMITS VERSION
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
-import { validateLimits, LIMIT_MESSAGES } from '../utils/LimitValidation';
 
 import FlashcardTitle from "./FlashcardTitle";
 import FlashcardInput from "./FlashcardInput";
@@ -26,7 +25,6 @@ export default function Flashcard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Enhanced useEffect with better error handling and minimal logging
   useEffect(() => {
     const loadData = async () => {
       if (id) {
@@ -51,7 +49,6 @@ export default function Flashcard() {
 
   const fetchExistingSet = async (theId) => {
     try {
-      // First, try to get just the set info to verify it exists
       const { data: setData, error: setError } = await supabase
         .from("flashcard_sets")
         .select("*")
@@ -69,13 +66,10 @@ export default function Flashcard() {
         throw new Error('Flashcard set not found');
       }
 
-      // Set the basic info first
       setSetId(setData.id);
       setTitle(setData.title);
       setType(setData.type || 'Basic');
 
-      // Now fetch the cards separately with a small delay to ensure database consistency
-      // Add a small delay to ensure database writes have settled
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const { data: cardsData, error: cardsError } = await supabase
@@ -91,7 +85,6 @@ export default function Flashcard() {
         setFlashcards(cardsData || []);
       }
 
-      // Always set deck type to 'Mixed' since we're always in per-card mode
       if (setData.type !== 'Mixed') {
         const { error: updateError } = await supabase
           .from('flashcard_sets')
@@ -109,7 +102,6 @@ export default function Flashcard() {
     }
   };
 
-  // Enhanced debounced title update
   useEffect(() => {
     const updateSetDetails = async () => {
       if (setId && title.trim()) {
@@ -135,9 +127,8 @@ export default function Flashcard() {
   const addFlashcard = async (front, back, cardType = null, frontAudioUrl = null, backAudioUrl = null) => {
     const finalCardType = cardType || type;
     
-    // FIXED: Skip validation for Image Occlusion cards
+    // Skip validation for Image Occlusion cards
     if (finalCardType !== 'Image-Occlusion') {
-      // Enhanced validation: Better content checking including audio
       const cleanFront = (front || '').replace(/<[^>]*>/g, '').trim();
       const cleanBack = (back || '').replace(/<[^>]*>/g, '').trim();
       
@@ -159,14 +150,7 @@ export default function Flashcard() {
       }
     }
 
-    // NEW: Check card limits before adding
-    if (setId) {
-      const cardLimitCheck = await validateLimits.canAddCards(setId, 1);
-      if (!cardLimitCheck.canAdd) {
-        alert(cardLimitCheck.message || LIMIT_MESSAGES.CARD_LIMIT_REACHED);
-        return;
-      }
-    }
+    // NO LIMIT CHECKS - Removed all limit validation
 
     setShowSuccess(true);
 
@@ -199,22 +183,16 @@ export default function Flashcard() {
           return;
         }
         
-        // Update flashcards state
         setFlashcards(prev => {
           const newList = [...prev, data[0]];
           return newList;
         });
         
       } else {
-        // NEW: Check deck limits before creating new set
+        // NO LIMIT CHECKS - Removed deck limit validation
+        
         if (!user) {
           alert('Please log in to create flashcard sets.');
-          return;
-        }
-
-        const deckLimitCheck = await validateLimits.canCreateDeck(user.id);
-        if (!deckLimitCheck.canCreate) {
-          alert(deckLimitCheck.message || LIMIT_MESSAGES.DECK_LIMIT_REACHED);
           return;
         }
         
@@ -262,7 +240,6 @@ export default function Flashcard() {
 
         setFlashcards([insertedCard]);
         
-        // Update URL to include the new set ID
         navigate(`/flashcards/${newSetData.id}`, { replace: true });
       }
     } catch (err) {
@@ -308,7 +285,6 @@ export default function Flashcard() {
     }
   };
 
-  // Show loading and error states
   if (loading) {
     return (
       <div className="flashcard-page">
@@ -350,11 +326,9 @@ export default function Flashcard() {
   return (
     <div className="flashcard-page">
       <div className="flashcard-container">
-        {/* Header Row with Title and Study Button */}
         <div className="flashcard-header-row">
           <FlashcardTitle title={title} setTitle={setTitle} />
           
-          {/* Study Button - Only show if we have a set ID */}
           {setId && (
             <button
               className="study-button"
@@ -366,7 +340,6 @@ export default function Flashcard() {
           )}
         </div>
 
-        {/* Flashcard Input Section */}
         <FlashcardInput 
           addFlashcard={addFlashcard} 
           disabled={loading}
@@ -376,14 +349,12 @@ export default function Flashcard() {
           currentCardCount={flashcards.length}
         />
         
-        {/* Flashcard List */}
         <FlashcardList 
           flashcards={flashcards} 
           updateFlashcard={updateFlashcard} 
           onDelete={handleDelete}
         />
         
-        {/* Success Popup */}
         {showSuccess && (
           <SuccessPopup 
             message="Flashcard added successfully!" 

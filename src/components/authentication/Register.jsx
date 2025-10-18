@@ -53,19 +53,6 @@ export default function Register() {
       <div className="auth-card">
         {/* Header */}
         <div className="auth-header">
-          <div className="auth-icon" style={{ 
-            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 24px',
-            fontSize: '2.5rem'
-          }}>
-            🧠
-          </div>
           <h1>Welcome to Jacal</h1>
           <p style={{ fontSize: '1.1rem', marginTop: '12px' }}>
             Master any subject with intelligent flashcards
@@ -120,31 +107,6 @@ export default function Register() {
             )}
             <span>{loading ? 'Signing in...' : 'Continue with Google'}</span>
           </button>
-        </div>
-
-        {/* Features Section */}
-        <div style={{ marginTop: '48px', padding: '24px', background: 'rgba(79, 172, 254, 0.05)', borderRadius: '12px' }}>
-          <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', textAlign: 'center' }}>
-            Why Jacal?
-          </h3>
-          <div style={{ display: 'grid', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '1.5rem' }}>🧠</span>
-              <span>Spaced repetition algorithm for better retention</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '1.5rem' }}>📚</span>
-              <span>Multiple card types: Basic, Cloze, and more</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '1.5rem' }}>📊</span>
-              <span>Track your progress with heatmaps</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '1.5rem' }}>⚡</span>
-              <span>Import from Anki and Quizlet</span>
-            </div>
-          </div>
         </div>
 
         {/* Terms and Privacy */}

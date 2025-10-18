@@ -1,9 +1,8 @@
-// src/components/Set.jsx - COMPLETE WITH ENHANCED LIMITS FUNCTIONALITY
+// src/components/Set.jsx - NO LIMITS VERSION
 import React, { useEffect, useState, useContext, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
-import { validateLimits, formatLimitStatus } from '../utils/LimitValidation';
 import ClassDeckModal from './ClassDeckModal';
 import ImportModal from './ImportModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
@@ -65,11 +64,11 @@ const sortItems = (items, sortBy) => {
       case 'recent':
         const dateA = new Date(a.created_at || 0);
         const dateB = new Date(b.created_at || 0);
-        return dateB - dateA; // Most recent first
+        return dateB - dateA;
       case 'oldest':
         const oldDateA = new Date(a.created_at || 0);
         const oldDateB = new Date(b.created_at || 0);
-        return oldDateA - oldDateB; // Oldest first
+        return oldDateA - oldDateB;
       default:
         return 0;
     }
@@ -83,10 +82,8 @@ const filterItems = (items, searchTerm) => {
   const lowercaseSearch = searchTerm.toLowerCase();
   
   return items.filter(item => {
-    // Check if item name matches
     const nameMatches = item.name?.toLowerCase().includes(lowercaseSearch);
     
-    // For folders, also check if any of their children match
     if (item.type === 'folder') {
       const childrenMatch = item.children?.some(child => 
         child.name?.toLowerCase().includes(lowercaseSearch)
@@ -112,7 +109,6 @@ const buildTree = (folders, sets, sortBy, searchTerm) => {
     const tree = [];
     const folderMap = new Map();
     
-    // First pass: Create all folder objects
     folders.forEach(folder => {
       if (folder?.id) {
         folderMap.set(folder.id, {
@@ -127,7 +123,6 @@ const buildTree = (folders, sets, sortBy, searchTerm) => {
       }
     });
     
-    // Second pass: Add sets to their folders
     sets.forEach(set => {
       if (set?.id) {
         const deckItem = {
@@ -146,7 +141,6 @@ const buildTree = (folders, sets, sortBy, searchTerm) => {
       }
     });
     
-    // Third pass: Build hierarchy
     const rootFolders = [];
     const childFolders = [];
     
@@ -160,14 +154,12 @@ const buildTree = (folders, sets, sortBy, searchTerm) => {
       }
     });
     
-    // Add root folders to tree
     rootFolders.forEach(folder => {
       if (folderMap.has(folder.id)) {
         tree.push(folderMap.get(folder.id));
       }
     });
     
-    // Add child folders to their parents
     childFolders.forEach(folder => {
       if (folder.parent_id && folderMap.has(folder.parent_id) && folderMap.has(folder.id)) {
         const parent = folderMap.get(folder.parent_id);
@@ -176,7 +168,6 @@ const buildTree = (folders, sets, sortBy, searchTerm) => {
       }
     });
     
-    // Apply sorting recursively
     const sortRecursively = (nodes) => {
       const sorted = sortItems(nodes, sortBy);
       sorted.forEach(node => {
@@ -188,7 +179,6 @@ const buildTree = (folders, sets, sortBy, searchTerm) => {
       return sorted;
     };
     
-    // Apply filtering after sorting
     const sortedTree = sortRecursively(tree);
     const filteredTree = filterItems(sortedTree, searchTerm);
     
@@ -200,7 +190,7 @@ const buildTree = (folders, sets, sortBy, searchTerm) => {
   }
 };
 
-// Tree Node Component
+// Tree Node Component - NO LIMITS VERSION
 const TreeNode = React.memo(({ 
   item, 
   depth = 0, 
@@ -211,8 +201,7 @@ const TreeNode = React.memo(({
   onImport,
   onNavigate,
   expandedFolders,
-  searchTerm,
-  limitsOverview
+  searchTerm
 }) => {
   const isFolder = item?.type === 'folder';
   const isExpanded = expandedFolders.has(item?.id);
@@ -251,19 +240,11 @@ const TreeNode = React.memo(({
         onDeleteItem(item.id, item.name, item.type, e);
         break;
       case 'createFolder':
-        // Check limits before creating
-        if (limitsOverview?.folders && !limitsOverview.folders.canCreate) {
-          alert(limitsOverview.folders.message || 'Folder limit reached');
-          return;
-        }
+        // NO LIMIT CHECKS
         onCreateFolder(item.id);
         break;
       case 'createDeck':
-        // Check limits before creating
-        if (limitsOverview?.decks && !limitsOverview.decks.canCreate) {
-          alert(limitsOverview.decks.message || 'Deck limit reached');
-          return;
-        }
+        // NO LIMIT CHECKS
         onCreateDeck(item.id);
         break;
       case 'import':
@@ -276,7 +257,7 @@ const TreeNode = React.memo(({
         onNavigate(`/flashcards/${item.id}`);
         break;
     }
-  }, [item?.id, item?.name, item?.type, onDeleteItem, onCreateFolder, onCreateDeck, onImport, onNavigate, limitsOverview]);
+  }, [item?.id, item?.name, item?.type, onDeleteItem, onCreateFolder, onCreateDeck, onImport, onNavigate]);
   
   if (depth > 8 || !item?.id) {
     return null;
@@ -346,20 +327,16 @@ const TreeNode = React.memo(({
           {isFolder ? (
             <>
               <button
-                className={`tree-action-btn create-subfolder ${limitsOverview?.folders && !limitsOverview.folders.canCreate ? 'disabled' : ''}`}
+                className="tree-action-btn create-subfolder"
                 onClick={(e) => handleActionClick(e, 'createFolder')}
-                title={limitsOverview?.folders && !limitsOverview.folders.canCreate ? 
-                  limitsOverview.folders.message : "Create subfolder"}
-                disabled={limitsOverview?.folders && !limitsOverview.folders.canCreate}
+                title="Create subfolder"
               >
                 <FontAwesomeIcon icon={faFolder} />
               </button>
               <button
-                className={`tree-action-btn create-deck ${limitsOverview?.decks && !limitsOverview.decks.canCreate ? 'disabled' : ''}`}
+                className="tree-action-btn create-deck"
                 onClick={(e) => handleActionClick(e, 'createDeck')}
-                title={limitsOverview?.decks && !limitsOverview.decks.canCreate ? 
-                  limitsOverview.decks.message : "Create deck"}
-                disabled={limitsOverview?.decks && !limitsOverview.decks.canCreate}
+                title="Create deck"
               >
                 <FontAwesomeIcon icon={faPlus} />
               </button>
@@ -414,7 +391,6 @@ const TreeNode = React.memo(({
               onNavigate={onNavigate}
               expandedFolders={expandedFolders}
               searchTerm={searchTerm}
-              limitsOverview={limitsOverview}
             />
           ))}
           {filteredSets.map(set => (
@@ -430,7 +406,6 @@ const TreeNode = React.memo(({
               onNavigate={onNavigate}
               expandedFolders={expandedFolders}
               searchTerm={searchTerm}
-              limitsOverview={limitsOverview}
             />
           ))}
         </div>
@@ -439,7 +414,7 @@ const TreeNode = React.memo(({
   );
 });
 
-// Main SetPage Component
+// Main SetPage Component - NO LIMITS VERSION
 export default function SetPage() {
   const { user } = useContext(UserAuthContext);
   const navigate = useNavigate();
@@ -451,8 +426,7 @@ export default function SetPage() {
   const [sortBy, setSortBy] = useState('alphabetical');
   const [expandedFolders, setExpandedFolders] = useState(new Set());
   
-  // NEW: Limits state
-  const [limitsOverview, setLimitsOverview] = useState(null);
+  // NO LIMITS STATE - Removed
   
   // Modal states
   const [showModal, setShowModal] = useState(false);
@@ -483,35 +457,8 @@ export default function SetPage() {
     setLoading(true);
     
     try {
-      // NEW: Fetch limits overview first with better error handling
-      try {
-        const limitsData = await validateLimits.getUserLimitsOverview(user.id);
-        console.log('Limits data fetched:', limitsData); // Debug log
-        setLimitsOverview(limitsData);
-      } catch (limitsError) {
-        console.error('Error fetching limits:', limitsError);
-        // Set default limits if fetch fails
-        setLimitsOverview({
-          folders: { 
-            canCreate: true, 
-            currentCount: 0, 
-            limit: 2, 
-            percentage: 0,
-            message: null 
-          },
-          decks: { 
-            canCreate: true, 
-            currentCount: 0, 
-            limit: 5, 
-            percentage: 0,
-            message: null 
-          },
-          hasWarnings: false,
-          hasLimits: false
-        });
-      }
+      // NO LIMITS FETCHING - Removed
 
-      // Fetch all folders
       const { data: foldersData, error: foldersError } = await supabase
         .from('classes')
         .select('*')
@@ -524,7 +471,6 @@ export default function SetPage() {
         return;
       }
 
-      // Fetch all flashcard sets
       const { data: setsData, error: setsError } = await supabase
         .from('flashcard_sets')
         .select('*')
@@ -537,7 +483,6 @@ export default function SetPage() {
         return;
       }
 
-      // Get card counts for all sets
       const setsWithCounts = await Promise.all(
         (setsData || []).map(async (set) => {
           if (!set?.id) return null;
@@ -633,11 +578,7 @@ export default function SetPage() {
     if (!folderName.trim()) return;
 
     try {
-      // NEW: Check folder limits before creating
-      const folderLimitCheck = await validateLimits.canCreateFolder(user.id);
-      if (!folderLimitCheck.canCreate) {
-        throw new Error(folderLimitCheck.message || 'Folder limit reached');
-      }
+      // NO LIMIT CHECKS
 
       const folderData = {
         name: folderName.trim(),
@@ -712,26 +653,16 @@ export default function SetPage() {
   }, [fetchAllData]);
 
   const handleCreateFolder = useCallback((parentId = null) => {
-    // NEW: Check folder limits before opening modal
-    if (limitsOverview?.folders && !limitsOverview.folders.canCreate) {
-      alert(limitsOverview.folders.message || 'Folder limit reached');
-      return;
-    }
-    
+    // NO LIMIT CHECKS
     setSelectedFolderId(parentId);
     setShowCreateFolderModal(true);
-  }, [limitsOverview]);
+  }, []);
 
   const handleCreateDeck = useCallback((parentId = null) => {
-    // NEW: Check deck limits before opening modal
-    if (limitsOverview?.decks && !limitsOverview.decks.canCreate) {
-      alert(limitsOverview.decks.message || 'Deck limit reached');
-      return;
-    }
-    
+    // NO LIMIT CHECKS
     setSelectedFolderId(parentId);
     setShowModal(true);
-  }, [limitsOverview]);
+  }, []);
 
   const handleImport = useCallback((parentId = null) => {
     setSelectedFolderId(parentId);
@@ -764,70 +695,21 @@ export default function SetPage() {
     <Layout>
       <div className="set-page">
         <div className="set-container">
-          {/* Header Section */}
+          {/* Header Section - NO LIMITS DISPLAY */}
           <div className="set-header">
             <div className="header-content">
               <div className="header-text">
                 <h1>My Learning Library</h1>
                 <p>Organize and manage your flashcard collections</p>
                 
-                {/* NEW: Enhanced Limits Overview Display */}
-                {limitsOverview && limitsOverview.folders && limitsOverview.decks && (
-                  <div className="limits-overview">
-                    <div className="limits-row">
-                      <div className={`limit-item ${(limitsOverview.folders.percentage || 0) >= 80 ? 'near-limit' : ''} ${!limitsOverview.folders.canCreate ? 'limit-reached' : ''}`}>
-                        <div className="limit-icon">📁</div>
-                        <div className="limit-info">
-                          <span className="limit-label">Folders</span>
-                          <span className="limit-count">{limitsOverview.folders.currentCount || 0}/{limitsOverview.folders.limit || 2}</span>
-                        </div>
-                        <div className="limit-bar">
-                          <div 
-                            className="limit-progress" 
-                            style={{ width: `${Math.min(limitsOverview.folders.percentage || 0, 100)}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                      
-                      <div className={`limit-item ${(limitsOverview.decks.percentage || 0) >= 80 ? 'near-limit' : ''} ${!limitsOverview.decks.canCreate ? 'limit-reached' : ''}`}>
-                        <div className="limit-icon">📚</div>
-                        <div className="limit-info">
-                          <span className="limit-label">Decks</span>
-                          <span className="limit-count">{limitsOverview.decks.currentCount || 0}/{limitsOverview.decks.limit || 5}</span>
-                        </div>
-                        <div className="limit-bar">
-                          <div 
-                            className="limit-progress" 
-                            style={{ width: `${Math.min(limitsOverview.decks.percentage || 0, 100)}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {limitsOverview.hasWarnings && (
-                      <div className="limits-warnings">
-                        {limitsOverview.folders && limitsOverview.folders.message && (
-                          <div className="limit-warning" role="alert">
-                            {limitsOverview.folders.message}
-                          </div>
-                        )}
-                        {limitsOverview.decks && limitsOverview.decks.message && (
-                          <div className="limit-warning" role="alert">
-                            {limitsOverview.decks.message}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* NO LIMITS OVERVIEW - Removed entirely */}
               </div>
               
               <div className="header-actions">
                 <button 
                   onClick={() => handleCreateFolder()}
-                  className={`create-folder-btn ${limitsOverview?.folders && !limitsOverview.folders.canCreate ? 'disabled' : ''}`}
-                  title={limitsOverview?.folders && !limitsOverview.folders.canCreate ? limitsOverview.folders.message : "Create New Folder"}
-                  disabled={limitsOverview?.folders && !limitsOverview.folders.canCreate}
+                  className="create-folder-btn"
+                  title="Create New Folder"
                 >
                   <FontAwesomeIcon icon={faFolder} className="btn-icon" />
                   New Folder
@@ -844,9 +726,8 @@ export default function SetPage() {
                 
                 <button 
                   onClick={() => handleCreateDeck()}
-                  className={`create-set-btn ${limitsOverview?.decks && !limitsOverview.decks.canCreate ? 'disabled' : ''}`}
-                  title={limitsOverview?.decks && !limitsOverview.decks.canCreate ? limitsOverview.decks.message : "Create New Deck"}
-                  disabled={limitsOverview?.decks && !limitsOverview.decks.canCreate}
+                  className="create-set-btn"
+                  title="Create New Deck"
                 >
                   <span className="btn-icon">+</span>
                   New Deck
@@ -918,7 +799,6 @@ export default function SetPage() {
                   <button 
                     onClick={() => handleCreateFolder()}
                     className="empty-action-btn secondary"
-                    disabled={limitsOverview?.folders && !limitsOverview.folders.canCreate}
                   >
                     <FontAwesomeIcon icon={faFolder} />
                     Create Folder
@@ -926,7 +806,6 @@ export default function SetPage() {
                   <button 
                     onClick={() => handleCreateDeck()}
                     className="empty-action-btn"
-                    disabled={limitsOverview?.decks && !limitsOverview.decks.canCreate}
                   >
                     Create Deck
                   </button>
@@ -954,7 +833,6 @@ export default function SetPage() {
                     onNavigate={handleNavigate}
                     expandedFolders={expandedFolders}
                     searchTerm={searchTerm}
-                    limitsOverview={limitsOverview}
                   />
                 ))}
               </div>
