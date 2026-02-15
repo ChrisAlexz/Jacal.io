@@ -1,4 +1,5 @@
 // src/components/FlashcardInput.jsx - NO LIMITS VERSION
+import { logger } from '../utils/logger';
 import React, { useState, useContext } from 'react';
 import SimpleRichTextEditor from './SimpleRichTextEditor';
 import ImageOcclusionEditor from './ImageOcclusionEditor';
@@ -49,7 +50,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
   };
 
   const clearContent = () => {
-    console.log('🧹 Clearing content...');
+    logger.debug('🧹 Clearing content...');
     setFrontContent('');
     setBackContent('');
     setFrontAudioUrl(null);
@@ -71,13 +72,13 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
       }
     }, 100);
     
-    console.log('✅ Content cleared successfully');
+    logger.debug('✅ Content cleared successfully');
   };
 
   const handleAdd = () => {
     const finalCardType = getValidCardType(activeType);
     
-    console.log('🔄 handleAdd called with:', {
+    logger.debug('🔄 handleAdd called with:', {
       finalCardType,
       frontContent: (frontContent || '').substring(0, 50),
       backContent: (backContent || '').substring(0, 50),
@@ -103,7 +104,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
       }
       addFlashcard(frontContent, backContent, finalCardType, frontAudioUrl, backAudioUrl);
     } else if (finalCardType === 'Image-Occlusion') {
-      console.warn('⚠️ Image occlusion cards should be handled by ImageOcclusionEditor');
+      logger.warn('⚠️ Image occlusion cards should be handled by ImageOcclusionEditor');
       return;
     } else {
       if ((!cleanFront && !frontAudioUrl) || (!cleanBack && !backAudioUrl)) {
@@ -117,16 +118,16 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
   };
 
   const handleImageOcclusionSave = async (cards) => {
-    console.log('🖼️ Image occlusion save called with', cards.length, 'cards');
+    logger.debug('🖼️ Image occlusion save called with', cards.length, 'cards');
     
     // NO LIMIT CHECKS - All removed
     
     cards.forEach((card, index) => {
-      console.log(`🃏 Adding image occlusion card ${index + 1}:`, card.title);
+      logger.debug(`🃏 Adding image occlusion card ${index + 1}:`, card.title);
       
       const canvas = document.querySelector('.image-occlusion-editor canvas');
       if (!canvas) {
-        console.error('❌ Canvas not found for image occlusion');
+        logger.error('❌ Canvas not found for image occlusion');
         return;
       }
       

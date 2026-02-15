@@ -1,4 +1,5 @@
 // src/utils/LimitValidation.js - LIMIT VALIDATION UTILITY - UPDATED LIMITS
+import { logger } from './logger';
 import { supabase } from '../supabase';
 
 // User limits configuration - UPDATED LIMITS
@@ -41,7 +42,7 @@ export const validateLimits = {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Error checking folder limit:', error);
+        logger.error('Error checking folder limit:', error);
         return { canCreate: true, currentCount: 0, limit: USER_LIMITS.FOLDERS, message: null };
       }
 
@@ -65,7 +66,7 @@ export const validateLimits = {
         message
       };
     } catch (error) {
-      console.error('Error in canCreateFolder:', error);
+      logger.error('Error in canCreateFolder:', error);
       return { canCreate: true, currentCount: 0, limit: USER_LIMITS.FOLDERS, message: null };
     }
   },
@@ -79,7 +80,7 @@ export const validateLimits = {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Error checking deck limit:', error);
+        logger.error('Error checking deck limit:', error);
         return { canCreate: true, currentCount: 0, limit: USER_LIMITS.DECKS, message: null };
       }
 
@@ -103,7 +104,7 @@ export const validateLimits = {
         message
       };
     } catch (error) {
-      console.error('Error in canCreateDeck:', error);
+      logger.error('Error in canCreateDeck:', error);
       return { canCreate: true, currentCount: 0, limit: USER_LIMITS.DECKS, message: null };
     }
   },
@@ -117,7 +118,7 @@ export const validateLimits = {
         .eq('set_id', setId);
 
       if (error) {
-        console.error('Error checking card limit:', error);
+        logger.error('Error checking card limit:', error);
         return { canAdd: true, currentCount: 0, limit: USER_LIMITS.CARDS_PER_DECK, message: null };
       }
 
@@ -141,7 +142,7 @@ export const validateLimits = {
         message
       };
     } catch (error) {
-      console.error('Error in canAddCards:', error);
+      logger.error('Error in canAddCards:', error);
       return { canAdd: true, currentCount: 0, limit: USER_LIMITS.CARDS_PER_DECK, message: null };
     }
   },
@@ -161,7 +162,7 @@ export const validateLimits = {
         hasLimits: !folderCheck.canCreate || !deckCheck.canCreate
       };
     } catch (error) {
-      console.error('Error getting user limits overview:', error);
+      logger.error('Error getting user limits overview:', error);
       return {
         folders: { canCreate: true, currentCount: 0, limit: USER_LIMITS.FOLDERS },
         decks: { canCreate: true, currentCount: 0, limit: USER_LIMITS.DECKS },
@@ -176,7 +177,7 @@ export const validateLimits = {
     if (!Array.isArray(cards)) return [];
     
     if (cards.length > USER_LIMITS.IMPORTED_CARDS) {
-      console.warn(`Limiting imported cards from ${cards.length} to ${USER_LIMITS.IMPORTED_CARDS}`);
+      logger.warn(`Limiting imported cards from ${cards.length} to ${USER_LIMITS.IMPORTED_CARDS}`);
       return cards.slice(0, USER_LIMITS.IMPORTED_CARDS);
     }
     
@@ -189,7 +190,7 @@ export const limitImportedCards = (cards) => {
   if (!Array.isArray(cards)) return [];
   
   if (cards.length > USER_LIMITS.IMPORTED_CARDS) {
-    console.warn(`Limiting imported cards from ${cards.length} to ${USER_LIMITS.IMPORTED_CARDS}`);
+    logger.warn(`Limiting imported cards from ${cards.length} to ${USER_LIMITS.IMPORTED_CARDS}`);
     return cards.slice(0, USER_LIMITS.IMPORTED_CARDS);
   }
   

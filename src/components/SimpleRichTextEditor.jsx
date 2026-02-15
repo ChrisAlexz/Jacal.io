@@ -1,4 +1,5 @@
 // src/components/SimpleRichTextEditor.jsx - FIXED: Complete Toolbar Functionality
+import { logger } from '../utils/logger';
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faPause, faTrash } from '@fortawesome/free-solid-svg-icons';
@@ -81,7 +82,7 @@ const SimpleRichTextEditor = ({
       });
 
     } catch (error) {
-      console.warn('Error detecting formats:', error);
+      logger.warn('Error detecting formats:', error);
     }
   }, [readOnly]);
 
@@ -165,7 +166,7 @@ const SimpleRichTextEditor = ({
       }
       
     } catch (error) {
-      console.warn('Error executing command:', command, error);
+      logger.warn('Error executing command:', command, error);
     }
   }, [activeFormats, detectActiveFormats, safeOnChange, readOnly]);
 
@@ -299,7 +300,7 @@ const SimpleRichTextEditor = ({
       }, 1000);
       
     } catch (err) {
-      console.error('Error starting recording:', err);
+      logger.error('Error starting recording:', err);
       setError('Could not access microphone');
     }
   };
@@ -346,7 +347,7 @@ const SimpleRichTextEditor = ({
       
       return publicUrl;
     } catch (error) {
-      console.error('Error uploading audio:', error);
+      logger.error('Error uploading audio:', error);
       setError(`Upload failed: ${error.message}`);
       return null;
     } finally {
@@ -376,7 +377,7 @@ const SimpleRichTextEditor = ({
         return;
       }
     } catch (err) {
-      console.warn('Could not check audio duration:', err);
+      logger.warn('Could not check audio duration:', err);
     }
 
     await uploadAudioFile(file, false);

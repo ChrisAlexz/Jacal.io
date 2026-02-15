@@ -1,4 +1,5 @@
 // src/components/context/UserAuthContext.jsx - Production-safe with minimal logging
+import { logger } from '../../utils/logger';
 import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../supabase';
 
@@ -203,7 +204,7 @@ export function UserAuthProvider({ children }) {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
-          console.error('Error fetching session');
+          logger.error('Error fetching session');
           return;
         }
         
@@ -212,7 +213,7 @@ export function UserAuthProvider({ children }) {
           updateActivity(); // Initialize activity tracking
         }
       } catch (error) {
-        console.error('Error initializing auth');
+        logger.error('Error initializing auth');
       }
     };
 
@@ -272,7 +273,7 @@ export function UserAuthProvider({ children }) {
         showInactivityNotification();
       }
     } catch (error) {
-      console.error('Error during logout');
+      logger.error('Error during logout');
     }
   }, []);
 

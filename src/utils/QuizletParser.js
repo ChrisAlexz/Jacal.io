@@ -1,4 +1,5 @@
 // src/utils/QuizletParser.js - FIXED VERSION FOR TAB-DELIMITED FILES
+import { logger } from './logger';
 
 /**
  * Parse Quizlet export files (.txt, .csv)
@@ -17,10 +18,10 @@ export async function parseQuizletFile(file, options = {}) {
     onProgress && onProgress(30);
 
     // Debug: Log the first few characters to see what we're getting
-    console.log('File content preview:', content.substring(0, 200));
-    console.log('First line:', content.split('\n')[0]);
-    console.log('Has tabs:', content.includes('\t'));
-    console.log('Has commas:', content.includes(','));
+    logger.debug('File content preview:', content.substring(0, 200));
+    logger.debug('First line:', content.split('\n')[0]);
+    logger.debug('Has tabs:', content.includes('\t'));
+    logger.debug('Has commas:', content.includes(','));
 
     // Detect the format and parse accordingly
     const parsedData = detectAndParseFormat(content);
@@ -45,7 +46,7 @@ export async function parseQuizletFile(file, options = {}) {
     return result;
 
   } catch (error) {
-    console.error('Error parsing Quizlet file:', error);
+    logger.error('Error parsing Quizlet file:', error);
     throw new Error(`Failed to parse Quizlet file: ${error.message}`);
   }
 }
@@ -79,8 +80,8 @@ function detectAndParseFormat(content) {
   const allLines = content.split('\n');
   const lines = allLines.map(line => line.trim()).filter(line => line.length > 0);
   
-  console.log('Total lines after filtering:', lines.length);
-  console.log('Sample lines:', lines.slice(0, 3));
+  logger.debug('Total lines after filtering:', lines.length);
+  logger.debug('Sample lines:', lines.slice(0, 3));
   
   if (lines.length === 0) {
     throw new Error('No valid content found in the file');
@@ -104,7 +105,7 @@ function detectAndParseFormat(content) {
       }
     }
     
-    console.log(`Delimiter "${delimiter === '\t' ? 'TAB' : delimiter}" valid lines: ${validLines}`);
+    logger.debug(`Delimiter "${delimiter === '\t' ? 'TAB' : delimiter}" valid lines: ${validLines}`);
     
     if (validLines > maxValidLines) {
       maxValidLines = validLines;
@@ -112,7 +113,7 @@ function detectAndParseFormat(content) {
     }
   }
 
-  console.log(`Best delimiter: "${bestDelimiter === '\t' ? 'TAB' : bestDelimiter}"`);
+  logger.debug(`Best delimiter: "${bestDelimiter === '\t' ? 'TAB' : bestDelimiter}"`);
 
   // Parse all lines with the best delimiter
   const parsedLines = [];
@@ -123,7 +124,7 @@ function detectAndParseFormat(content) {
     
     const fields = splitLine(line, bestDelimiter);
     
-    console.log(`Line ${i + 1}:`, fields);
+    logger.debug(`Line ${i + 1}:`, fields);
     
     // Accept lines that have at least 2 non-empty fields
     if (fields.length >= 2) {
@@ -133,14 +134,14 @@ function detectAndParseFormat(content) {
       if (front && back) {
         parsedLines.push(fields);
       } else {
-        console.log(`Skipping line ${i + 1} - empty front or back:`, { front, back });
+        logger.debug(`Skipping line ${i + 1} - empty front or back:`, { front, back });
       }
     } else {
-      console.log(`Skipping line ${i + 1} - insufficient fields:`, fields);
+      logger.debug(`Skipping line ${i + 1} - insufficient fields:`, fields);
     }
   }
 
-  console.log('Parsed lines count:', parsedLines.length);
+  logger.debug('Parsed lines count:', parsedLines.length);
 
   if (parsedLines.length === 0) {
     throw new Error(`No valid card data found. Please check that your file is formatted correctly:
@@ -227,7 +228,7 @@ function processQuizletCards(parsedData, maxCards = null) {
   const cards = [];
   const lines = parsedData.lines;
 
-  console.log('Processing cards from', lines.length, 'parsed lines');
+  logger.debug('Processing cards from', lines.length, 'parsed lines');
 
   for (let i = 0; i < lines.length; i++) {
     if (maxCards && cards.length >= maxCards) {
@@ -237,7 +238,7 @@ function processQuizletCards(parsedData, maxCards = null) {
     const fields = lines[i];
     
     if (fields.length < 2) {
-      console.log(`Skipping line ${i + 1} - insufficient fields:`, fields);
+      logger.debug(`Skipping line ${i + 1} - insufficient fields:`, fields);
       continue;
     }
 
@@ -246,7 +247,7 @@ function processQuizletCards(parsedData, maxCards = null) {
 
     // Skip empty cards
     if (!front && !back) {
-      console.log(`Skipping line ${i + 1} - both front and back are empty`);
+      logger.debug(`Skipping line ${i + 1} - both front and back are empty`);
       continue;
     }
 
@@ -256,7 +257,7 @@ function processQuizletCards(parsedData, maxCards = null) {
 
     // Skip if cleaning resulted in empty content
     if (!front.trim() || !back.trim()) {
-      console.log(`Skipping line ${i + 1} - empty after cleaning:`, { front, back });
+      logger.debug(`Skipping line ${i + 1} - empty after cleaning:`, { front, back });
       continue;
     }
 
@@ -315,10 +316,10 @@ function processQuizletCards(parsedData, maxCards = null) {
     };
 
     cards.push(card);
-    console.log(`Added card ${cards.length}:`, { front: front.substring(0, 50), back: back.substring(0, 50) });
+    logger.debug(`Added card ${cards.length}:`, { front: front.substring(0, 50), back: back.substring(0, 50) });
   }
 
-  console.log('Final cards count:', cards.length);
+  logger.debug('Final cards count:', cards.length);
   return cards;
 }
 
@@ -426,7 +427,7 @@ export async function parseQuizletCSV(file, options = {}) {
     return result;
 
   } catch (error) {
-    console.error('Error parsing Quizlet CSV:', error);
+    logger.error('Error parsing Quizlet CSV:', error);
     throw new Error(`Failed to parse Quizlet CSV: ${error.message}`);
   }
 }
@@ -498,7 +499,7 @@ export async function parseQuizletStudySet(file, options = {}) {
     return result;
 
   } catch (error) {
-    console.error('Error parsing Quizlet study set:', error);
+    logger.error('Error parsing Quizlet study set:', error);
     throw new Error(`Failed to parse Quizlet study set: ${error.message}`);
   }
 }
@@ -515,7 +516,7 @@ export async function parseQuizletFileAuto(file, options = {}) {
       try {
         return await parseQuizletCSV(file, options);
       } catch (error) {
-        console.warn('CSV parsing failed, trying generic parser:', error);
+        logger.warn('CSV parsing failed, trying generic parser:', error);
         return await parseQuizletFile(file, options);
       }
     } else {
@@ -532,7 +533,7 @@ export async function parseQuizletFileAuto(file, options = {}) {
       }
     }
   } catch (error) {
-    console.error('All Quizlet parsing strategies failed:', error);
+    logger.error('All Quizlet parsing strategies failed:', error);
     throw new Error(`Unable to parse Quizlet file. Please ensure it's in a supported format: tab-delimited, comma-delimited, or Quizlet study set format.
 
 Debug info: File size: ${file.size} bytes, File type: ${file.type}, File name: ${file.name}`);

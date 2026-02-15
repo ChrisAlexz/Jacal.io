@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../styles/Navbar.css';
@@ -12,8 +13,8 @@ const Navbar = () => {
   const { isLoggedIn, user } = useContext(UserAuthContext);
 
   // REMOVED: Sensitive logging that exposes user data in production
-  // console.log('Navbar isLoggedIn:', isLoggedIn);
-  // console.log('Navbar user:', user);
+  // logger.debug('Navbar isLoggedIn:', isLoggedIn);
+  // logger.debug('Navbar user:', user);
 
   return (
     <div className="navbar">

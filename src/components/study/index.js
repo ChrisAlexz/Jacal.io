@@ -6,6 +6,7 @@ export { default as DifficultyButtons } from './DifficultyButtons';
 export { default as CompletionScreen } from './CompletionScreen';
 export { default as CompletionPopup } from './CompletionPopup';
 export { default as LoadingStudy } from './LoadingStudy';
+export { default as BatchCompletionModal } from './BatchCompletionModal';
 
 // Export utilities
 export * from './studyUtils';

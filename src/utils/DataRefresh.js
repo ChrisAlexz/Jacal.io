@@ -1,3 +1,4 @@
+import { logger } from './logger';
 // src/utils/DataRefresh.js - Utility to handle data refresh after imports
 
 /**
@@ -24,14 +25,14 @@ export const verifyCardInsertion = async (supabase, setId, expectedCount) => {
       .eq('set_id', setId);
       
     if (error) {
-      console.error('Error verifying card insertion:', error);
+      logger.error('Error verifying card insertion:', error);
       return false;
     }
     
-    console.log(`Verification: ${count} cards found, expected ${expectedCount}`);
+    logger.debug(`Verification: ${count} cards found, expected ${expectedCount}`);
     return count === expectedCount;
   } catch (error) {
-    console.error('Error in verification:', error);
+    logger.error('Error in verification:', error);
     return false;
   }
 };
@@ -45,11 +46,11 @@ export const verifyCardInsertion = async (supabase, setId, expectedCount) => {
 export const forceDataRefresh = async (fetchFunction, retryCount = 3) => {
   for (let attempt = 1; attempt <= retryCount; attempt++) {
     try {
-      console.log(`Data refresh attempt ${attempt}/${retryCount}`);
+      logger.debug(`Data refresh attempt ${attempt}/${retryCount}`);
       await fetchFunction();
       return; // Success, exit the loop
     } catch (error) {
-      console.error(`Refresh attempt ${attempt} failed:`, error);
+      logger.error(`Refresh attempt ${attempt} failed:`, error);
       if (attempt < retryCount) {
         // Wait longer with each retry
         await waitForDatabase(attempt * 1000);
@@ -109,7 +110,7 @@ export const safeAsyncOperation = async (operation, maxRetries = 3, delayMs = 10
     try {
       return await operation();
     } catch (error) {
-      console.error(`Operation attempt ${attempt} failed:`, error);
+      logger.error(`Operation attempt ${attempt} failed:`, error);
       
       if (attempt === maxRetries) {
         throw error;

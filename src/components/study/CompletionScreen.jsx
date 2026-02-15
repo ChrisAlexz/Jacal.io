@@ -2,31 +2,25 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const CompletionScreen = ({ allCards, handleMasterAgain }) => {
+const CompletionScreen = ({ allCards, handleMasterAgain, masteredCount, spacedLearningEnabled, spacedLearningBatches }) => {
   const navigate = useNavigate();
+  const sessionCount = spacedLearningEnabled ? spacedLearningBatches.length : 1;
 
   return (
     <div className="study-completion">
       <div className="completion-icon">🎉</div>
       <h2>Perfect! All Cards Mastered!</h2>
       <p>
-        Congratulations! You've marked every single card as "Easy" - you've truly mastered this deck! 
-        All {allCards.length} cards have been successfully completed.
+        Congratulations! You've completed ALL sessions and marked every single card as "Easy" - you've truly mastered this entire deck!
+        All {allCards.length} cards across {sessionCount} session{sessionCount > 1 ? 's' : ''} have been successfully completed.
+        You mastered {masteredCount} cards total!
       </p>
-     
+
       <div className="completion-actions">
-        <button 
-          type="button"
-          className="back-button"
-          onClick={() => navigate(-1)}
-        >
+        <button type="button" className="back-button" onClick={() => navigate(-1)}>
           Back to Sets
         </button>
-        <button 
-          type="button"
-          className="restart-button"
-          onClick={handleMasterAgain}
-        >
+        <button type="button" className="restart-button" onClick={handleMasterAgain}>
           Master Again
         </button>
       </div>

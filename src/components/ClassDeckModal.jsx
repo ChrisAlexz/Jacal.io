@@ -1,4 +1,5 @@
 // src/components/ClassDeckModal.jsx - WITH DECK LIMITS
+import { logger } from '../utils/logger';
 import React, { useState, useContext, useEffect } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
@@ -95,7 +96,7 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
           return;
         }
         
-        console.log('🏗️ Creating new class:', className);
+        logger.debug('🏗️ Creating new class:', className);
         const { data: classData, error: classError } = await supabase
           .from('classes')
           .insert([{ name: className.trim(), user_id: user.id }])
@@ -103,18 +104,18 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
           .single();
           
         if (classError) {
-          console.error('❌ Error creating class:', classError);
+          logger.error('❌ Error creating class:', classError);
           throw new Error(`Failed to create folder: ${classError.message}`);
         }
         
         classId = classData.id;
-        console.log('✅ Class created with ID:', classId);
+        logger.debug('✅ Class created with ID:', classId);
       } else {
         classId = selectedOption;
-        console.log('✅ Using existing class ID:', classId);
+        logger.debug('✅ Using existing class ID:', classId);
       }
 
-      console.log('🃏 Creating flashcard set...');
+      logger.debug('🃏 Creating flashcard set...');
       const { data: deckData, error: deckError } = await supabase
         .from('flashcard_sets')
         .insert([
@@ -129,12 +130,12 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
         .single();
 
       if (deckError) {
-        console.error('❌ Error creating deck:', deckError);
+        logger.error('❌ Error creating deck:', deckError);
         throw new Error(`Failed to create flashcard set: ${deckError.message}`);
       }
 
       const setId = deckData.id;
-      console.log('✅ Flashcard set created with ID:', setId);
+      logger.debug('✅ Flashcard set created with ID:', setId);
 
       onClose();
       
@@ -147,7 +148,7 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
       }, 300);
 
     } catch (err) {
-      console.error('💥 Creation failed:', err);
+      logger.error('💥 Creation failed:', err);
       setError(err.message);
     } finally {
       setLoading(false);

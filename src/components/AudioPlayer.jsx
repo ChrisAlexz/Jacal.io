@@ -1,4 +1,5 @@
 // src/components/AudioPlayer.jsx - SIMPLIFIED: Stable Audio Player
+import { logger } from '../utils/logger';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -60,7 +61,7 @@ const AudioPlayer = ({
     const audio = audioRef.current;
     if (!audio || !audioUrl) return;
 
-    console.log('🎵 Loading audio:', audioUrl);
+    logger.debug('🎵 Loading audio:', audioUrl);
     
     // Reset all states
     setCurrentTime(0);
@@ -74,7 +75,7 @@ const AudioPlayer = ({
     // Simple event handlers that don't over-complicate things
     const handleCanPlay = () => {
       if (!mountedRef.current) return;
-      console.log('✅ Audio can play');
+      logger.debug('✅ Audio can play');
       setCanPlay(true);
       setIsLoading(false);
       setError(null);
@@ -84,10 +85,10 @@ const AudioPlayer = ({
       if (!mountedRef.current) return;
       const dur = audio.duration;
       if (Number.isFinite(dur) && dur > 0) {
-        console.log('📏 Duration loaded:', dur);
+        logger.debug('📏 Duration loaded:', dur);
         setDuration(dur);
       } else {
-        console.log('⚠️ No duration available');
+        logger.debug('⚠️ No duration available');
         setDuration(0); // Allow playback without duration
       }
     };
@@ -102,21 +103,21 @@ const AudioPlayer = ({
 
     const handlePlay = () => {
       if (!mountedRef.current) return;
-      console.log('▶️ Audio started playing');
+      logger.debug('▶️ Audio started playing');
       setPlayingState(true);
       onPlay?.();
     };
 
     const handlePause = () => {
       if (!mountedRef.current) return;
-      console.log('⏸️ Audio paused');
+      logger.debug('⏸️ Audio paused');
       setPlayingState(false);
       onPause?.();
     };
 
     const handleEnded = () => {
       if (!mountedRef.current) return;
-      console.log('🏁 Audio ended');
+      logger.debug('🏁 Audio ended');
       setPlayingState(false);
       setCurrentTime(0);
       onEnded?.();
@@ -124,7 +125,7 @@ const AudioPlayer = ({
 
     const handleError = (e) => {
       if (!mountedRef.current) return;
-      console.error('💥 Audio error:', e);
+      logger.error('💥 Audio error:', e);
       setError('Failed to load audio');
       setIsLoading(false);
       setCanPlay(false);
@@ -133,13 +134,13 @@ const AudioPlayer = ({
 
     const handleWaiting = () => {
       if (!mountedRef.current) return;
-      console.log('⏳ Audio waiting...');
+      logger.debug('⏳ Audio waiting...');
       // Don't change playing state, just show it's buffering
     };
 
     const handleStalled = () => {
       if (!mountedRef.current) return;
-      console.log('🔄 Audio stalled');
+      logger.debug('🔄 Audio stalled');
       // Don't change playing state
     };
 
@@ -165,7 +166,7 @@ const AudioPlayer = ({
     // Simple timeout for loading
     const loadTimeout = setTimeout(() => {
       if (mountedRef.current && isLoading) {
-        console.log('⏰ Load timeout - trying anyway');
+        logger.debug('⏰ Load timeout - trying anyway');
         setIsLoading(false);
         setCanPlay(true); // Allow user to try
       }
@@ -195,20 +196,20 @@ const AudioPlayer = ({
   const togglePlayback = useCallback(async () => {
     const audio = audioRef.current;
     if (!audio || !canPlay || isLoading) {
-      console.log('❌ Cannot toggle playback - not ready');
+      logger.debug('❌ Cannot toggle playback - not ready');
       return;
     }
 
     try {
       if (audio.paused) {
-        console.log('🎯 Attempting to play');
+        logger.debug('🎯 Attempting to play');
         await audio.play();
       } else {
-        console.log('🎯 Attempting to pause');
+        logger.debug('🎯 Attempting to pause');
         audio.pause();
       }
     } catch (err) {
-      console.error('🚨 Playback error:', err);
+      logger.error('🚨 Playback error:', err);
       setError('Playback failed');
       setPlayingState(false);
     }

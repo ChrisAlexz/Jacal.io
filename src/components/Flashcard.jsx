@@ -1,4 +1,5 @@
 // src/components/Flashcard.jsx - NO LIMITS VERSION
+import { logger } from '../utils/logger';
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from '../supabase';
@@ -34,7 +35,7 @@ export default function Flashcard() {
         try {
           await fetchExistingSet(id);
         } catch (err) {
-          console.error('Error loading flashcard set');
+          logger.error('Error loading flashcard set');
           setError('Failed to load flashcard set. Please try again.');
         } finally {
           setLoading(false);
@@ -79,7 +80,7 @@ export default function Flashcard() {
         .order('created_at', { ascending: true });
 
       if (cardsError) {
-        console.error("Error fetching cards");
+        logger.error("Error fetching cards");
         setFlashcards([]);
       } else {
         setFlashcards(cardsData || []);
@@ -92,12 +93,12 @@ export default function Flashcard() {
           .eq('id', setData.id);
           
         if (updateError) {
-          console.error("Error updating set type");
+          logger.error("Error updating set type");
         }
       }
 
     } catch (error) {
-      console.error('Error in fetchExistingSet');
+      logger.error('Error in fetchExistingSet');
       throw error;
     }
   };
@@ -110,7 +111,7 @@ export default function Flashcard() {
           .update({ title: title.trim() })
           .eq('id', setId);
         if (error) {
-          console.error("Error updating set title");
+          logger.error("Error updating set title");
         }
       }
     };
@@ -134,17 +135,17 @@ export default function Flashcard() {
       
       // Type-specific validation with audio support
       if (finalCardType === 'Basic' && ((!cleanFront && !frontAudioUrl) || (!cleanBack && !backAudioUrl))) {
-        console.warn('Basic card validation failed');
+        logger.warn('Basic card validation failed');
         alert('Please fill in both front and back content or add audio for Basic cards.');
         return;
       }
       if (finalCardType === 'Basic-Type' && ((!cleanFront && !frontAudioUrl) || (!cleanBack && !backAudioUrl))) {
-        console.warn('Basic-Type card validation failed');
+        logger.warn('Basic-Type card validation failed');
         alert('Please fill in both front and back content or add audio for Basic-Type cards.');
         return;
       }
       if (finalCardType === 'Cloze' && (!cleanFront && !frontAudioUrl)) {
-        console.warn('Cloze card validation failed');
+        logger.warn('Cloze card validation failed');
         alert('Please add front content or audio for Cloze cards.');
         return;
       }
@@ -172,13 +173,13 @@ export default function Flashcard() {
           .select();
 
         if (error) {
-          console.error('Error adding card');
+          logger.error('Error adding card');
           alert(`Failed to add card: ${error.message}`);
           return;
         }
 
         if (!data || data.length === 0) {
-          console.error('No data returned from insert');
+          logger.error('No data returned from insert');
           alert('Card may not have been saved properly. Please refresh and try again.');
           return;
         }
@@ -209,7 +210,7 @@ export default function Flashcard() {
           .single();
 
         if (newSetErr) {
-          console.error('Error creating set');
+          logger.error('Error creating set');
           alert(`Failed to create flashcard set: ${newSetErr.message}`);
           return;
         }
@@ -233,7 +234,7 @@ export default function Flashcard() {
           .single();
 
         if (cardErr) {
-          console.error('Error adding first card');
+          logger.error('Error adding first card');
           alert(`Failed to add first card: ${cardErr.message}`);
           return;
         }
@@ -243,7 +244,7 @@ export default function Flashcard() {
         navigate(`/flashcards/${newSetData.id}`, { replace: true });
       }
     } catch (err) {
-      console.error("Unexpected error saving flashcard");
+      logger.error("Unexpected error saving flashcard");
       alert(`An unexpected error occurred: ${err.message}`);
     }
   };
@@ -263,7 +264,7 @@ export default function Flashcard() {
         .eq('id', cardId);
 
       if (error) {
-        console.error("Error updating flashcard");
+        logger.error("Error updating flashcard");
       } 
     }
   };
@@ -280,7 +281,7 @@ export default function Flashcard() {
         .eq('id', cardToDelete.id);
       
       if (error) {
-        console.error("Error deleting card");
+        logger.error("Error deleting card");
       }
     }
   };

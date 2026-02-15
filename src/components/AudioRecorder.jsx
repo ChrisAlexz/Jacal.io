@@ -1,4 +1,5 @@
 // src/components/AudioRecorder.jsx
+import { logger } from '../utils/logger';
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
@@ -123,7 +124,7 @@ const AudioRecorder = ({ onAudioSave, initialAudioUrl = null, disabled = false }
       }, 1000);
       
     } catch (err) {
-      console.error('Error starting recording:', err);
+      logger.error('Error starting recording:', err);
       setError('Could not access microphone. Please check permissions.');
     }
   };
@@ -191,11 +192,11 @@ const AudioRecorder = ({ onAudioSave, initialAudioUrl = null, disabled = false }
         .getPublicUrl(fileName);
 
       setUploadProgress(100);
-      console.log('Audio uploaded successfully:', publicUrl);
+      logger.debug('Audio uploaded successfully:', publicUrl);
       
       return publicUrl;
     } catch (error) {
-      console.error('Error uploading audio:', error);
+      logger.error('Error uploading audio:', error);
       setError(`Upload failed: ${error.message}`);
       return null;
     } finally {
@@ -230,7 +231,7 @@ const AudioRecorder = ({ onAudioSave, initialAudioUrl = null, disabled = false }
       setRecordingTime(0);
 
     } catch (error) {
-      console.error('Error saving audio:', error);
+      logger.error('Error saving audio:', error);
       setError('Failed to save audio');
     }
   };

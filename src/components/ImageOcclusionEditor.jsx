@@ -1,4 +1,5 @@
 // src/components/ImageOcclusionEditor.jsx - ENHANCED WITH COPY/PASTE FUNCTIONALITY AND CARD LIMITS
+import { logger } from '../utils/logger';
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
@@ -102,7 +103,7 @@ const ImageOcclusionEditor = ({ onSave, disabled, cardLimitInfo }) => {
         .upload(fileName, file);
 
       if (error) {
-        console.error('Error uploading image:', error);
+        logger.error('Error uploading image:', error);
         return;
       }
 
@@ -111,9 +112,9 @@ const ImageOcclusionEditor = ({ onSave, disabled, cardLimitInfo }) => {
         .getPublicUrl(fileName);
 
       setUploadedImageUrl(publicUrl);
-      console.log('Image uploaded successfully:', publicUrl);
+      logger.debug('Image uploaded successfully:', publicUrl);
     } catch (error) {
-      console.error('Error uploading image:', error);
+      logger.error('Error uploading image:', error);
     } finally {
       setIsUploading(false);
     }
@@ -323,7 +324,7 @@ const ImageOcclusionEditor = ({ onSave, disabled, cardLimitInfo }) => {
       return;
     }
 
-    console.log('Creating cards from occlusions:', occlusions);
+    logger.debug('Creating cards from occlusions:', occlusions);
 
     // Create a snapshot of current occlusions to avoid state issues
     const currentOcclusions = [...occlusions];
@@ -336,7 +337,7 @@ const ImageOcclusionEditor = ({ onSave, disabled, cardLimitInfo }) => {
       revealedId: occlusion.id
     }));
 
-    console.log('Cards being created:', cards);
+    logger.debug('Cards being created:', cards);
 
     // Save the cards first
     onSave(cards);
@@ -347,7 +348,7 @@ const ImageOcclusionEditor = ({ onSave, disabled, cardLimitInfo }) => {
     setCurrentRect(null);
     setIsDrawing(false);
     
-    console.log('Editor state reset - occlusions cleared');
+    logger.debug('Editor state reset - occlusions cleared');
     
     // IMMEDIATE VISUAL RESET: Force canvas redraw immediately
     if (image && canvasRef.current) {
@@ -358,21 +359,21 @@ const ImageOcclusionEditor = ({ onSave, disabled, cardLimitInfo }) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
       
-      console.log('Canvas visually cleared - no more occlusion marks');
+      logger.debug('Canvas visually cleared - no more occlusion marks');
     }
   };
 
   const clearAll = () => {
     setOcclusions([]);
     setNextId(1);
-    console.log('All occlusions cleared manually');
+    logger.debug('All occlusions cleared manually');
   };
 
   const undoLast = () => {
     if (occlusions.length > 0) {
       setOcclusions(prev => prev.slice(0, -1));
       setNextId(prev => prev - 1);
-      console.log('Last occlusion undone');
+      logger.debug('Last occlusion undone');
     }
   };
 
@@ -382,7 +383,7 @@ const ImageOcclusionEditor = ({ onSave, disabled, cardLimitInfo }) => {
 
   // Debug logging for occlusions state
   useEffect(() => {
-    console.log('Occlusions state updated:', occlusions);
+    logger.debug('Occlusions state updated:', occlusions);
   }, [occlusions]);
 
   // Check if save is possible based on card limits

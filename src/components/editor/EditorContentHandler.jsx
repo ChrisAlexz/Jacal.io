@@ -1,4 +1,5 @@
 // src/components/editor/EditorContentHandler.jsx - FIXED VERSION
+import { logger } from '../../utils/logger';
 import React, { useCallback } from 'react';
 
 const EditorContentHandler = ({ 
@@ -34,7 +35,7 @@ const EditorContentHandler = ({
           setActiveFormats(newFormats);
         }
       } catch (error) {
-        console.warn('Error detecting formats on click:', error);
+        logger.warn('Error detecting formats on click:', error);
       }
     }, 10);
   }, [readOnly, setActiveFormats, editorRef]);
@@ -165,7 +166,7 @@ const EditorContentHandler = ({
             
             setActiveFormats(newFormats);
           } catch (error) {
-            console.warn('Error detecting formats on arrow key:', error);
+            logger.warn('Error detecting formats on arrow key:', error);
           }
         }, 50);
       }
@@ -189,7 +190,7 @@ const EditorContentHandler = ({
             onChange(editorRef.current.innerHTML);
           }
         } catch (error) {
-          console.warn('Error detecting formats after delete:', error);
+          logger.warn('Error detecting formats after delete:', error);
         }
       }, 10);
     }

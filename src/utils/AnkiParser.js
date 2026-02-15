@@ -1,3 +1,4 @@
+import { logger } from './logger';
 // src/utils/AnkiParser.js - SIMPLIFIED AND FIXED VERSION
 
 /**
@@ -10,12 +11,12 @@ export async function parseAnkiAsText(file, options = {}) {
   const { previewOnly = false, maxCards = null, onProgress = null } = options;
   
   try {
-    console.log('🔄 Parsing Anki file as text:', file.name);
+    logger.debug('🔄 Parsing Anki file as text:', file.name);
     onProgress && onProgress(20);
     
     const text = await readFileAsText(file);
-    console.log('📄 File content length:', text.length);
-    console.log('📄 First 200 chars:', text.substring(0, 200));
+    logger.debug('📄 File content length:', text.length);
+    logger.debug('📄 First 200 chars:', text.substring(0, 200));
     
     onProgress && onProgress(50);
     
@@ -24,7 +25,7 @@ export async function parseAnkiAsText(file, options = {}) {
     }
     
     const cards = parseTextContent(text);
-    console.log('✅ Parsed cards count:', cards.length);
+    logger.debug('✅ Parsed cards count:', cards.length);
     
     onProgress && onProgress(100);
     
@@ -40,7 +41,7 @@ export async function parseAnkiAsText(file, options = {}) {
     };
     
   } catch (error) {
-    console.error('❌ Text parsing failed:', error);
+    logger.error('❌ Text parsing failed:', error);
     throw error;
   }
 }
@@ -50,7 +51,7 @@ export async function parseAnkiZip(file, options = {}) {
   const { previewOnly = false, maxCards = null, onProgress = null } = options;
   
   try {
-    console.log('🔄 Parsing Anki file as ZIP:', file.name);
+    logger.debug('🔄 Parsing Anki file as ZIP:', file.name);
     onProgress && onProgress(10);
     
     // Dynamic import of JSZip
@@ -67,7 +68,7 @@ export async function parseAnkiZip(file, options = {}) {
     onProgress && onProgress(30);
     
     const files = Object.keys(zipContent.files);
-    console.log('📦 Files in ZIP:', files);
+    logger.debug('📦 Files in ZIP:', files);
     
     // Look for readable content
     const textFiles = files.filter(name => 
@@ -79,19 +80,19 @@ export async function parseAnkiZip(file, options = {}) {
       !name.includes('.')  // Sometimes Anki uses numbered files without extension
     );
     
-    console.log('📄 Text files found:', textFiles);
+    logger.debug('📄 Text files found:', textFiles);
     onProgress && onProgress(50);
     
     for (const fileName of textFiles) {
       try {
-        console.log(`🔍 Trying to read: ${fileName}`);
+        logger.debug(`🔍 Trying to read: ${fileName}`);
         const fileContent = await zipContent.files[fileName].async('text');
-        console.log(`📝 ${fileName} content length:`, fileContent.length);
-        console.log(`📝 ${fileName} first 100 chars:`, fileContent.substring(0, 100));
+        logger.debug(`📝 ${fileName} content length:`, fileContent.length);
+        logger.debug(`📝 ${fileName} first 100 chars:`, fileContent.substring(0, 100));
         
         if (fileContent && fileContent.trim()) {
           const cards = parseTextContent(fileContent);
-          console.log(`✅ Found ${cards.length} cards in ${fileName}`);
+          logger.debug(`✅ Found ${cards.length} cards in ${fileName}`);
           
           if (cards.length > 0) {
             onProgress && onProgress(100);
@@ -104,7 +105,7 @@ export async function parseAnkiZip(file, options = {}) {
           }
         }
       } catch (error) {
-        console.log(`❌ Failed to parse ${fileName}:`, error.message);
+        logger.debug(`❌ Failed to parse ${fileName}:`, error.message);
         continue;
       }
     }
@@ -114,13 +115,13 @@ export async function parseAnkiZip(file, options = {}) {
       if (textFiles.includes(fileName)) continue; // Already tried
       
       try {
-        console.log(`🔍 Trying binary file as text: ${fileName}`);
+        logger.debug(`🔍 Trying binary file as text: ${fileName}`);
         const fileContent = await zipContent.files[fileName].async('text');
         
         if (fileContent && fileContent.trim()) {
           const cards = parseTextContent(fileContent);
           if (cards.length > 0) {
-            console.log(`✅ Found ${cards.length} cards in binary file ${fileName}`);
+            logger.debug(`✅ Found ${cards.length} cards in binary file ${fileName}`);
             onProgress && onProgress(100);
             return {
               deckName: file.name.replace(/\.[^/.]+$/, ""),
@@ -140,21 +141,21 @@ export async function parseAnkiZip(file, options = {}) {
     throw new Error(`No readable content found in Anki package. Found files: ${files.join(', ')}`);
     
   } catch (error) {
-    console.error('❌ ZIP parsing failed:', error);
+    logger.error('❌ ZIP parsing failed:', error);
     throw error;
   }
 }
 
 // Parse text content with multiple strategies
 function parseTextContent(content) {
-  console.log('🔄 Parsing text content...');
+  logger.debug('🔄 Parsing text content...');
   const lines = content.split('\n').filter(line => line.trim());
-  console.log('📊 Total lines:', lines.length);
+  logger.debug('📊 Total lines:', lines.length);
   
   const cards = [];
   
   // Strategy 1: Tab-delimited (most common Anki export format)
-  console.log('🔍 Trying tab-delimited parsing...');
+  logger.debug('🔍 Trying tab-delimited parsing...');
   for (const line of lines) {
     if (line.includes('\t')) {
       const parts = line.split('\t');
@@ -174,12 +175,12 @@ function parseTextContent(content) {
   }
   
   if (cards.length > 0) {
-    console.log(`✅ Tab-delimited: Found ${cards.length} cards`);
+    logger.debug(`✅ Tab-delimited: Found ${cards.length} cards`);
     return cards;
   }
   
   // Strategy 2: Comma-delimited with quotes
-  console.log('🔍 Trying comma-delimited parsing...');
+  logger.debug('🔍 Trying comma-delimited parsing...');
   for (const line of lines) {
     if (line.includes(',')) {
       const parts = parseCSVLine(line);
@@ -199,12 +200,12 @@ function parseTextContent(content) {
   }
   
   if (cards.length > 0) {
-    console.log(`✅ Comma-delimited: Found ${cards.length} cards`);
+    logger.debug(`✅ Comma-delimited: Found ${cards.length} cards`);
     return cards;
   }
   
   // Strategy 3: Other delimiters
-  console.log('🔍 Trying other delimiters...');
+  logger.debug('🔍 Trying other delimiters...');
   const delimiters = ['|', ';', '::'];
   
   for (const delimiter of delimiters) {
@@ -227,13 +228,13 @@ function parseTextContent(content) {
     }
     
     if (cards.length > 0) {
-      console.log(`✅ ${delimiter}-delimited: Found ${cards.length} cards`);
+      logger.debug(`✅ ${delimiter}-delimited: Found ${cards.length} cards`);
       return cards;
     }
   }
   
   // Strategy 4: Line pairs (every 2 lines is a card)
-  console.log('🔍 Trying line pairs...');
+  logger.debug('🔍 Trying line pairs...');
   for (let i = 0; i < lines.length - 1; i += 2) {
     const front = cleanTextField(lines[i]);
     const back = cleanTextField(lines[i + 1]);
@@ -248,11 +249,11 @@ function parseTextContent(content) {
   }
   
   if (cards.length > 0) {
-    console.log(`✅ Line pairs: Found ${cards.length} cards`);
+    logger.debug(`✅ Line pairs: Found ${cards.length} cards`);
     return cards;
   }
   
-  console.log('❌ No cards found with any parsing strategy');
+  logger.debug('❌ No cards found with any parsing strategy');
   return [];
 }
 
@@ -333,7 +334,7 @@ function cleanTextField(text) {
 export async function parseAnkiFileWithFallback(file, options = {}) {
   const { previewOnly = false, maxCards = null, onProgress = null } = options;
   
-  console.log('🚀 Starting Anki file parsing:', {
+  logger.debug('🚀 Starting Anki file parsing:', {
     fileName: file.name,
     fileSize: file.size,
     fileType: file.type
@@ -344,35 +345,35 @@ export async function parseAnkiFileWithFallback(file, options = {}) {
   // Strategy 1: Parse as text file
   try {
     onProgress && onProgress(5);
-    console.log('📝 Strategy 1: Parse as text file');
+    logger.debug('📝 Strategy 1: Parse as text file');
     const result = await parseAnkiAsText(file, options);
     if (result.cards.length > 0) {
-      console.log('✅ Strategy 1 successful:', result.totalCards, 'cards');
+      logger.debug('✅ Strategy 1 successful:', result.totalCards, 'cards');
       return result;
     }
   } catch (error) {
-    console.log('❌ Strategy 1 failed:', error.message);
+    logger.debug('❌ Strategy 1 failed:', error.message);
     errors.push(`Text parsing: ${error.message}`);
   }
   
   // Strategy 2: Parse as ZIP file
   try {
     onProgress && onProgress(40);
-    console.log('📦 Strategy 2: Parse as ZIP file');
+    logger.debug('📦 Strategy 2: Parse as ZIP file');
     const result = await parseAnkiZip(file, options);
     if (result.cards.length > 0) {
-      console.log('✅ Strategy 2 successful:', result.totalCards, 'cards');
+      logger.debug('✅ Strategy 2 successful:', result.totalCards, 'cards');
       return result;
     }
   } catch (error) {
-    console.log('❌ Strategy 2 failed:', error.message);
+    logger.debug('❌ Strategy 2 failed:', error.message);
     errors.push(`ZIP parsing: ${error.message}`);
   }
   
   onProgress && onProgress(100);
   
   // All strategies failed
-  console.error('❌ All parsing strategies failed');
+  logger.error('❌ All parsing strategies failed');
   
   const helpfulError = `Unable to parse this Anki file. 
 

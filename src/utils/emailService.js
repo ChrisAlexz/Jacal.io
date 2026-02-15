@@ -1,4 +1,5 @@
 // src/utils/emailService.js - SIMPLE: Just bypass Supabase emails entirely
+import { logger } from './logger';
 import { supabase } from '../supabase';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
@@ -21,7 +22,7 @@ async function sendEmailDirect(to, subject, html) {
 
     return await response.json();
   } catch (error) {
-    console.error('Email send error:', error);
+    logger.error('Email send error:', error);
     throw error;
   }
 }
