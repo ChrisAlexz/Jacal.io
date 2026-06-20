@@ -205,8 +205,8 @@ export default function MarketingHome() {
           </div>
           <div className="study-demo-image">
             <img
-              src="/study-library.jpg"
-              alt="A student reviewing flashcards in a library"
+              src="/study-group.jpg"
+              alt="Students studying together in a library"
               loading="lazy"
             />
           </div>
