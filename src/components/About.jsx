@@ -4,7 +4,38 @@ import Layout from './Layout';
 import UserAuthContext from './context/UserAuthContext';
 import '../styles/About.css';
 import { MdSchool, MdFolderSpecial, MdDevices, MdRecordVoiceOver } from 'react-icons/md';
-import { FilePlus2, Brain, TrendingUp } from 'lucide-react';
+import {
+  FilePlus2,
+  Brain,
+  TrendingUp,
+  SquareStack,
+  Keyboard,
+  Highlighter,
+  ScanSearch,
+} from 'lucide-react';
+
+const CARD_TYPES = [
+  {
+    Icon: SquareStack,
+    title: 'Basic Cards',
+    desc: 'Traditional front-and-back flashcards perfect for vocabulary, definitions, and general Q&A.',
+  },
+  {
+    Icon: Keyboard,
+    title: 'Type-Answer Cards',
+    desc: 'Active recall cards where you type the answer, improving retention through active engagement.',
+  },
+  {
+    Icon: Highlighter,
+    title: 'Cloze Deletions',
+    desc: 'Fill-in-the-blank style cards created by selecting text to hide, ideal for context-based learning.',
+  },
+  {
+    Icon: ScanSearch,
+    title: 'Image Occlusion',
+    desc: 'Interactive image-based cards where you cover and reveal parts of diagrams, perfect for visual subjects.',
+  },
+];
 
 export default function About() {
   const router = useRouter();
@@ -169,29 +200,15 @@ export default function About() {
           </div>
 
           <div className="card-types-grid">
-            <div className="card-type-item">
-              <div className="card-type-icon">💭</div>
-              <h4>Basic Cards</h4>
-              <p>Traditional front-and-back flashcards perfect for vocabulary, definitions, and general Q&A.</p>
-            </div>
-
-            <div className="card-type-item">
-              <div className="card-type-icon">⌨️</div>
-              <h4>Type-Answer Cards</h4>
-              <p>Active recall cards where you type the answer, improving retention through active engagement.</p>
-            </div>
-
-            <div className="card-type-item">
-              <div className="card-type-icon">🔍</div>
-              <h4>Cloze Deletions</h4>
-              <p>Fill-in-the-blank style cards created by selecting text to hide, ideal for context-based learning.</p>
-            </div>
-
-            <div className="card-type-item">
-              <div className="card-type-icon">🖼️</div>
-              <h4>Image Occlusion</h4>
-              <p>Interactive image-based cards where you cover and reveal parts of diagrams, perfect for visual subjects.</p>
-            </div>
+            {CARD_TYPES.map(({ Icon, title, desc }) => (
+              <div className="card-type-item" key={title}>
+                <div className="card-type-icon">
+                  <Icon size={24} strokeWidth={2} aria-hidden="true" />
+                </div>
+                <h4>{title}</h4>
+                <p>{desc}</p>
+              </div>
+            ))}
           </div>
         </div>
 
