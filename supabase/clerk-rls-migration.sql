@@ -104,3 +104,41 @@ commit;
 --                       'daily_review_stats','study_sessions');
 --   -- rowsecurity should be true for all five.
 -- ============================================================================
+
+-- ============================================================================
+-- Heatmap RPC: accept text Clerk ids and derive the user from the token
+-- (was uuid + trusted the client-passed p_user_id while SECURITY DEFINER).
+-- ============================================================================
+drop function if exists public.increment_daily_review_count(uuid, date, integer, integer, boolean);
+
+create or replace function public.increment_daily_review_count(
+  p_user_id         text,                  -- kept for call compatibility; NOT trusted
+  p_review_date     date,
+  p_reviews_count   integer default 1,
+  p_cards_studied   integer default 1,
+  p_is_master_again boolean default false
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $function$
+declare
+  v_user_id text := auth.jwt()->>'sub';
+  master_again_increment integer := case when p_is_master_again then 1 else 0 end;
+begin
+  if v_user_id is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  insert into daily_review_stats (user_id, review_date, reviews_count, cards_studied, session_count, master_again_count)
+  values (v_user_id, p_review_date, p_reviews_count, p_cards_studied, 1, master_again_increment)
+  on conflict (user_id, review_date)
+  do update set
+    reviews_count      = daily_review_stats.reviews_count + p_reviews_count,
+    cards_studied      = daily_review_stats.cards_studied + p_cards_studied,
+    session_count      = daily_review_stats.session_count + 1,
+    master_again_count = daily_review_stats.master_again_count + master_again_increment,
+    updated_at         = now();
+end;
+$function$;
