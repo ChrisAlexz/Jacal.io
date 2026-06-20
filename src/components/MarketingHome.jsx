@@ -3,7 +3,48 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import {
+  CalendarClock,
+  TrendingUp,
+  Palette,
+  FolderTree,
+  Shapes,
+  ShieldCheck,
+} from 'lucide-react';
 import Wordmark from './Wordmark';
+
+const FEATURES = [
+  {
+    Icon: CalendarClock,
+    title: 'Spaced Repetition',
+    desc: 'AI-powered algorithm schedules reviews at optimal intervals for maximum retention.',
+  },
+  {
+    Icon: TrendingUp,
+    title: 'Progress Analytics',
+    desc: 'Detailed insights into your learning patterns and performance metrics.',
+  },
+  {
+    Icon: Palette,
+    title: 'Customizable Flashcards',
+    desc: 'Personalize your cards with rich text, images, and custom formatting to match your learning style.',
+  },
+  {
+    Icon: FolderTree,
+    title: 'Organized Library',
+    desc: 'Hierarchical organization with folders, tags, and advanced search capabilities.',
+  },
+  {
+    Icon: Shapes,
+    title: 'Multiple Card Types',
+    desc: 'Create basic, cloze deletion, and image occlusion cards to master any type of content effectively.',
+  },
+  {
+    Icon: ShieldCheck,
+    title: 'Privacy First',
+    desc: 'End-to-end encryption ensures your study data remains private and secure.',
+  },
+];
 
 // WebGL canvas — client-only so it never runs during SSR (keeps SEO content intact)
 const ParticleCityBackground = dynamic(() => import('./ParticleCityBackground'), {
@@ -27,10 +68,6 @@ export default function MarketingHome() {
         <div className="hero-content">
           <div className="hero-wordmark" style={{ marginBottom: '1.5rem' }}>
             <Wordmark name="Jacal" />
-          </div>
-          <div className="status-badge">
-            <div className="status-dot"></div>
-            <span>Powered by spaced repetition</span>
           </div>
 
           <h1 className="hero-title">
@@ -63,13 +100,7 @@ export default function MarketingHome() {
           </div>
 
           <div className="social-proof">
-            <span className="social-proof-text">Trusted by 10,000+ learners</span>
-            <div className="social-proof-logos">
-              <div className="logo-placeholder">Stanford</div>
-              <div className="logo-placeholder">MIT</div>
-              <div className="logo-placeholder">Harvard</div>
-              <div className="logo-placeholder">Berkeley</div>
-            </div>
+            <span className="social-proof-text">Trusted by Learners Globally</span>
           </div>
         </div>
 
@@ -118,73 +149,15 @@ export default function MarketingHome() {
           </div>
 
           <div className="features-grid">
-            <div className="feature-card">
-              <div className="feature-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-                </svg>
+            {FEATURES.map(({ Icon, title, desc }) => (
+              <div className="feature-card" key={title}>
+                <div className="feature-icon">
+                  <Icon size={24} strokeWidth={2} aria-hidden="true" />
+                </div>
+                <h3>{title}</h3>
+                <p>{desc}</p>
               </div>
-              <h3>Spaced Repetition</h3>
-              <p>AI-powered algorithm schedules reviews at optimal intervals for maximum retention.</p>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 3v18h18"/>
-                  <path d="m19 9-5 5-4-4-3 3"/>
-                </svg>
-              </div>
-              <h3>Progress Analytics</h3>
-              <p>Detailed insights into your learning patterns and performance metrics.</p>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 2v4"/>
-                  <path d="M16 2v4"/>
-                  <rect x="3" y="4" width="18" height="18" rx="2"/>
-                  <path d="M3 10h18"/>
-                </svg>
-              </div>
-              <h3>Customizable Flashcards</h3>
-              <p>Personalize your cards with rich text, images, and custom formatting to match your learning style.</p>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m16 6 4 14"/>
-                  <path d="M12 6v14"/>
-                  <path d="M8 6v14"/>
-                  <path d="M4 6v14"/>
-                </svg>
-              </div>
-              <h3>Organized Library</h3>
-              <p>Hierarchical organization with folders, tags, and advanced search capabilities.</p>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="m9 12 2 2 4-4"/>
-                </svg>
-              </div>
-              <h3>Multiple Card Types</h3>
-              <p>Create basic, cloze deletion, and image occlusion cards to master any type of content effectively.</p>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
-              </div>
-              <h3>Privacy First</h3>
-              <p>End-to-end encryption ensures your study data remains private and secure.</p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -204,7 +177,6 @@ export default function MarketingHome() {
               { value: '85%', label: 'Better retention vs traditional methods', offset: '42.45' },
               { value: '50%', label: 'Less time needed to memorize', offset: '141.5' },
               { value: '3x', label: 'Faster learning with spaced intervals', offset: '188.67' },
-              { value: '95%', label: 'Retention after optimal intervals', offset: '14.15' },
             ].map((stat, i) => (
               <div key={i} className="marketing-stat-item">
                 <div className="marketing-stat-circle">

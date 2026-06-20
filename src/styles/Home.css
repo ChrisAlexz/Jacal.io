@@ -434,6 +434,14 @@
   justify-content: center;
   color: white;
   margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+.feature-icon svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+  flex-shrink: 0;
 }
 
 .feature-card h3 {
