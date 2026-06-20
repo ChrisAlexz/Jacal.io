@@ -1160,3 +1160,119 @@
     transform: none;
   }
 }
+/* ============================================================
+   How It Works — redesigned (photo + numbered step flow)
+   ============================================================ */
+.hiw-layout {
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: 3.5rem;
+  align-items: center;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.hiw-image {
+  position: relative;
+  border-radius: 1.25rem;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(79, 172, 254, 0.6) 0%,
+    rgba(0, 242, 254, 0.25) 40%,
+    rgba(255, 255, 255, 0.06) 70%
+  );
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5), 0 0 60px rgba(79, 172, 254, 0.12);
+}
+
+.hiw-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: calc(1.25rem - 1px);
+}
+
+.hiw-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2.25rem;
+  position: relative;
+}
+
+/* continuous gradient connector running behind the step icons */
+.hiw-steps::before {
+  content: '';
+  position: absolute;
+  left: 25px;
+  top: 26px;
+  bottom: 26px;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(79, 172, 254, 0.55), rgba(0, 242, 254, 0.12));
+  z-index: 0;
+}
+
+.hiw-step {
+  display: flex;
+  gap: 1.25rem;
+  position: relative;
+  z-index: 1;
+}
+
+.hiw-step-icon {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #06121f;
+  box-shadow: 0 10px 28px rgba(79, 172, 254, 0.3);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.hiw-step:hover .hiw-step-icon {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 34px rgba(79, 172, 254, 0.45);
+}
+
+.hiw-step-label {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #4facfe;
+  margin-bottom: 0.4rem;
+}
+
+.hiw-step-body h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 0.5rem;
+}
+
+.hiw-step-body p {
+  color: #a1a1aa;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 46ch;
+}
+
+@media (max-width: 860px) {
+  .hiw-layout {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hiw-step-icon {
+    transition: none;
+  }
+}

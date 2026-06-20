@@ -3,7 +3,8 @@ import { useRouter } from 'next/navigation';
 import Layout from './Layout';
 import UserAuthContext from './context/UserAuthContext';
 import '../styles/About.css';
-import { MdSchool, MdFolderSpecial, MdEditNote, MdDevices, MdRecordVoiceOver } from 'react-icons/md';
+import { MdSchool, MdFolderSpecial, MdDevices, MdRecordVoiceOver } from 'react-icons/md';
+import { FilePlus2, Brain, TrendingUp } from 'lucide-react';
 
 export default function About() {
   const router = useRouter();
@@ -67,19 +68,6 @@ export default function About() {
             </div>
 
             <div className="feature-card">
-              <div className="feature-icon cloze-icon">
-                <MdEditNote />
-              </div>
-              <div className="feature-content">
-                <h3>Multiple Card Types</h3>
-                <p>
-                  Choose from Basic cards, Type-Answer cards for active recall, Cloze deletions for fill-in-the-blank, 
-                  and Image Occlusion cards for visual learning. Each type optimized for different learning scenarios.
-                </p>
-              </div>
-            </div>
-
-            <div className="feature-card">
               <div className="feature-icon mobile-icon">
                 <MdRecordVoiceOver />
               </div>
@@ -116,66 +104,58 @@ export default function About() {
             </p>
           </div>
 
-          <div className="steps-container">
-            <div className="step-item">
-              <div className="step-number">1</div>
-              <div className="step-content">
-                <h3>Create Your Study Material</h3>
-                <p>
-                  Build flashcard sets using our advanced editor with rich text formatting, math expressions, 
-                  audio recordings, and images. Choose from multiple card types or import existing decks from Anki/Quizlet.
-                </p>
-              </div>
-              <div className="step-visual create-visual">
-                <div className="mock-card">
-                  <div className="mock-text-line long"></div>
-                  <div className="mock-text-line medium"></div>
-                  <div className="mock-text-line short"></div>
-                </div>
-              </div>
+          <div className="hiw-layout">
+            <div className="hiw-image">
+              <img
+                src="/study-focus.jpg"
+                alt="A student focused on studying with flashcards"
+                loading="lazy"
+              />
             </div>
 
-            <div className="step-item reverse">
-              <div className="step-number">2</div>
-              <div className="step-content">
-                <h3>Study with Intelligence</h3>
-                <p>
-                  Review your cards with spaced repetition algorithm. Rate each card's difficulty to customize 
-                  your learning schedule. Use Speed Focus mode for quick reviews or regular study for deep learning.
-                </p>
-              </div>
-              <div className="step-visual study-visual">
-                <div className="difficulty-buttons-demo">
-                  <div className="demo-btn again">Again</div>
-                  <div className="demo-btn hard">Hard</div>
-                  <div className="demo-btn good">Good</div>
-                  <div className="demo-btn easy">Easy</div>
+            <ol className="hiw-steps">
+              <li className="hiw-step">
+                <div className="hiw-step-icon">
+                  <FilePlus2 size={22} strokeWidth={2} aria-hidden="true" />
                 </div>
-              </div>
-            </div>
+                <div className="hiw-step-body">
+                  <span className="hiw-step-label">Step 1</span>
+                  <h3>Create your study material</h3>
+                  <p>
+                    Build flashcard sets with our rich editor — text, math, audio,
+                    and images — or import existing decks from Anki and Quizlet.
+                  </p>
+                </div>
+              </li>
 
-            <div className="step-item">
-              <div className="step-number">3</div>
-              <div className="step-content">
-                <h3>Track Your Progress</h3>
-                <p>
-                  Monitor your learning with comprehensive analytics including study statistics, streak tracking, 
-                  and performance insights to optimize your study routine and maintain consistency.
-                </p>
-              </div>
-              <div className="step-visual progress-visual">
-                <div className="progress-demo">
-                  <div className="progress-bar-demo">
-                    <div className="progress-fill-demo"></div>
-                  </div>
-                  <div className="stats-demo">
-                    <div className="stat-demo">📚 25 Sets</div>
-                    <div className="stat-demo">📄 485 Cards</div>
-                    <div className="stat-demo">🔥 12 Day Streak</div>
-                  </div>
+              <li className="hiw-step">
+                <div className="hiw-step-icon">
+                  <Brain size={22} strokeWidth={2} aria-hidden="true" />
                 </div>
-              </div>
-            </div>
+                <div className="hiw-step-body">
+                  <span className="hiw-step-label">Step 2</span>
+                  <h3>Study with intelligence</h3>
+                  <p>
+                    Our spaced-repetition algorithm surfaces each card at the optimal
+                    moment. Rate difficulty to fine-tune your personal learning curve.
+                  </p>
+                </div>
+              </li>
+
+              <li className="hiw-step">
+                <div className="hiw-step-icon">
+                  <TrendingUp size={22} strokeWidth={2} aria-hidden="true" />
+                </div>
+                <div className="hiw-step-body">
+                  <span className="hiw-step-label">Step 3</span>
+                  <h3>Track your progress</h3>
+                  <p>
+                    Monitor streaks, retention, and study stats with clear analytics
+                    that keep you consistent and motivated.
+                  </p>
+                </div>
+              </li>
+            </ol>
           </div>
         </div>
 
