@@ -2,14 +2,14 @@
 import React, { useState, useContext } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { validateLimits, LIMIT_MESSAGES } from '../utils/LimitValidation';
 import { useImportParser } from '../hooks/useImportParser';
 import '../styles/ImportModal.css';
 
 const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
   const { user } = useContext(UserAuthContext);
-  const navigate = useNavigate();
+  const router = useRouter();
   const parser = useImportParser();
 
   const [classes, setClasses] = useState([]);
@@ -129,7 +129,7 @@ const ImportModal = ({ onClose, onSuccess, preselectedClassId }) => {
 
       onClose();
       if (onSuccess) onSuccess(setId);
-      setTimeout(() => navigate(`/flashcards/${setId}`), 300);
+      setTimeout(() => router.push(`/flashcards/${setId}`), 300);
 
     } catch (err) {
       parser.setError(err.message);

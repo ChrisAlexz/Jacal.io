@@ -1,6 +1,6 @@
 // src/hooks/useStudySession.js - Full study session management with persistence
 import { useState, useCallback, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { supabase } from '../supabase';
 import UserAuthContext from '../components/context/UserAuthContext';
 import { trackReview } from '../utils/heatmapTracking';
@@ -11,7 +11,7 @@ import {
 import { getCardType } from '../components/study/studyUtils';
 
 export const useStudySession = (setId) => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { user } = useContext(UserAuthContext);
 
   // Card state
@@ -362,8 +362,8 @@ export const useStudySession = (setId) => {
 
   const handleBackToSetsFromModal = useCallback(async () => {
     await clearStudyProgress();
-    navigate(-1);
-  }, [clearStudyProgress, navigate]);
+    router.back();
+  }, [clearStudyProgress, router]);
 
   return {
     // Card state

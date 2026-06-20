@@ -1,13 +1,13 @@
 // src/components/DropdownMenu.js - Cleaned up: inline styles moved to CSS
 import React, { useRef, useEffect, useContext, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import UserAuthContext from './context/UserAuthContext';
 import { FaUser, FaCog, FaSignOutAlt, FaClock } from 'react-icons/fa';
 import '../styles/DropdownMenu.css';
 
 const DropdownMenu = () => {
   const { user, logout, sessionTimeRemaining } = useContext(UserAuthContext);
-  const navigate = useNavigate();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -24,7 +24,7 @@ const DropdownMenu = () => {
   const handleSignOut = async () => {
     await logout();
     setIsOpen(false);
-    navigate('/');
+    router.push('/');
   };
 
   const toggleDropdown = (e) => {
@@ -124,7 +124,7 @@ const DropdownMenu = () => {
           <div className="dropdown-items">
             <button
               className="dropdown-item"
-              onClick={() => { setIsOpen(false); navigate('/set'); }}
+              onClick={() => { setIsOpen(false); router.push('/set'); }}
             >
               <FaUser className="item-icon" />
               <span>My Sets</span>
@@ -132,7 +132,7 @@ const DropdownMenu = () => {
 
             <button
               className="dropdown-item"
-              onClick={() => { setIsOpen(false); navigate('/about'); }}
+              onClick={() => { setIsOpen(false); router.push('/about'); }}
             >
               <FaCog className="item-icon" />
               <span>About</span>

@@ -1,21 +1,21 @@
 import React, { useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import Layout from './Layout';
 import UserAuthContext from './context/UserAuthContext';
 import '../styles/About.css';
 import { MdSchool, MdFolderSpecial, MdEditNote, MdDevices, MdRecordVoiceOver } from 'react-icons/md';
 
 export default function About() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { isLoggedIn } = useContext(UserAuthContext);
 
   const handleGetStarted = () => {
     if (isLoggedIn) {
       // If user is already logged in, take them to the sets page or dashboard
-      navigate('/set');
+      router.push('/set');
     } else {
       // If not logged in, take them to register
-      navigate('/register');
+      router.push('/register');
     }
   };
 

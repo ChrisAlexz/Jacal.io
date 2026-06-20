@@ -1,8 +1,7 @@
-// src/app/page.jsx - placeholder; real home wired in Phase 3
+'use client';
+// src/app/page.jsx - "/" routes to MarketingHome or Dashboard based on auth
+import Home from '../components/Home';
+
 export default function Page() {
-  return (
-    <main style={{ padding: 40, fontFamily: 'sans-serif' }}>
-      Next.js scaffold OK — routes are wired in Phase 3.
-    </main>
-  );
+  return <Home />;
 }

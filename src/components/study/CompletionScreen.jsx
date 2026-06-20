@@ -1,9 +1,9 @@
 // src/components/study/CompletionScreen.jsx - Study completion screen
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 
 const CompletionScreen = ({ allCards, handleMasterAgain, masteredCount, spacedLearningEnabled, spacedLearningBatches }) => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const sessionCount = spacedLearningEnabled ? spacedLearningBatches.length : 1;
 
   return (
@@ -17,7 +17,7 @@ const CompletionScreen = ({ allCards, handleMasterAgain, masteredCount, spacedLe
       </p>
 
       <div className="completion-actions">
-        <button type="button" className="back-button" onClick={() => navigate(-1)}>
+        <button type="button" className="back-button" onClick={() => router.back()}>
           Back to Sets
         </button>
         <button type="button" className="restart-button" onClick={handleMasterAgain}>

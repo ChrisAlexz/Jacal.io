@@ -1,7 +1,7 @@
 // src/components/Flashcard.jsx - NO LIMITS VERSION
 import { logger } from '../utils/logger';
 import React, { useState, useEffect, useContext } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useRouter, useParams } from "next/navigation";
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
 
@@ -13,7 +13,7 @@ import SuccessPopup from "./SuccessPopup";
 import "../styles/Flashcard.css";
 
 export default function Flashcard() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { id } = useParams();
   const { user } = useContext(UserAuthContext);
 
@@ -241,7 +241,7 @@ export default function Flashcard() {
 
         setFlashcards([insertedCard]);
         
-        navigate(`/flashcards/${newSetData.id}`, { replace: true });
+        router.replace(`/flashcards/${newSetData.id}`);
       }
     } catch (err) {
       logger.error("Unexpected error saving flashcard");
@@ -313,7 +313,7 @@ export default function Flashcard() {
               Try Again
             </button>
             <button 
-              onClick={() => navigate('/set')}
+              onClick={() => router.push('/set')}
               className="back-button"
             >
               Back to Sets
@@ -333,7 +333,7 @@ export default function Flashcard() {
           {setId && (
             <button
               className="study-button"
-              onClick={() => navigate(`/study/${setId}`)}
+              onClick={() => router.push(`/study/${setId}`)}
               disabled={loading}
             >
               Study

@@ -1,6 +1,6 @@
 // src/components/authentication/AuthCallback.jsx - Clean Production Version
 import React, { useEffect, useContext } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '../../supabase';
 import UserAuthContext from '../context/UserAuthContext';
 import getEnvironmentConfig from '../../config/environment';
@@ -8,9 +8,9 @@ import { FaSpinner, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa'
 import '../../styles/Register.css';
 
 export default function AuthCallback() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { login } = useContext(UserAuthContext);
-  const [searchParams] = useSearchParams();
+  const searchParams = useSearchParams();
   const [status, setStatus] = React.useState('loading');
   const [message, setMessage] = React.useState('Processing authentication...');
   const envConfig = getEnvironmentConfig();
@@ -36,7 +36,7 @@ export default function AuthCallback() {
             setMessage(errorDescription || 'Authentication failed. Please try again.');
           }
           
-          setTimeout(() => navigate('/register'), 3000);
+          setTimeout(() => router.push('/register'), 3000);
           return;
         }
 
@@ -63,7 +63,7 @@ export default function AuthCallback() {
           if (sessionError) {
             setStatus('error');
             setMessage('Failed to establish session. Please try signing in again.');
-            setTimeout(() => navigate('/register'), 3000);
+            setTimeout(() => router.push('/register'), 3000);
             return;
           }
 
@@ -73,7 +73,7 @@ export default function AuthCallback() {
             setMessage('Successfully signed in! Redirecting to your dashboard...');
             
             window.history.replaceState({}, document.title, '/');
-            setTimeout(() => navigate('/'), 1500);
+            setTimeout(() => router.push('/'), 1500);
             return;
           }
         }
@@ -84,7 +84,7 @@ export default function AuthCallback() {
         if (getSessionError) {
           setStatus('error');
           setMessage('Authentication failed. Please try signing in again.');
-          setTimeout(() => navigate('/register'), 3000);
+          setTimeout(() => router.push('/register'), 3000);
           return;
         }
 
@@ -94,22 +94,22 @@ export default function AuthCallback() {
           setMessage('Successfully signed in! Redirecting to your dashboard...');
           
           window.history.replaceState({}, document.title, '/');
-          setTimeout(() => navigate('/'), 1500);
+          setTimeout(() => router.push('/'), 1500);
         } else {
           setStatus('error');
           setMessage('No authentication session found. Redirecting to sign in...');
-          setTimeout(() => navigate('/register'), 2000);
+          setTimeout(() => router.push('/register'), 2000);
         }
 
       } catch (error) {
         setStatus('error');
         setMessage('An unexpected error occurred during authentication.');
-        setTimeout(() => navigate('/register'), 3000);
+        setTimeout(() => router.push('/register'), 3000);
       }
     };
 
     handleAuthCallback();
-  }, [navigate, login, searchParams, envConfig.baseUrl]);
+  }, [router, login, searchParams, envConfig.baseUrl]);
 
   const getStatusIcon = () => {
     switch (status) {

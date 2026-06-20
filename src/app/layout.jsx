@@ -1,6 +1,7 @@
 // src/app/layout.jsx - Next.js App Router root layout (replaces public/index.html)
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../index.css';
+import Providers from './providers';
 
 export const metadata = {
   title: 'Jacal.io',
@@ -24,7 +25,9 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

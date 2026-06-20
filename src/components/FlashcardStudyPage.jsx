@@ -1,6 +1,6 @@
 // src/components/FlashcardStudyPage.jsx - Modular study page using hook + sub-components
 import React, { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'next/navigation';
 import { useStudySession } from '../hooks/useStudySession';
 import {
   StudyHeader, StudyCard, TypeAnswerSection, DifficultyButtons,

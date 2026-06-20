@@ -1,6 +1,6 @@
 // src/components/Set.jsx - Modular set page using hook + sub-components
 import React, { useContext, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import UserAuthContext from './context/UserAuthContext';
 import { useSetManager } from '../hooks/useSetManager';
 import { TreeNode, CreateFolderModal } from './set/index';
@@ -14,10 +14,10 @@ import '../styles/Set.css';
 
 export default function SetPage() {
   const { user } = useContext(UserAuthContext);
-  const navigate = useNavigate();
+  const router = useRouter();
   const mgr = useSetManager(user);
 
-  const handleNavigate = useCallback((path) => navigate(path), [navigate]);
+  const handleNavigate = useCallback((path) => router.push(path), [router]);
 
   if (!user) {
     return (
@@ -28,7 +28,7 @@ export default function SetPage() {
               <div className="auth-icon">&#128274;</div>
               <h2>Authentication Required</h2>
               <p>Please log in to view your flashcard sets</p>
-              <button onClick={() => navigate('/register')} className="auth-btn">Sign In</button>
+              <button onClick={() => router.push('/register')} className="auth-btn">Sign In</button>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 // src/components/authentication/Register.jsx - GOOGLE SIGN-IN ONLY
 import React, { useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import UserAuthContext from '../context/UserAuthContext';
 import { supabase } from '../../supabase';
 import getEnvironmentConfig from '../../config/environment';
@@ -8,7 +8,7 @@ import { FaGoogle, FaSpinner } from 'react-icons/fa';
 import '../../styles/Register.css';
 
 export default function Register() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { isLoggedIn } = useContext(UserAuthContext);
   const envConfig = getEnvironmentConfig();
   const [loading, setLoading] = React.useState(false);
@@ -17,9 +17,9 @@ export default function Register() {
   // Redirect if already logged in
   useEffect(() => {
     if (isLoggedIn) {
-      navigate('/');
+      router.push('/');
     }
-  }, [isLoggedIn, navigate]);
+  }, [isLoggedIn, router]);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);

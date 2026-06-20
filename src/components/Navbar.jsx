@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger';
 import React, { useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import '../styles/Navbar.css';
 import logo from '../assets/jacal.jpg';
 import DropdownMenu from './DropdownMenu';
@@ -9,7 +10,7 @@ import DropdownMenu from './DropdownMenu';
 import UserAuthContext from './context/UserAuthContext';
 
 const Navbar = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { isLoggedIn, user } = useContext(UserAuthContext);
 
   // REMOVED: Sensitive logging that exposes user data in production
@@ -18,13 +19,13 @@ const Navbar = () => {
 
   return (
     <div className="navbar">
-      <Link to="/">
-        <img src={logo} alt="Logo" className="logo" />
+      <Link href="/">
+        <img src={logo.src} alt="Logo" className="logo" />
       </Link>
       <ul>
-        <li><Link to="/">Home</Link></li>
-        <li><Link to="/set">Sets</Link></li>
-        <li><Link to="/about">About</Link></li>
+        <li><Link href="/">Home</Link></li>
+        <li><Link href="/set">Sets</Link></li>
+        <li><Link href="/about">About</Link></li>
       </ul>
       <div className="auth-section">
         {isLoggedIn ? (
@@ -32,7 +33,7 @@ const Navbar = () => {
         ) : (
           <button
             className="signup-button"
-            onClick={() => navigate('/register')}
+            onClick={() => router.push('/register')}
           >
             Sign Up
           </button>

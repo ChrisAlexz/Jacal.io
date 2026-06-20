@@ -3,13 +3,13 @@ import { logger } from '../utils/logger';
 import React, { useState, useContext, useEffect } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { validateLimits, LIMIT_MESSAGES } from '../utils/LimitValidation';
 import '../styles/ClassDeskModal.css'
 
 const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
   const { user } = useContext(UserAuthContext);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const [classes, setClasses] = useState([]);
   const [selectedOption, setSelectedOption] = useState('new');
@@ -144,7 +144,7 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
       }
 
       setTimeout(() => {
-        navigate(`/flashcards/${setId}`);
+        router.push(`/flashcards/${setId}`);
       }, 300);
 
     } catch (err) {

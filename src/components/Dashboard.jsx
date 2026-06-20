@@ -1,13 +1,13 @@
 // src/components/Dashboard.jsx - Authenticated user dashboard
 import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import UserAuthContext from './context/UserAuthContext';
 import FlashcardHeatmap from './FlashcardHeatmap';
 import ClassDeckModal from './ClassDeckModal';
 import { useHomeStats } from '../hooks/useHomeStats';
 
 export default function Dashboard() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { user } = useContext(UserAuthContext);
   const { stats, recentSets, lastStudiedSet, loading, fetchStats } = useHomeStats(user);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -88,7 +88,7 @@ export default function Dashboard() {
       <div className="quick-actions-section">
         <h2 className="section-title">Quick Actions</h2>
         <div className="actions-grid">
-          <button className="action-card" onClick={() => navigate('/set')}>
+          <button className="action-card" onClick={() => router.push('/set')}>
             <div className="action-icon browse-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8"/>
@@ -116,8 +116,8 @@ export default function Dashboard() {
           <button
             className="action-card"
             onClick={() => {
-              if (lastStudiedSet) navigate(`/study/${lastStudiedSet.id}`);
-              else navigate('/set');
+              if (lastStudiedSet) router.push(`/study/${lastStudiedSet.id}`);
+              else router.push('/set');
             }}
             disabled={!lastStudiedSet}
           >
@@ -141,7 +141,7 @@ export default function Dashboard() {
       <div className="recent-section">
         <div className="section-header">
           <h2 className="section-title">Recent Sets</h2>
-          <button className="view-all-btn" onClick={() => navigate('/set')}>View all</button>
+          <button className="view-all-btn" onClick={() => router.push('/set')}>View all</button>
         </div>
 
         {loading ? (
@@ -152,7 +152,7 @@ export default function Dashboard() {
         ) : recentSets.length > 0 ? (
           <div className="sets-grid">
             {recentSets.map((set) => (
-              <div key={set.id} className="set-card" onClick={() => navigate(`/flashcards/${set.id}`)}>
+              <div key={set.id} className="set-card" onClick={() => router.push(`/flashcards/${set.id}`)}>
                 <div className="set-card-header">
                   <span className="set-card-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -162,7 +162,7 @@ export default function Dashboard() {
                   </span>
                   <button
                     className="menu-btn"
-                    onClick={(e) => { e.stopPropagation(); navigate(`/study/${set.id}`); }}
+                    onClick={(e) => { e.stopPropagation(); router.push(`/study/${set.id}`); }}
                   >
                     Study
                   </button>
