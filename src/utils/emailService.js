@@ -2,7 +2,7 @@
 import { logger } from './logger';
 import { supabase } from '../supabase';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // Simple direct email sending - no queue, no complexity
 async function sendEmailDirect(to, subject, html) {

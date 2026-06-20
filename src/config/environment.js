@@ -55,9 +55,9 @@ const getEnvironmentConfig = () => {
     
     // Email service config
     emailService: {
-      fromEmail: process.env.REACT_APP_FROM_EMAIL || 'support@jacal.io',
-      fromName: process.env.REACT_APP_FROM_NAME || 'Jacal Learning Platform',
-      supportEmail: process.env.REACT_APP_SUPPORT_EMAIL || 'support@jacal.io',
+      fromEmail: process.env.NEXT_PUBLIC_FROM_EMAIL || 'support@jacal.io',
+      fromName: process.env.NEXT_PUBLIC_FROM_NAME || 'Jacal Learning Platform',
+      supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@jacal.io',
       websiteUrl: baseUrl
     }
   };
