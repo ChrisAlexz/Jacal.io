@@ -57,21 +57,23 @@ export default function TubelightNavbar() {
       <div
         className={`flex items-center rounded-full border text-white sm:backdrop-blur-lg shadow-lg pointer-events-auto transition-all duration-500 ease-in-out ${
           scrolled
-            ? 'gap-1 sm:gap-2 bg-[#0a0a0a]/88 px-1 py-1 border-white/15 shadow-[0_12px_32px_rgba(0,0,0,0.5)]'
-            : 'gap-2 sm:gap-6 bg-[#0a0a0a]/72 px-2 py-2 sm:px-5 sm:py-3 border-white/10 shadow-[0_18px_48px_rgba(0,0,0,0.45)]'
+            ? 'gap-1 sm:gap-2 bg-[#0a0a0a]/90 px-1.5 py-1.5 border-white/15 shadow-[0_12px_32px_rgba(0,0,0,0.5)]'
+            : 'gap-1.5 sm:gap-3 bg-[#0a0a0a]/75 px-2 py-2 sm:px-3 sm:py-2.5 border-white/10 shadow-[0_18px_48px_rgba(0,0,0,0.45)]'
         }`}
       >
         {/* Logo slot */}
         <Link
           href="/"
-          className={`flex items-center shrink-0 transition-all duration-500 ${
+          className={`flex items-center shrink-0 no-underline transition-all duration-500 ${
             scrolled ? 'pl-2 pr-1 sm:pl-3' : 'pl-2 pr-1 sm:pl-5 sm:pr-3'
           }`}
         >
           <img
             src={logo.src}
             alt="Jacal"
-            className="h-7 w-7 rounded-full object-cover"
+            className={`w-auto object-contain transition-all duration-500 ${
+              scrolled ? 'h-6' : 'h-7'
+            }`}
           />
         </Link>
 
@@ -83,12 +85,12 @@ export default function TubelightNavbar() {
             <Link
               key={item.name}
               href={item.url}
-              className={`relative cursor-pointer text-sm font-semibold rounded-full transition-all duration-500 whitespace-nowrap text-[#a1a1aa] hover:text-primary ${
+              className={`relative cursor-pointer no-underline text-sm font-semibold rounded-full transition-all duration-500 whitespace-nowrap text-[#a1a1aa] hover:text-primary ${
                 active ? 'bg-primary/10 text-primary' : ''
               } ${
                 scrolled
-                  ? 'px-3 py-2 sm:px-5'
-                  : 'px-4 py-2.5 sm:px-10 sm:py-3.5'
+                  ? 'px-3 py-2 sm:px-4'
+                  : 'px-4 py-2 sm:px-6 sm:py-2.5'
               }`}
             >
               <span className="hidden md:inline">{item.name}</span>
@@ -117,12 +119,12 @@ export default function TubelightNavbar() {
         <div className="flex items-center gap-1 shrink-0 pl-1 pr-2 sm:pr-2">
           <SignedOut>
             <SignInButton mode="modal">
-              <button className="text-sm font-semibold text-[#a1a1aa] hover:text-white rounded-full px-3 py-2 transition-colors duration-300">
+              <button className="appearance-none bg-transparent border-0 cursor-pointer text-sm font-semibold text-[#a1a1aa] hover:text-white rounded-full px-3 py-2 transition-colors duration-300 whitespace-nowrap">
                 Sign In
               </button>
             </SignInButton>
             <SignUpButton mode="modal">
-              <button className="text-sm font-semibold text-white rounded-full px-4 py-2 bg-gradient-to-br from-[#4facfe] to-[#6366f1] hover:opacity-90 transition-opacity duration-300 whitespace-nowrap">
+              <button className="appearance-none border-0 cursor-pointer text-sm font-semibold text-white rounded-full px-4 py-2 bg-gradient-to-br from-[#4facfe] to-[#6366f1] shadow-[0_4px_14px_rgba(79,172,254,0.35)] hover:opacity-90 transition-opacity duration-300 whitespace-nowrap">
                 Sign Up
               </button>
             </SignUpButton>
