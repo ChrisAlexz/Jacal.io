@@ -1,3 +1,4 @@
+import {ClerkProvider} from "@clerk/nextjs";
 // src/app/layout.jsx - Next.js App Router root layout (replaces public/index.html)
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../index.css';
@@ -26,7 +27,9 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <ClerkProvider>
+          <Providers>{children}</Providers>
+        </ClerkProvider>
       </body>
     </html>
   );
