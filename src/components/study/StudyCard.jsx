@@ -1,5 +1,6 @@
 // src/components/study/StudyCard.jsx - Modular study card component
 import React from 'react';
+import { sanitizeHTML } from '../../utils/validation';
 
 const StudyCard = ({ 
   card, 
@@ -17,11 +18,11 @@ const StudyCard = ({
     <div className="flashcard-study-box">
       <div className="flashcard-front">
         {isImageOcclusionCard ? (
-          <div dangerouslySetInnerHTML={{ __html: card.front }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizeHTML(card.front) }} />
         ) : currentCardType === "Cloze" ? (
-          <div dangerouslySetInnerHTML={{ __html: processClozeText(card.front, showBack, 1) }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizeHTML(processClozeText(card.front, showBack, 1)) }} />
         ) : (
-          <div dangerouslySetInnerHTML={{ __html: card.front }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizeHTML(card.front) }} />
         )}
       </div>
 
@@ -45,13 +46,13 @@ const StudyCard = ({
         <>
           {isImageOcclusionCard && (
             <div className="flashcard-back">
-              <div dangerouslySetInnerHTML={{ __html: card.back }} />
+              <div dangerouslySetInnerHTML={{ __html: sanitizeHTML(card.back) }} />
             </div>
           )}
-          
+
           {!isImageOcclusionCard && (currentCardType !== "Cloze" || hasCustomBackContent) && (
             <div className="flashcard-back">
-              <div dangerouslySetInnerHTML={{ __html: card.back }} />
+              <div dangerouslySetInnerHTML={{ __html: sanitizeHTML(card.back) }} />
             </div>
           )}
 

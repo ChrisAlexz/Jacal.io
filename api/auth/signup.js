@@ -1,6 +1,7 @@
 // api/auth/signup.js - UNIFIED: Single verification system, no conflicts
 import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
+import { applyCors, generateSecureToken, rateLimit, clientIp } from '../_lib/security.js';
 
 const supabase = createClient(
   process.env.REACT_APP_SUPABASE_URL,
@@ -8,10 +9,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyCors(req, res);
 
   if (req.method === 'OPTIONS') {
     return res.status(200).json({ message: 'CORS OK' });
@@ -19,6 +17,11 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Throttle account-creation/email abuse.
+  if (!rateLimit(`signup:${clientIp(req)}`, { max: 5, windowMs: 60_000 })) {
+    return res.status(429).json({ error: 'Too many requests. Please try again in a minute.' });
   }
 
   try {
@@ -196,10 +199,7 @@ async function handleResendVerification(req, res, email, fullName) {
 }
 
 function generateVerificationToken() {
-  const timestamp = Date.now().toString(36);
-  const randomPart1 = Math.random().toString(36).substring(2, 15);
-  const randomPart2 = Math.random().toString(36).substring(2, 15);
-  return `jacal_${timestamp}_${randomPart1}_${randomPart2}`;
+  return generateSecureToken('jacal');
 }
 
 async function sendHostingerEmail(email, confirmationUrl, userName) {
@@ -207,15 +207,15 @@ async function sendHostingerEmail(email, confirmationUrl, userName) {
     throw new Error('Hostinger email credentials not configured');
   }
 
-  const transporter = nodemailer.createTransporter({
+  const transporter = nodemailer.createTransport({
     host: 'smtp.hostinger.com',
     port: 587,
-    secure: false,
+    secure: false, // STARTTLS on 587
     auth: {
       user: process.env.HOSTINGER_EMAIL_USER,
       pass: process.env.HOSTINGER_EMAIL_PASSWORD
     },
-    tls: { rejectUnauthorized: false }
+    requireTLS: true
   });
 
   const safeName = userName ? userName.replace(/[<>]/g, '').trim() : '';

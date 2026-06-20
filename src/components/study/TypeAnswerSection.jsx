@@ -1,5 +1,6 @@
 // src/components/study/TypeAnswerSection.jsx - Component for Basic-Type cards
 import React from 'react';
+import { sanitizeHTML } from '../../utils/validation';
 
 const TypeAnswerSection = ({
   userAnswer,
@@ -26,7 +27,7 @@ const TypeAnswerSection = ({
           </div>
           <div className="correct-answer">
             <strong>Correct answer:</strong> 
-            <div dangerouslySetInnerHTML={{ __html: card.back }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizeHTML(card.back) }} />
           </div>
         </div>
         

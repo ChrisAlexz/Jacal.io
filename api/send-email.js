@@ -1,10 +1,8 @@
 import nodemailer from 'nodemailer';
+import { applyCors, safeEqual } from './_lib/security.js';
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  applyCors(req, res);
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -12,6 +10,15 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // This is a generic send-arbitrary-HTML relay. Left open it lets anyone send
+  // mail from our domain (phishing/spam). Require a server-side shared secret so
+  // it can only be invoked by trusted backend callers, never directly from a browser.
+  const expected = process.env.INTERNAL_EMAIL_SECRET;
+  const provided = req.headers['x-internal-secret'];
+  if (!expected || !safeEqual(String(provided || ''), expected)) {
+    return res.status(403).json({ error: 'Forbidden' });
   }
 
   try {
@@ -26,16 +33,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: 'smtp.hostinger.com',
       port: 587,
-      secure: false,
+      secure: false, // STARTTLS on 587
+      requireTLS: true,
       auth: {
         user: process.env.HOSTINGER_EMAIL_USER,
         pass: process.env.HOSTINGER_EMAIL_PASSWORD
-      },
-      tls: {
-        rejectUnauthorized: false
       }
     });
 
@@ -56,9 +61,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Email send error:', error);
-    return res.status(500).json({
-      error: 'Failed to send email',
-      details: error.message
-    });
+    return res.status(500).json({ error: 'Failed to send email' });
   }
 }

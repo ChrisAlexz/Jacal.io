@@ -15,16 +15,27 @@ app.use(cors({
 
 // Hostinger SMTP
 const createTransporter = () => {
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     host: 'smtp.hostinger.com',
     port: 587,
-    secure: false,
+    secure: false, // STARTTLS on 587
+    requireTLS: true,
     auth: {
       user: process.env.HOSTINGER_EMAIL_USER,
       pass: process.env.HOSTINGER_EMAIL_PASSWORD
-    },
-    tls: { rejectUnauthorized: false }
+    }
   });
+};
+
+// Require a server-side shared secret so this arbitrary-HTML relay cannot be
+// abused as an open mail relay for phishing/spam.
+const requireInternalSecret = (req, res, next) => {
+  const expected = process.env.INTERNAL_EMAIL_SECRET;
+  const provided = req.headers['x-internal-secret'];
+  if (!expected || provided !== expected) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  next();
 };
 
 // Health check
@@ -37,7 +48,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Send email - ONLY endpoint you need
-app.post('/api/send-email', async (req, res) => {
+app.post('/api/send-email', requireInternalSecret, async (req, res) => {
   try {
     const { to, subject, html } = req.body;
 

@@ -1,6 +1,7 @@
 // api/auth/reset-password-request.js - COMPLETE FIXED FILE with working Hostinger SMTP
 import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
+import { applyCors, generateSecureToken, rateLimit, clientIp } from '../_lib/security.js';
 
 const supabase = createClient(
   process.env.REACT_APP_SUPABASE_URL,
@@ -8,10 +9,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyCors(req, res);
 
   if (req.method === 'OPTIONS') {
     return res.status(200).json({ message: 'CORS OK' });
@@ -19,6 +17,11 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Throttle reset-email abuse / enumeration attempts.
+  if (!rateLimit(`reset:${clientIp(req)}`, { max: 5, windowMs: 60_000 })) {
+    return res.status(429).json({ error: 'Too many requests. Please try again in a minute.' });
   }
 
   try {
@@ -97,10 +100,7 @@ export default async function handler(req, res) {
 }
 
 function generateResetToken() {
-  const timestamp = Date.now().toString(36);
-  const randomPart1 = Math.random().toString(36).substring(2, 15);
-  const randomPart2 = Math.random().toString(36).substring(2, 15);
-  return `reset_${timestamp}_${randomPart1}_${randomPart2}`;
+  return generateSecureToken('reset');
 }
 
 async function sendHostingerResetEmail(email, resetUrl) {
@@ -108,22 +108,19 @@ async function sendHostingerResetEmail(email, resetUrl) {
     throw new Error('Email credentials not configured');
   }
 
-  // FIXED: Use official Hostinger SMTP settings
-  const transporter = nodemailer.createTransporter({
+  // Official Hostinger SMTP settings (port 587 with STARTTLS, verified certs)
+  const transporter = nodemailer.createTransport({
     host: 'smtp.hostinger.com',
-    port: 587,                    // FIXED: Use port 587 with STARTTLS
-    secure: false,                // FIXED: false for port 587
+    port: 587,
+    secure: false,                // STARTTLS on 587
+    requireTLS: true,             // enforce TLS upgrade with a validated certificate
     auth: {
       user: process.env.HOSTINGER_EMAIL_USER,
       pass: process.env.HOSTINGER_EMAIL_PASSWORD
     },
-    tls: { 
-      rejectUnauthorized: false   // FIXED: Keep this for Hostinger
-    },
-    // FIXED: Add these additional options for Hostinger
-    connectionTimeout: 60000,     // 60 seconds
-    greetingTimeout: 30000,       // 30 seconds
-    socketTimeout: 60000          // 60 seconds
+    connectionTimeout: 60000,
+    greetingTimeout: 30000,
+    socketTimeout: 60000
   });
 
   // FIXED: Test connection first

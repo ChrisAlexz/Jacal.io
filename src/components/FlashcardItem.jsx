@@ -5,6 +5,7 @@ import UserAuthContext from './context/UserAuthContext';
 import '../styles/FlashcardList.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { sanitizeHTML } from '../utils/validation';
 
 const FlashcardItem = ({ 
   index, 
@@ -94,7 +95,7 @@ const FlashcardItem = ({
     if (isImageOcclusionCard) {
       return (
         <div className="image-occlusion-preview">
-          <div dangerouslySetInnerHTML={{ __html: content }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizeHTML(content) }} />
           <div className="edit-overlay">
             <span className="edit-notice">
               {isBack ? '🖼️ Back: Answer revealed' : '🖼️ Front: Question view'}

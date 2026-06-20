@@ -2,6 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 require('dotenv').config();
 
 const app = express();
@@ -36,7 +37,7 @@ const createTransporter = () => {
       user: process.env.HOSTINGER_EMAIL_USER,
       pass: process.env.HOSTINGER_EMAIL_PASSWORD
     },
-    tls: { rejectUnauthorized: false },
+    requireTLS: true,
     connectionTimeout: 10000,
     greetingTimeout: 5000,
     socketTimeout: 10000
@@ -189,7 +190,7 @@ app.post('/api/auth/reset-password-request', async (req, res) => {
     console.log('⚠️ Skipping user verification for development - sending email directly');
 
     // Generate custom reset token
-    const resetToken = `reset_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+    const resetToken = `reset_${crypto.randomBytes(32).toString('hex')}`;
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1);
 
