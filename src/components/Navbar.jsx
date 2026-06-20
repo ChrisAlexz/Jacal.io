@@ -1,22 +1,16 @@
-import { logger } from '../utils/logger';
-import React, { useContext } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  SignUpButton,
+  UserButton,
+} from '@clerk/nextjs';
 import '../styles/Navbar.css';
 import logo from '../assets/jacal.jpg';
-import DropdownMenu from './DropdownMenu';
-
-// Import the *default* export from UserAuthContext
-import UserAuthContext from './context/UserAuthContext';
 
 const Navbar = () => {
-  const router = useRouter();
-  const { isLoggedIn, user } = useContext(UserAuthContext);
-
-  // REMOVED: Sensitive logging that exposes user data in production
-  // logger.debug('Navbar isLoggedIn:', isLoggedIn);
-  // logger.debug('Navbar user:', user);
-
   return (
     <div className="navbar">
       <Link href="/">
@@ -28,16 +22,17 @@ const Navbar = () => {
         <li><Link href="/about">About</Link></li>
       </ul>
       <div className="auth-section">
-        {isLoggedIn ? (
-          <DropdownMenu user={user} />
-        ) : (
-          <button
-            className="signup-button"
-            onClick={() => router.push('/register')}
-          >
-            Sign Up
-          </button>
-        )}
+        <SignedOut>
+          <SignInButton mode="modal">
+            <button className="signin-button">Sign In</button>
+          </SignInButton>
+          <SignUpButton mode="modal">
+            <button className="signup-button">Sign Up</button>
+          </SignUpButton>
+        </SignedOut>
+        <SignedIn>
+          <UserButton afterSignOutUrl="/" />
+        </SignedIn>
       </div>
     </div>
   );
