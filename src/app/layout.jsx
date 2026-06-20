@@ -1,4 +1,5 @@
-import {ClerkProvider} from "@clerk/nextjs";
+import { ClerkProvider } from "@clerk/nextjs";
+import { dark } from "@clerk/themes";
 // src/app/layout.jsx - Next.js App Router root layout (replaces public/index.html)
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../index.css';
@@ -27,7 +28,23 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        <ClerkProvider>
+        <ClerkProvider
+          appearance={{
+            baseTheme: dark,
+            variables: {
+              colorPrimary: '#4facfe',
+              colorBackground: '#0a0a0a',
+              colorInputBackground: '#161616',
+              colorText: '#ffffff',
+              colorTextSecondary: '#a1a1aa',
+              borderRadius: '0.5rem',
+              fontFamily: "'Roboto', -apple-system, BlinkMacSystemFont, sans-serif",
+            },
+            elements: {
+              card: { boxShadow: '0 20px 60px rgba(0,0,0,0.6)' },
+            },
+          }}
+        >
           <Providers>{children}</Providers>
         </ClerkProvider>
       </body>

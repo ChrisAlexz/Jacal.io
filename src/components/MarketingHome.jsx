@@ -1,18 +1,33 @@
+'use client';
 // src/components/MarketingHome.jsx - Unauthenticated landing page
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+import Wordmark from './Wordmark';
+
+// WebGL canvas — client-only so it never runs during SSR (keeps SEO content intact)
+const ParticleCityBackground = dynamic(() => import('./ParticleCityBackground'), {
+  ssr: false,
+});
 
 export default function MarketingHome() {
   const router = useRouter();
 
   return (
-    <div className="home-container">
-      {/* Grid Background */}
-      <div className="grid-background"></div>
+    <>
+      {/* Scroll-driven 3D particle city, fixed behind all marketing content */}
+      <ParticleCityBackground />
+
+      <div className="home-container">
+        {/* Subtle grid overlay (transparent base so the 3D city shows through) */}
+        <div className="grid-background"></div>
 
       {/* Hero Section */}
       <section className="hero-section">
         <div className="hero-content">
+          <div className="hero-wordmark" style={{ marginBottom: '1.5rem' }}>
+            <Wordmark name="Jacal" />
+          </div>
           <div className="status-badge">
             <div className="status-dot"></div>
             <span>Powered by spaced repetition</span>
@@ -280,6 +295,7 @@ export default function MarketingHome() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 }

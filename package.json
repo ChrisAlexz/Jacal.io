@@ -4,18 +4,22 @@
   "private": true,
   "dependencies": {
     "@clerk/nextjs": "^6.39.5",
+    "@clerk/themes": "^2.4.57",
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
     "@fortawesome/free-brands-svg-icons": "^6.7.2",
     "@fortawesome/free-regular-svg-icons": "^6.7.2",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@fortawesome/react-fontawesome": "^0.2.2",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
     "@supabase/supabase-js": "^2.50.2",
     "bootstrap": "^5.3.7",
     "jszip": "^3.10.1",
     "next": "^14.2.35",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-icons": "^5.5.0"
+    "react-icons": "^5.5.0",
+    "three": "^0.184.0"
   },
   "scripts": {
     "dev": "next dev -p 3001",

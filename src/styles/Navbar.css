@@ -122,6 +122,29 @@ ul li a.active::after {
   gap: 1rem;
 }
 
+/* Sign In Button (secondary / outline) */
+.signin-button {
+  background: transparent;
+  color: var(--text-primary, #ffffff);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--hover-transition);
+}
+
+.signin-button:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-2px);
+}
+
+.signin-button:active {
+  transform: translateY(0);
+}
+
 /* Sign Up Button */
 .signup-button {
   background: linear-gradient(135deg, var(--accent-color), #6366f1);

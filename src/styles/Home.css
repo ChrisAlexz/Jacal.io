@@ -8,11 +8,15 @@
 .home-container {
   min-height: 100vh;
   position: relative;
+  /* Sit above the fixed ParticleCityBackground canvas (z-index 0) */
+  z-index: 1;
   overflow-x: hidden;
   margin: 0;
   padding: 0;
   border: none;
-  background: #0a0a0a;
+  /* Transparent so the 3D particle city behind it is visible; the canvas
+     wrapper provides the solid #0a0a0a base. */
+  background: transparent;
   color: #ffffff;
 }
 
@@ -49,6 +53,11 @@
   --font-mono: 'SF Mono', Monaco, 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
 }
 
+/* Lowercase mono wordmark */
+.wordmark:hover {
+  color: var(--color-text-primary, #ffffff) !important;
+}
+
 /* Grid Background */
 .grid-background {
   position: fixed;
@@ -57,8 +66,11 @@
   right: 0;
   bottom: 0;
   z-index: 0;
-  background: var(--color-background);
+  /* Transparent so the 3D particle city shows through; the faint grid lines
+     in ::before remain as a subtle overlay. */
+  background: transparent;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .grid-background::before {
