@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* index.css */
 html, body {
   background: #121212;     /* Match navbar & dark pages */
@@ -12,7 +16,16 @@ html, body {
   min-height: 100vh;
 }
 
+/* Clearance for the floating tubelight navbar (top on desktop, bottom on mobile) */
 .page-content {
   padding-top: 11px;
+  padding-bottom: 6rem;
   min-height: calc(100vh - 100px);
+}
+
+@media (min-width: 640px) {
+  .page-content {
+    padding-top: 6rem;
+    padding-bottom: 0;
+  }
 }
