@@ -203,51 +203,12 @@ export default function MarketingHome() {
               Our algorithm automatically calculates optimal review intervals based on your performance.
             </p>
           </div>
-          <div className="terminal-demo-grid">
-            {[
-              {
-                title: 'algorithm-analysis.py',
-                lines: [
-                  { type: 'cmd', text: 'python analyze_performance.py --user-id=12345' },
-                  { type: 'out', text: '&#10003; Analyzing 847 review sessions...' },
-                  { type: 'out', text: '&#10003; Optimal interval: 2.3 days' },
-                  { type: 'out', text: '&#10003; Retention rate: 92.4%' },
-                  { type: 'typing', text: 'Scheduling next review...' },
-                ]
-              },
-              {
-                title: 'deck-optimization.py',
-                lines: [
-                  { type: 'cmd', text: 'python optimize_deck.py --deck="Machine Learning"' },
-                  { type: 'out', text: '&#10003; Cards ready for review: 23' },
-                  { type: 'out', text: '&#10003; New cards to introduce: 5' },
-                  { type: 'out', text: '&#10003; Estimated session time: 12 min' },
-                  { type: 'typing', text: 'Generating study queue...' },
-                ]
-              }
-            ].map((terminal, i) => (
-              <div key={i} className="terminal-window">
-                <div className="terminal-header">
-                  <div className="terminal-controls">
-                    <div className="control control-close"></div>
-                    <div className="control control-minimize"></div>
-                    <div className="control control-maximize"></div>
-                  </div>
-                  <div className="terminal-title">{terminal.title}</div>
-                </div>
-                <div className="terminal-body">
-                  {terminal.lines.map((line, j) => (
-                    <div key={j} className={`terminal-line${line.type === 'typing' ? ' typing' : ''}`}>
-                      {line.type === 'cmd' && <span className="prompt">$</span>}
-                      <span className={line.type === 'cmd' ? 'command' : 'output'}
-                        dangerouslySetInnerHTML={{ __html: line.text }}
-                      />
-                      {line.type === 'typing' && <span className="cursor">|</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+          <div className="study-demo-image">
+            <img
+              src="/study-library.jpg"
+              alt="A student reviewing flashcards in a library"
+              loading="lazy"
+            />
           </div>
         </div>
       </section>
