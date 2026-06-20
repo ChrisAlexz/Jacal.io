@@ -28,7 +28,7 @@ export default function SetPage() {
               <div className="auth-icon">&#128274;</div>
               <h2>Authentication Required</h2>
               <p>Please log in to view your flashcard sets</p>
-              <button onClick={() => router.push('/register')} className="auth-btn">Sign In</button>
+              <button onClick={() => router.push('/sign-in')} className="auth-btn">Sign In</button>
             </div>
           </div>
         </div>

@@ -82,7 +82,7 @@ export default function MarketingHome() {
           </p>
 
           <div className="hero-cta">
-            <button className="btn-primary" onClick={() => router.push('/register')}>
+            <button className="btn-primary" onClick={() => router.push('/sign-up')}>
               Start learning
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m9 18 6-6-6-6"/>
@@ -219,7 +219,7 @@ export default function MarketingHome() {
           <div className="cta-content">
             <h2>Ready to transform your learning?</h2>
             <p>Join thousands of students and professionals using intelligent flashcards.</p>
-            <button className="btn-primary" onClick={() => router.push('/register')}>
+            <button className="btn-primary" onClick={() => router.push('/sign-up')}>
               Get started for free
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m9 18 6-6-6-6"/>

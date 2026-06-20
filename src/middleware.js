@@ -1,7 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 // Only these require a signed-in user. Everything else (marketing /, /about,
-// /sign-in, /sign-up, /register, /auth/callback) stays public.
+// /sign-in, /sign-up) stays public.
 const isProtectedRoute = createRouteMatcher([
   "/set(.*)",
   "/flashcards(.*)",

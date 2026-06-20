@@ -47,7 +47,7 @@ export default function About() {
       router.push('/set');
     } else {
       // If not logged in, take them to register
-      router.push('/register');
+      router.push('/sign-up');
     }
   };
 
