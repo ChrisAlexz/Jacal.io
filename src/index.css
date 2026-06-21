@@ -3,17 +3,25 @@
 @tailwind utilities;
 
 /* index.css */
-html, body {
-  background: #121212;     /* Match navbar & dark pages */
+html,
+body {
+  background: #121212; /* Match navbar & dark pages */
   color: #ffffff;
   min-height: 100vh;
   margin: 0;
   padding: 0;
+  /* Never allow sideways scroll / shift. */
+  overflow-x: hidden;
 }
 
 .app-container {
-  width: 100vw;
+  /* width:100% = content width (excludes scrollbar). 100vw INCLUDES the
+     scrollbar and overflows when a vertical scrollbar is present, which is
+     what shifted the page sideways. */
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 /* Clearance for the floating tubelight navbar (top on desktop, bottom on mobile) */
