@@ -1,589 +1,474 @@
-// src/components/ImageOcclusionEditor.jsx - ENHANCED WITH COPY/PASTE FUNCTIONALITY AND CARD LIMITS
+'use client';
+// src/components/ImageOcclusionEditor.jsx
+// Anki-style image occlusion editor: upload/paste an image, draw resizable/movable
+// mask boxes over it, and generate one card per box. Two modes (like Anki):
+//   - "Hide All, Guess One": every box is masked on the front; the target box is
+//      highlighted; the back reveals only the target.
+//   - "Hide One, Guess One": only the target box is masked.
+// Masks are stored as percentages of the image, so cards render responsively.
 import { logger } from '../utils/logger';
-import React, { useState, useRef, useEffect, useContext } from 'react';
+import React, { useState, useRef, useEffect, useContext, useCallback } from 'react';
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
-import { validateLimits } from '../utils/LimitValidation';
 import '../styles/ImageOcclusionEditor.css';
 
-const ImageOcclusionEditor = ({ onSave, disabled, cardLimitInfo }) => {
+const MIN_PCT = 1.5; // minimum mask size (% of image) to keep
+const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const round = (n) => Math.round(n * 100) / 100;
+const escapeAttr = (s = '') =>
+  String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+export default function ImageOcclusionEditor({ onSave, disabled = false }) {
   const { user } = useContext(UserAuthContext);
-  const [image, setImage] = useState(null);
-  const [imageFile, setImageFile] = useState(null);
-  const [imageUrl, setImageUrl] = useState('');
-  const [uploadedImageUrl, setUploadedImageUrl] = useState('');
-  const [occlusions, setOcclusions] = useState([]);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [currentRect, setCurrentRect] = useState(null);
-  const [nextId, setNextId] = useState(1);
-  const [cardTitle, setCardTitle] = useState('Image Occlusion Card'); // Default title
-  const [canvasSize, setCanvasSize] = useState(100);
+
+  const [previewUrl, setPreviewUrl] = useState(''); // local object URL (instant display)
+  const [imageUrl, setImageUrl] = useState(''); // uploaded public URL (used in cards)
   const [isUploading, setIsUploading] = useState(false);
-  
-  const canvasRef = useRef(null);
-  const containerRef = useRef(null);
-  const startPosRef = useRef({ x: 0, y: 0 });
+  const [uploadFailed, setUploadFailed] = useState(false);
+  const [masks, setMasks] = useState([]); // { id, x, y, w, h } in %
+  const [selectedId, setSelectedId] = useState(null);
+  const [mode, setMode] = useState('hideAll'); // 'hideAll' | 'hideOne'
+  const [error, setError] = useState('');
 
-  // Enhanced image processing function used by both upload and paste
-  const processImageFile = async (file) => {
-    setImageFile(file);
-    const url = URL.createObjectURL(file);
-    setImageUrl(url);
-    
-    // Reset occlusions when new image is uploaded
-    setOcclusions([]);
-    setNextId(1);
-    
-    const img = new Image();
-    img.onload = () => {
-      setImage(img);
-      setupCanvas(img);
-    };
-    img.src = url;
+  const overlayRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const lastFileRef = useRef(null); // for "Retry upload"
+  const nextId = useRef(1);
+  const drag = useRef(null); // active interaction: { type, id, handle, startX, startY, orig }
 
-    await uploadImageToSupabase(file);
+  const displayUrl = previewUrl || imageUrl;
+  const ready = Boolean(imageUrl) && !isUploading;
+
+  // ── Upload / paste ──────────────────────────────────────────────────
+  const uploadFile = useCallback(
+    async (file) => {
+      if (!user) {
+        setError('You must be signed in to upload images.');
+        setUploadFailed(true);
+        return;
+      }
+      setError('');
+      setUploadFailed(false);
+      setIsUploading(true);
+      try {
+        const ext = (file.name?.split('.').pop() || 'png').toLowerCase();
+        const fileName = `${user.id}/${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from('flashcard-images')
+          .upload(fileName, file);
+        if (upErr) throw upErr;
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('flashcard-images').getPublicUrl(fileName);
+        setImageUrl(publicUrl);
+      } catch (e) {
+        logger.error('Image occlusion upload failed:', e);
+        setError(`Image upload failed: ${e?.message || e?.error || 'unknown error'}`);
+        setUploadFailed(true);
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [user]
+  );
+
+  const processFile = useCallback(
+    async (file) => {
+      if (!file || !file.type.startsWith('image/')) return;
+      lastFileRef.current = file;
+      setPreviewUrl(URL.createObjectURL(file));
+      setImageUrl('');
+      setMasks([]);
+      setSelectedId(null);
+      nextId.current = 1;
+      await uploadFile(file);
+    },
+    [uploadFile]
+  );
+
+  const retryUpload = () => {
+    if (lastFileRef.current) uploadFile(lastFileRef.current);
   };
 
-  // Load image and setup canvas
-  const handleImageUpload = async (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      await processImageFile(file);
-    }
+  const onFileInput = (e) => {
+    const f = e.target.files?.[0];
+    if (f) processFile(f);
+    e.target.value = '';
   };
 
-  // Handle paste events for image pasting
-  const handlePaste = async (event) => {
-    const items = event.clipboardData.items;
-    
-    for (let item of items) {
-      if (item.type.indexOf('image') === 0) {
-        event.preventDefault();
-        const file = item.getAsFile();
-        if (file) {
-          await processImageFile(file);
-          break;
+  useEffect(() => {
+    const onPaste = (e) => {
+      if (disabled) return;
+      const ae = document.activeElement;
+      if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) {
+        return;
+      }
+      const items = e.clipboardData?.items || [];
+      for (const it of items) {
+        if (it.type.startsWith('image/')) {
+          const f = it.getAsFile();
+          if (f) {
+            e.preventDefault();
+            processFile(f);
+            break;
+          }
         }
       }
-    }
-  };
-
-  // Add paste event listener
-  useEffect(() => {
-    const handleGlobalPaste = (e) => {
-      // Only handle paste if the editor is visible and no input is focused
-      const activeElement = document.activeElement;
-      const isInputFocused = activeElement && (
-        activeElement.tagName === 'INPUT' || 
-        activeElement.tagName === 'TEXTAREA' ||
-        activeElement.contentEditable === 'true'
-      );
-      
-      if (!isInputFocused && !disabled) {
-        handlePaste(e);
-      }
     };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [disabled, processFile]);
 
-    document.addEventListener('paste', handleGlobalPaste);
-    return () => {
-      document.removeEventListener('paste', handleGlobalPaste);
-    };
-  }, [disabled]);
-
-  const uploadImageToSupabase = async (file) => {
-    if (!user || !file) return;
-
-    setIsUploading(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-
-      const { data, error } = await supabase.storage
-        .from('flashcard-images')
-        .upload(fileName, file);
-
-      if (error) {
-        logger.error('Error uploading image:', error);
-        return;
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('flashcard-images')
-        .getPublicUrl(fileName);
-
-      setUploadedImageUrl(publicUrl);
-      logger.debug('Image uploaded successfully:', publicUrl);
-    } catch (error) {
-      logger.error('Error uploading image:', error);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const setupCanvas = (img) => {
-    const canvas = canvasRef.current;
-    if (!canvas || !img) return;
-
-    const BASE_WIDTH = 600;
-    const BASE_HEIGHT = 400;
-    
-    const sizeMultiplier = canvasSize / 100;
-    const targetWidth = BASE_WIDTH * sizeMultiplier;
-    const targetHeight = BASE_HEIGHT * sizeMultiplier;
-    
-    const imgAspectRatio = img.width / img.height;
-    const targetAspectRatio = targetWidth / targetHeight;
-    
-    let canvasWidth, canvasHeight;
-    
-    if (imgAspectRatio > targetAspectRatio) {
-      canvasWidth = targetWidth;
-      canvasHeight = targetWidth / imgAspectRatio;
-    } else {
-      canvasHeight = targetHeight;
-      canvasWidth = targetHeight * imgAspectRatio;
-    }
-    
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-    
-    drawCanvas();
-  };
-
-  useEffect(() => {
-    if (image) {
-      setupCanvas(image);
-    }
-  }, [canvasSize, image]);
-
-  const drawCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas || !image) return;
-    
-    const ctx = canvas.getContext('2d');
-    
-    // Clear and draw image
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    
-    // Draw occlusions with improved opacity
-    occlusions.forEach((occlusion) => {
-      // Black rectangle with higher opacity
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)'; // Increased from 0.8
-      ctx.fillRect(occlusion.x, occlusion.y, occlusion.width, occlusion.height);
-      
-      // Blue border
-      ctx.strokeStyle = '#4facfe';
-      ctx.lineWidth = 3; // Increased from 2
-      ctx.strokeRect(occlusion.x, occlusion.y, occlusion.width, occlusion.height);
-      
-      // Label with better contrast
-      ctx.fillStyle = '#ffffff'; // Changed to white for better contrast
-      ctx.font = 'bold 18px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      
-      const labelX = occlusion.x + occlusion.width / 2;
-      const labelY = occlusion.y + occlusion.height / 2;
-      
-      // Add text shadow for better readability
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-      ctx.shadowBlur = 2;
-      ctx.shadowOffsetX = 1;
-      ctx.shadowOffsetY = 1;
-      
-      ctx.fillText(occlusion.id.toString(), labelX, labelY);
-      
-      // Reset shadow
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
-    });
-    
-    // Draw current rectangle being drawn
-    if (currentRect) {
-      ctx.strokeStyle = '#4facfe';
-      ctx.lineWidth = 3; // Increased from 2
-      ctx.setLineDash([8, 4]); // Increased dash size
-      ctx.strokeRect(currentRect.x, currentRect.y, currentRect.width, currentRect.height);
-      ctx.setLineDash([]);
-    }
-  };
-
-  // Improved mouse position calculation
-  const getMousePos = (event) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
+  // ── Geometry ────────────────────────────────────────────────────────
+  const pctFromEvent = (e) => {
+    const r = overlayRef.current.getBoundingClientRect();
     return {
-      x: (event.clientX - rect.left) * scaleX,
-      y: (event.clientY - rect.top) * scaleY
+      x: clamp(((e.clientX - r.left) / r.width) * 100, 0, 100),
+      y: clamp(((e.clientY - r.top) / r.height) * 100, 0, 100),
     };
   };
 
-  const handleMouseDown = (event) => {
-    if (!image || disabled || !canvasRef.current) return;
-    
-    event.preventDefault(); // Prevent any default behavior
-    
-    const pos = getMousePos(event);
-    
-    // Check for deletion (Shift+Click)
-    if (event.shiftKey) {
-      const clickedIndex = occlusions.findIndex(occlusion => 
-        pos.x >= occlusion.x && pos.x <= occlusion.x + occlusion.width &&
-        pos.y >= occlusion.y && pos.y <= occlusion.y + occlusion.height
+  const updateMask = (id, patch) =>
+    setMasks((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+
+  const deleteMask = (id) => {
+    setMasks((prev) => prev.filter((m) => m.id !== id));
+    setSelectedId((s) => (s === id ? null : s));
+  };
+
+  // ── Pointer interactions ────────────────────────────────────────────
+  const beginDrawing = (e) => {
+    if (disabled || !ready || e.button !== 0) return;
+    e.preventDefault();
+    overlayRef.current.setPointerCapture?.(e.pointerId);
+    const p = pctFromEvent(e);
+    const id = nextId.current++;
+    drag.current = { type: 'draw', id, startX: p.x, startY: p.y };
+    setMasks((prev) => [...prev, { id, x: p.x, y: p.y, w: 0, h: 0 }]);
+    setSelectedId(id);
+  };
+
+  const beginMove = (e, id) => {
+    if (disabled || e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    overlayRef.current.setPointerCapture?.(e.pointerId);
+    const m = masks.find((x) => x.id === id);
+    const p = pctFromEvent(e);
+    setSelectedId(id);
+    drag.current = { type: 'move', id, startX: p.x, startY: p.y, orig: { ...m } };
+  };
+
+  const beginResize = (e, id, handle) => {
+    if (disabled || e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    overlayRef.current.setPointerCapture?.(e.pointerId);
+    const m = masks.find((x) => x.id === id);
+    const p = pctFromEvent(e);
+    setSelectedId(id);
+    drag.current = { type: 'resize', id, handle, startX: p.x, startY: p.y, orig: { ...m } };
+  };
+
+  const onPointerMove = (e) => {
+    const d = drag.current;
+    if (!d) return;
+    const p = pctFromEvent(e);
+
+    if (d.type === 'draw') {
+      updateMask(d.id, {
+        x: Math.min(d.startX, p.x),
+        y: Math.min(d.startY, p.y),
+        w: Math.abs(p.x - d.startX),
+        h: Math.abs(p.y - d.startY),
+      });
+    } else if (d.type === 'move') {
+      const { orig } = d;
+      updateMask(d.id, {
+        x: clamp(orig.x + (p.x - d.startX), 0, 100 - orig.w),
+        y: clamp(orig.y + (p.y - d.startY), 0, 100 - orig.h),
+      });
+    } else if (d.type === 'resize') {
+      const o = d.orig;
+      let { x, y, w, h } = o;
+      const dx = p.x - d.startX;
+      const dy = p.y - d.startY;
+      if (d.handle.includes('e')) w = o.w + dx;
+      if (d.handle.includes('s')) h = o.h + dy;
+      if (d.handle.includes('w')) {
+        x = o.x + dx;
+        w = o.w - dx;
+      }
+      if (d.handle.includes('n')) {
+        y = o.y + dy;
+        h = o.h - dy;
+      }
+      if (w < 0) {
+        x += w;
+        w = -w;
+      }
+      if (h < 0) {
+        y += h;
+        h = -h;
+      }
+      x = clamp(x, 0, 100);
+      y = clamp(y, 0, 100);
+      updateMask(d.id, { x, y, w: clamp(w, 0, 100 - x), h: clamp(h, 0, 100 - y) });
+    }
+  };
+
+  const endPointer = () => {
+    const d = drag.current;
+    if (!d) return;
+    drag.current = null;
+    if (d.type === 'draw') {
+      // discard accidental tiny boxes (treated as a click → deselect)
+      let removed = false;
+      setMasks((prev) =>
+        prev.filter((m) => {
+          if (m.id === d.id && (m.w < MIN_PCT || m.h < MIN_PCT)) {
+            removed = true;
+            return false;
+          }
+          return true;
+        })
       );
-      
-      if (clickedIndex !== -1) {
-        setOcclusions(prev => prev.filter((_, index) => index !== clickedIndex));
+      if (removed) setSelectedId((s) => (s === d.id ? null : s));
+    }
+  };
+
+  // Delete selected mask with keyboard
+  useEffect(() => {
+    const onKey = (e) => {
+      if (disabled || selectedId == null) return;
+      const ae = document.activeElement;
+      if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) {
         return;
       }
-    }
-    
-    // Start drawing
-    setIsDrawing(true);
-    startPosRef.current = pos;
-    setCurrentRect({ 
-      x: pos.x, 
-      y: pos.y, 
-      width: 0, 
-      height: 0 
-    });
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        deleteMask(selectedId);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedId, disabled]);
+
+  // ── Card generation (stored as front/back HTML) ─────────────────────
+  const buildSideHTML = (targetId, side) => {
+    const rects = masks
+      .map((m) => {
+        const isTarget = m.id === targetId;
+        if (mode === 'hideOne' && !isTarget) return '';
+        const cls =
+          side === 'front'
+            ? isTarget
+              ? 'occlusion-question-active'
+              : 'occlusion-blocked'
+            : isTarget
+            ? 'occlusion-answer-revealed'
+            : 'occlusion-blocked';
+        return `<div class="${cls}" style="left:${round(m.x)}%;top:${round(m.y)}%;width:${round(
+          m.w
+        )}%;height:${round(m.h)}%"></div>`;
+      })
+      .join('');
+    return `<div class="image-occlusion-card"><img src="${escapeAttr(
+      imageUrl
+    )}" alt="" class="occlusion-image" /><div class="occlusion-overlay">${rects}</div></div>`;
   };
 
-  const handleMouseMove = (event) => {
-    if (!isDrawing || !currentRect || !canvasRef.current) return;
-    
-    event.preventDefault();
-    
-    const pos = getMousePos(event);
-    const startPos = startPosRef.current;
-    
-    setCurrentRect({
-      x: Math.min(startPos.x, pos.x),
-      y: Math.min(startPos.y, pos.y),
-      width: Math.abs(pos.x - startPos.x),
-      height: Math.abs(pos.y - startPos.y)
-    });
-  };
-
-  const handleMouseUp = (event) => {
-    if (!isDrawing || !currentRect) return;
-    
-    event.preventDefault();
-    
-    // Only add if rectangle is large enough (reduced threshold for better UX)
-    if (Math.abs(currentRect.width) > 20 && Math.abs(currentRect.height) > 20) {
-      const normalizedRect = {
-        id: nextId,
-        x: currentRect.x,
-        y: currentRect.y,
-        width: currentRect.width,
-        height: currentRect.height
-      };
-      
-      setOcclusions(prev => [...prev, normalizedRect]);
-      setNextId(prev => prev + 1);
-    }
-    
-    setIsDrawing(false);
-    setCurrentRect(null);
-  };
-
-  // Add mouse leave handler to stop drawing if mouse leaves canvas
-  const handleMouseLeave = () => {
-    if (isDrawing) {
-      setIsDrawing(false);
-      setCurrentRect(null);
-    }
-  };
-
-  // Redraw when occlusions or currentRect change
-  useEffect(() => {
-    if (image) {
-      drawCanvas();
-    }
-  }, [occlusions, currentRect, image]);
-
-  // FIXED: Create cards ONLY from CURRENT occlusions and reset properly + Check limits
-  const handleSave = async () => {
-    if (!image || occlusions.length === 0 || !uploadedImageUrl) {
-      alert('Please upload an image and create at least one occlusion. Make sure the image is uploaded before saving.');
+  const handleSave = () => {
+    if (!imageUrl) {
+      setError(isUploading ? 'Please wait for the image to finish uploading.' : 'Upload an image first.');
       return;
     }
-
-    // CRITICAL: Check if adding these cards would exceed the limit
-    if (cardLimitInfo && cardLimitInfo.availableSlots < occlusions.length) {
-      alert(`Cannot create ${occlusions.length} image occlusion cards. You can only add ${cardLimitInfo.availableSlots} more cards to this deck. Please delete some existing cards or reduce the number of occlusions.`);
+    if (masks.length === 0) {
+      setError('Draw at least one box to hide.');
       return;
     }
-
-    logger.debug('Creating cards from occlusions:', occlusions);
-
-    // Create a snapshot of current occlusions to avoid state issues
-    const currentOcclusions = [...occlusions];
-
-    const cards = currentOcclusions.map(occlusion => ({
-      id: occlusion.id,
-      title: `${cardTitle} - ${occlusion.id}`,
-      imageUrl: uploadedImageUrl,
-      occlusions: currentOcclusions, // Use the snapshot
-      revealedId: occlusion.id
+    setError('');
+    const cards = masks.map((m, i) => ({
+      title: `Image Occlusion ${i + 1}`,
+      front: buildSideHTML(m.id, 'front'),
+      back: buildSideHTML(m.id, 'back'),
     }));
-
-    logger.debug('Cards being created:', cards);
-
-    // Save the cards first
     onSave(cards);
 
-    // CRITICAL FIX: Clear occlusions immediately after saving
-    setOcclusions([]);
-    setNextId(1);
-    setCurrentRect(null);
-    setIsDrawing(false);
-    
-    logger.debug('Editor state reset - occlusions cleared');
-    
-    // IMMEDIATE VISUAL RESET: Force canvas redraw immediately
-    if (image && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      
-      // Clear canvas and redraw just the image (no occlusions)
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-      
-      logger.debug('Canvas visually cleared - no more occlusion marks');
-    }
+    // reset for the next image-occlusion note
+    setMasks([]);
+    setSelectedId(null);
+    nextId.current = 1;
   };
 
-  const clearAll = () => {
-    setOcclusions([]);
-    setNextId(1);
-    logger.debug('All occlusions cleared manually');
-  };
-
-  const undoLast = () => {
-    if (occlusions.length > 0) {
-      setOcclusions(prev => prev.slice(0, -1));
-      setNextId(prev => prev - 1);
-      logger.debug('Last occlusion undone');
-    }
-  };
-
-  const setSizePreset = (size) => {
-    setCanvasSize(size);
-  };
-
-  // Debug logging for occlusions state
-  useEffect(() => {
-    logger.debug('Occlusions state updated:', occlusions);
-  }, [occlusions]);
-
-  // Check if save is possible based on card limits
-  const canSave = () => {
-    if (!image || occlusions.length === 0 || isUploading || !uploadedImageUrl) {
-      return false;
-    }
-    
-    if (cardLimitInfo && cardLimitInfo.availableSlots < occlusions.length) {
-      return false;
-    }
-    
-    return true;
-  };
-
-  // Get save button text based on state
-  const getSaveButtonText = () => {
-    if (isUploading) {
-      return 'Uploading...';
-    }
-    
-    if (!image || occlusions.length === 0) {
-      return `Create Cards`;
-    }
-    
-    if (cardLimitInfo && cardLimitInfo.availableSlots < occlusions.length) {
-      return `Cannot Create ${occlusions.length} Cards (Limit: ${cardLimitInfo.availableSlots})`;
-    }
-    
-    return `Create ${occlusions.length} Cards`;
-  };
-
+  // ── Render ──────────────────────────────────────────────────────────
   return (
-    <div className="image-occlusion-editor" ref={containerRef}>
-      <div className="editor-header">
-        <h3>Image Occlusion Editor</h3>
-        <p>Upload an image or paste one from your clipboard, then draw rectangles to hide parts of it</p>
-        
-        {/* Card Limit Warning for Image Occlusion */}
-        {cardLimitInfo && cardLimitInfo.availableSlots > 0 && cardLimitInfo.availableSlots < 10 && (
-          <div className="image-occlusion-limit-info">
-            <span className="limit-icon">⚠️</span>
-            <span>You can create {cardLimitInfo.availableSlots} more cards in this deck</span>
-          </div>
-        )}
+    <div className="io-editor">
+      <div className="io-head">
+        <h3>Image Occlusion</h3>
+        <p>Upload or paste an image, then drag to draw boxes over what you want to hide. Each box becomes its own card.</p>
       </div>
 
-      <div className="editor-controls">
-        <div className="control-group">
-          <label>Upload or Paste Image:</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
-            disabled={disabled || isUploading}
-          />
-          <div className="paste-info">
-            <small style={{ color: '#4facfe', fontStyle: 'italic', display: 'block', marginTop: '8px' }}>
-              💡 Tip: You can also paste an image directly using Ctrl+V (Cmd+V on Mac)
-            </small>
-          </div>
-          {isUploading && (
-            <div style={{ marginTop: '8px', color: '#4facfe', fontSize: '0.9rem' }}>
-              Uploading image... Please wait.
-            </div>
-          )}
-          {uploadedImageUrl && (
-            <div style={{ marginTop: '8px', color: '#28a745', fontSize: '0.9rem' }}>
-              ✅ Image uploaded successfully
-            </div>
-          )}
-        </div>
-
-        {image && (
-          <>
-            <div className="control-group">
-              <label>Canvas Size: {canvasSize}%</label>
-              <input
-                type="range"
-                min="50"
-                max="200"
-                step="10"
-                value={canvasSize}
-                onChange={(e) => setCanvasSize(parseInt(e.target.value))}
+      {!displayUrl ? (
+        <button
+          type="button"
+          className="io-dropzone"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={disabled}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="io-dropzone-icon">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="9" cy="9" r="2" />
+            <path d="m21 15-3.6-3.6a2 2 0 0 0-2.8 0L6 20" />
+          </svg>
+          <span className="io-dropzone-title">Choose an image</span>
+          <span className="io-dropzone-sub">or paste from clipboard (Ctrl / Cmd + V)</span>
+        </button>
+      ) : (
+        <>
+          <div className="io-toolbar">
+            <div className="io-modes" role="group" aria-label="Occlusion mode">
+              <button
+                type="button"
+                className={`io-mode ${mode === 'hideAll' ? 'active' : ''}`}
+                onClick={() => setMode('hideAll')}
                 disabled={disabled}
-                className="size-slider"
-              />
-              <div className="size-presets">
-                <button 
-                  type="button"
-                  className="preset-btn"
-                  onClick={() => setSizePreset(75)}
-                  disabled={disabled}
-                >
-                  Small
-                </button>
-                <button 
-                  type="button"
-                  className="preset-btn"
-                  onClick={() => setSizePreset(100)}
-                  disabled={disabled}
-                >
-                  Medium
-                </button>
-                <button 
-                  type="button"
-                  className="preset-btn"
-                  onClick={() => setSizePreset(150)}
-                  disabled={disabled}
-                >
-                  Large
+              >
+                Hide all, guess one
+              </button>
+              <button
+                type="button"
+                className={`io-mode ${mode === 'hideOne' ? 'active' : ''}`}
+                onClick={() => setMode('hideOne')}
+                disabled={disabled}
+              >
+                Hide one, guess one
+              </button>
+            </div>
+
+            <div className="io-toolbar-actions">
+              <button
+                type="button"
+                className="io-tool"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={disabled}
+                title="Replace image"
+              >
+                Replace image
+              </button>
+              <button
+                type="button"
+                className="io-tool"
+                onClick={() => setMasks((prev) => prev.slice(0, -1))}
+                disabled={disabled || masks.length === 0}
+                title="Undo last box"
+              >
+                Undo
+              </button>
+              <button
+                type="button"
+                className="io-tool danger"
+                onClick={() => deleteMask(selectedId)}
+                disabled={disabled || selectedId == null}
+                title="Delete selected box"
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                className="io-tool danger"
+                onClick={() => {
+                  setMasks([]);
+                  setSelectedId(null);
+                }}
+                disabled={disabled || masks.length === 0}
+                title="Clear all boxes"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <div className={`io-stage ${uploadFailed ? 'failed' : ''}`}>
+            {isUploading && <div className="io-uploading">Uploading image…</div>}
+            <img src={displayUrl} alt="" className="io-img" draggable={false} />
+            <div
+              ref={overlayRef}
+              className={`io-overlay ${disabled || !ready ? 'inert' : ''}`}
+              onPointerDown={beginDrawing}
+              onPointerMove={onPointerMove}
+              onPointerUp={endPointer}
+              onPointerCancel={endPointer}
+            >
+              {masks.map((m) => {
+                const selected = selectedId === m.id;
+                return (
+                  <div
+                    key={m.id}
+                    className={`io-mask ${selected ? 'selected' : ''}`}
+                    style={{ left: `${m.x}%`, top: `${m.y}%`, width: `${m.w}%`, height: `${m.h}%` }}
+                    onPointerDown={(e) => beginMove(e, m.id)}
+                  >
+                    {selected &&
+                      !disabled &&
+                      HANDLES.map((h) => (
+                        <span
+                          key={h}
+                          className={`io-handle io-${h}`}
+                          onPointerDown={(e) => beginResize(e, m.id, h)}
+                        />
+                      ))}
+                  </div>
+                );
+              })}
+            </div>
+
+            {uploadFailed && (
+              <div className="io-failed">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="io-failed-icon">
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <span className="io-failed-text">Image didn’t upload</span>
+                <button type="button" className="io-retry" onClick={retryUpload}>
+                  Retry upload
                 </button>
               </div>
-            </div>
-          </>
-        )}
-      </div>
-
-      {image && (
-        <>
-          <div className="canvas-container">
-            <canvas
-              ref={canvasRef}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseLeave}
-              style={{ 
-                cursor: disabled ? 'default' : 'crosshair',
-                border: '2px solid #444',
-                borderRadius: '8px',
-                maxWidth: '100%',
-                height: 'auto',
-                display: 'block'
-              }}
-            />
+            )}
           </div>
 
-          <div className="editor-tools">
-            <div className="tool-group">
-              <button 
-                className="tool-btn undo-btn"
-                onClick={undoLast}
-                disabled={disabled || occlusions.length === 0}
-              >
-                ↶ Undo Last
-              </button>
-              <button 
-                className="tool-btn clear-btn"
-                onClick={clearAll}
-                disabled={disabled || occlusions.length === 0}
-              >
-                🗑️ Clear All
-              </button>
-            </div>
-
-            <div className="occlusion-info">
-              <span>Occlusions: {occlusions.length}</span>
-              <small>Shift+Click to delete an occlusion</small>
-              {cardLimitInfo && occlusions.length > cardLimitInfo.availableSlots && (
-                <small style={{ color: '#ff6b6b', fontWeight: 'bold' }}>
-                  ⚠️ Too many occlusions for deck limit
-                </small>
-              )}
-            </div>
-
-            <button 
-              className="save-btn"
+          <div className="io-footer">
+            <span className="io-count">
+              {masks.length} {masks.length === 1 ? 'box' : 'boxes'}
+              <span className="io-hint">Click a box to select · drag to move · Delete to remove</span>
+            </span>
+            <button
+              type="button"
+              className="io-save"
               onClick={handleSave}
-              disabled={disabled || !canSave()}
-              style={{
-                opacity: canSave() ? 1 : 0.6,
-                cursor: canSave() ? 'pointer' : 'not-allowed'
-              }}
+              disabled={disabled || !ready || masks.length === 0}
             >
-              {getSaveButtonText()}
+              {isUploading
+                ? 'Uploading…'
+                : `Create ${masks.length || ''} ${masks.length === 1 ? 'card' : 'cards'}`.trim()}
             </button>
           </div>
         </>
       )}
 
-      {!image && (
-        <div className="upload-prompt">
-          <div className="upload-icon">🖼️</div>
-          <h4>Upload or Paste an Image to Get Started</h4>
-          <p>Select an image file or paste one from your clipboard (Ctrl+V / Cmd+V)</p>
-          <div className="upload-methods">
-            <div className="upload-method">
-              <span className="method-icon">📁</span>
-              <span>Click "Choose File" to browse</span>
-            </div>
-            <div className="upload-method">
-              <span className="method-icon">📋</span>
-              <span>Copy an image and press Ctrl+V</span>
-            </div>
-          </div>
-        </div>
-      )}
+      {error && <div className="io-error">{error}</div>}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={onFileInput}
+        disabled={disabled || isUploading}
+        style={{ display: 'none' }}
+      />
     </div>
   );
-};
-
-export default ImageOcclusionEditor;
+}

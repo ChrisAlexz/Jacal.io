@@ -175,13 +175,6 @@ export default function Dashboard() {
                     <span>Updated {new Date(set.updated_at || set.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
-
-                <div className="set-card-footer">
-                  <div className="progress-bar">
-                    <div className="progress-fill" style={{ width: '60%' }}></div>
-                  </div>
-                  <span className="progress-text">60% studied</span>
-                </div>
               </div>
             ))}
           </div>

@@ -1,209 +1,129 @@
-/* src/styles/AudioPlayerEmbedded.css - Embedded audio player in editor */
+/* src/styles/AudioPlayerEmbedded.css - embedded audio player (indigo) */
 
-/* Audio Player embedded in editor */
-.editor-audio-player {
-  border-top: 1px solid #444;
-  background: rgba(155, 89, 182, 0.1);
-  padding: 12px;
+.simple-rich-text-editor .editor-audio-player {
+  border-top: 1px solid var(--rte-border, rgba(255, 255, 255, 0.08));
+  background: var(--rte-accent-soft, rgba(99, 102, 241, 0.08));
+  padding: 12px 14px;
   margin-top: 0;
 }
 
-.audio-player-header {
+.simple-rich-text-editor .audio-player-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   margin-bottom: 10px;
 }
 
-.audio-icon {
-  color: #9b59b6;
-  font-size: 1rem;
-  margin-right: 6px;
-}
-
-.audio-label {
-  color: #9b59b6;
-  font-size: 0.85rem;
-  font-weight: 600;
-  flex: 1;
-  display: flex;
+.simple-rich-text-editor .audio-icon {
+  color: var(--rte-accent, #818cf8);
+  display: inline-flex;
   align-items: center;
 }
 
-.remove-audio-btn {
-  background: rgba(220, 53, 69, 0.1);
-  color: #dc3545;
-  border: 1px solid rgba(220, 53, 69, 0.3);
-  border-radius: 4px;
-  width: 24px;
-  height: 24px;
-  display: flex;
+.simple-rich-text-editor .audio-label {
+  color: var(--rte-text-secondary, #a1a1aa);
+  font-size: 0.85rem;
+  font-weight: 500;
+  flex: 1;
+}
+
+.simple-rich-text-editor .remove-audio-btn {
+  background: transparent;
+  color: var(--rte-text-tertiary, #71717a);
+  border: 1px solid var(--rte-border, rgba(255, 255, 255, 0.08));
+  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   font-size: 0.75rem;
 }
 
-.remove-audio-btn:hover {
-  background: rgba(220, 53, 69, 0.2);
-  border-color: rgba(220, 53, 69, 0.5);
-  transform: scale(1.1);
+.simple-rich-text-editor .remove-audio-btn:hover {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #f87171;
 }
 
-.audio-player-controls {
+.simple-rich-text-editor .audio-player-controls {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.play-pause-btn {
-  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
-  color: white;
+.simple-rich-text-editor .play-pause-btn {
+  background: var(--rte-accent-strong, #6366f1);
+  color: #fff;
   border: none;
   border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  display: flex;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
-  box-shadow: 0 2px 8px rgba(155, 89, 182, 0.3);
+  transition: filter 0.15s ease, transform 0.15s ease;
+  font-size: 0.85rem;
+  flex-shrink: 0;
 }
 
-.play-pause-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.4);
+.simple-rich-text-editor .play-pause-btn:hover {
+  filter: brightness(1.08);
 }
 
-.audio-progress-container {
+.simple-rich-text-editor .audio-progress-container {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.audio-progress-bar {
+.simple-rich-text-editor .audio-progress-bar {
   flex: 1;
-  height: 6px;
-  background: #333;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
   cursor: pointer;
   position: relative;
-  transition: all 0.2s ease;
+  overflow: hidden;
 }
 
-.audio-progress-bar:hover {
-  background: #3a3a3a;
-  transform: scaleY(1.2);
-}
-
-.audio-progress-fill {
+.simple-rich-text-editor .audio-progress-fill {
   height: 100%;
-  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+  background: var(--rte-accent-strong, #6366f1);
   border-radius: 3px;
-  transition: width 0.1s ease;
+  transition: width 0.1s linear;
 }
 
-.audio-time {
-  color: #9b59b6;
+.simple-rich-text-editor .audio-time {
+  color: var(--rte-text-secondary, #a1a1aa);
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 2px;
-  min-width: 70px;
-  justify-content: center;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .editor-audio-player {
-    padding: 10px;
-  }
-  
-  .audio-player-header {
-    margin-bottom: 8px;
-  }
-  
-  .audio-label {
-    font-size: 0.8rem;
-  }
-  
-  .play-pause-btn {
-    width: 32px;
-    height: 32px;
-    font-size: 0.8rem;
-  }
-  
-  .audio-progress-container {
-    gap: 6px;
-  }
-  
-  .audio-time {
-    font-size: 0.7rem;
-    min-width: 60px;
-  }
+  gap: 3px;
+  min-width: 64px;
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 480px) {
-  .editor-audio-player {
-    padding: 8px;
+  .simple-rich-text-editor .play-pause-btn {
+    width: 30px;
+    height: 30px;
   }
-  
-  .audio-player-controls {
-    gap: 8px;
-  }
-  
-  .play-pause-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 0.75rem;
-  }
-  
-  .audio-time {
-    font-size: 0.65rem;
-    min-width: 50px;
+  .simple-rich-text-editor .audio-time {
+    font-size: 0.7rem;
+    min-width: 56px;
   }
 }
 
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .editor-audio-player {
-    border-top: 2px solid #fff;
-  }
-  
-  .play-pause-btn {
-    background: #9b59b6;
-    border: 2px solid #fff;
-  }
-  
-  .audio-progress-bar {
-    border: 1px solid #fff;
-  }
-  
-  .audio-progress-fill {
-    background: #9b59b6;
-  }
-}
-
-/* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
-  .play-pause-btn {
+  .simple-rich-text-editor .play-pause-btn,
+  .simple-rich-text-editor .audio-progress-fill {
     transition: none;
-  }
-  
-  .play-pause-btn:hover {
-    transform: none;
-  }
-  
-  .audio-progress-bar {
-    transition: none;
-  }
-  
-  .audio-progress-bar:hover {
-    transform: none;
   }
 }

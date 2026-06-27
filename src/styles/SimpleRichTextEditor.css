@@ -1,622 +1,171 @@
-/* src/styles/SimpleRichTextEditor.css - FIXED VERSION */
+/* src/styles/SimpleRichTextEditor.css - clean indigo rich text editor */
 
 .simple-rich-text-editor {
-  border: 1px solid #333;
-  border-radius: 8px;
-  background: #2a2a2a;
+  /* Scoped design tokens (match the dashboard / modal palette) */
+  --rte-surface: #18181b;
+  --rte-surface-focus: #1c1c20;
+  --rte-border: rgba(255, 255, 255, 0.08);
+  --rte-border-focus: rgba(99, 102, 241, 0.5);
+  --rte-text: #f4f4f5;
+  --rte-text-secondary: #a1a1aa;
+  --rte-text-tertiary: #71717a;
+  --rte-accent: #818cf8;
+  --rte-accent-strong: #6366f1;
+  --rte-accent-soft: rgba(99, 102, 241, 0.12);
+
+  border: 1px solid var(--rte-border);
+  border-radius: 10px;
+  background: var(--rte-surface);
   overflow: hidden;
   position: relative;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.simple-rich-text-editor:focus-within {
+  border-color: var(--rte-border-focus);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
 .simple-rich-text-editor.readonly {
-  border-color: #444;
-  background: #222;
-}
-
-/* FIXED: Improved toolbar styling */
-.editor-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  background: #333;
-  border-bottom: 1px solid #444;
-  flex-wrap: wrap;
-  position: relative;
-  overflow: visible;
-  min-height: 48px; /* Ensure consistent height */
-}
-
-/* FIXED: Better toolbar button states */
-.toolbar-btn {
+  border-color: var(--rte-border);
   background: transparent;
-  border: 1px solid transparent;
-  color: #ccc;
-  padding: 6px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 32px;
-  height: 32px;
-  position: relative;
-  outline: none;
+  box-shadow: none;
 }
 
-.toolbar-btn:hover:not(:disabled) {
-  background: rgba(79, 172, 254, 0.2);
-  border-color: rgba(79, 172, 254, 0.3);
-  color: white;
-}
-
-/* FIXED: Clear active state styling */
-.toolbar-btn.active {
-  background: rgba(79, 172, 254, 0.4) !important;
-  border-color: #4facfe !important;
-  color: white !important;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.toolbar-btn.active:hover {
-  background: rgba(79, 172, 254, 0.5) !important;
-}
-
-.toolbar-btn:active {
-  transform: scale(0.95);
-}
-
-.toolbar-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: transparent !important;
-  border-color: transparent !important;
-  transform: none;
-}
-
-/* FIXED: Improved editor content area */
-.editor-content {
+/* ── Editable area (ProseMirror) ────────────────────────────────────── */
+.simple-rich-text-editor .editor-content {
   min-height: 120px;
-  padding: 15px;
-  color: white;
+  padding: 14px 16px;
+  color: var(--rte-text);
   font-size: 1rem;
-  line-height: 1.5;
+  line-height: 1.6;
   outline: none;
   overflow-y: auto;
   word-wrap: break-word;
-  font-family: inherit;
-  background: transparent;
-  border: none;
-  resize: none;
-  position: relative;
-}
-
-.editor-content.readonly {
-  background: #1a1a1a;
-  cursor: default;
-}
-
-/* FIXED: Better placeholder styling */
-.editor-content:empty::before {
-  content: attr(data-placeholder);
-  color: #666;
-  font-style: italic;
-  pointer-events: none;
-  position: absolute;
-  top: 15px;
-  left: 15px;
-}
-
-.editor-content:focus:empty::before {
-  opacity: 0.5;
-}
-
-/* FIXED: Ensure proper focus behavior */
-.editor-content:focus {
-  outline: none;
-  background: rgba(79, 172, 254, 0.02);
-}
-
-/* Format-specific styling */
-.editor-content strong,
-.editor-content b {
-  font-weight: bold;
-}
-
-.editor-content em,
-.editor-content i {
-  font-style: italic;
-}
-
-.editor-content u {
-  text-decoration: underline;
-}
-
-.editor-content sup {
-  vertical-align: super;
-  font-size: smaller;
-  line-height: 0;
-}
-
-.editor-content sub {
-  vertical-align: sub;
-  font-size: smaller;
-  line-height: 0;
-}
-
-/* FIXED: Better selection visibility */
-.editor-content::selection {
-  background: rgba(79, 172, 254, 0.3);
-  color: white;
-}
-
-.editor-content ::-moz-selection {
-  background: rgba(79, 172, 254, 0.3);
-  color: white;
-}
-
-/* Toolbar divider */
-.toolbar-divider {
-  width: 1px;
-  height: 20px;
-  background: #555;
-  margin: 0 4px;
-  flex-shrink: 0;
-}
-
-/* Audio-specific toolbar styling */
-.toolbar-btn.audio-btn {
-  color: #9b59b6;
-}
-
-.toolbar-btn.audio-btn:hover:not(:disabled) {
-  background: rgba(155, 89, 182, 0.2);
-  border-color: rgba(155, 89, 182, 0.3);
-  color: #8e44ad;
-}
-
-.toolbar-btn.recording-btn {
-  background: rgba(220, 53, 69, 0.2) !important;
-  border-color: rgba(220, 53, 69, 0.3) !important;
-  color: #dc3545 !important;
-  animation: recordingPulse 1.5s ease-in-out infinite;
-}
-
-.toolbar-btn.recording-btn:hover {
-  background: rgba(220, 53, 69, 0.3) !important;
-}
-
-@keyframes recordingPulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.05);
-  }
-}
-
-.toolbar-btn.delete-audio {
-  color: #dc3545;
-}
-
-.toolbar-btn.delete-audio:hover:not(:disabled) {
-  background: rgba(220, 53, 69, 0.2);
-  border-color: rgba(220, 53, 69, 0.3);
-  color: #c82333;
-}
-
-/* Recording time and uploading indicators */
-.recording-time,
-.uploading-indicator {
-  color: #dc3545;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 0 8px;
-  background: rgba(220, 53, 69, 0.1);
-  border-radius: 4px;
-  border: 1px solid rgba(220, 53, 69, 0.3);
-  display: flex;
-  align-items: center;
-  height: 24px;
-  white-space: nowrap;
-}
-
-.uploading-indicator {
-  color: #4facfe;
-  background: rgba(79, 172, 254, 0.1);
-  border-color: rgba(79, 172, 254, 0.3);
-}
-
-.uploading-indicator::before {
-  content: '';
-  width: 12px;
-  height: 12px;
-  margin-right: 6px;
-  border: 2px solid rgba(79, 172, 254, 0.3);
-  border-top: 2px solid #4facfe;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* FIXED: Audio player embedded styling */
-.editor-audio-player {
-  margin-top: 12px;
-  background: rgba(155, 89, 182, 0.1);
-  border: 1px solid rgba(155, 89, 182, 0.3);
-  border-radius: 8px;
-  padding: 12px;
-  position: relative;
-}
-
-.audio-player-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.audio-icon {
-  margin-right: 6px;
-  font-size: 1rem;
-}
-
-.audio-label {
-  color: #9b59b6;
-  font-size: 0.9rem;
-  font-weight: 600;
-  flex: 1;
-}
-
-.remove-audio-btn {
-  background: transparent;
-  border: none;
-  color: #dc3545;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-  font-size: 0.9rem;
-}
-
-.remove-audio-btn:hover {
-  background: rgba(220, 53, 69, 0.2);
-  color: #c82333;
-}
-
-.audio-player-controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.play-pause-btn {
-  background: #9b59b6;
-  border: none;
-  color: white;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.play-pause-btn:hover {
-  background: #8e44ad;
-  transform: scale(1.05);
-}
-
-.audio-progress-container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.audio-progress-bar {
-  flex: 1;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-}
-
-.audio-progress-fill {
-  height: 100%;
-  background: #9b59b6;
-  border-radius: 3px;
-  transition: width 0.1s ease;
-}
-
-.audio-time {
-  font-size: 0.8rem;
-  color: #9b59b6;
-  font-weight: 600;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Simple audio indicator (when hideAudioPlayer is true) */
-.editor-audio-simple {
-  margin-top: 8px;
-  padding: 8px 12px;
-  background: rgba(155, 89, 182, 0.1);
-  border: 1px solid rgba(155, 89, 182, 0.3);
-  border-radius: 6px;
-}
-
-.editor-audio-simple .audio-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: #9b59b6;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.editor-audio-simple .remove-audio-btn {
-  background: transparent;
-  border: none;
-  color: #dc3545;
-  cursor: pointer;
-  font-size: 1.2rem;
-  line-height: 1;
-  padding: 0;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
-.editor-audio-simple .remove-audio-btn:hover {
-  background: rgba(220, 53, 69, 0.2);
-}
-
-/* Error messages */
-.audio-error {
-  margin-top: 8px;
-  padding: 8px 12px;
-  background: rgba(220, 53, 69, 0.1);
-  border: 1px solid rgba(220, 53, 69, 0.3);
-  border-radius: 6px;
-  color: #ff6b6b;
-  font-size: 0.85rem;
-}
-
-/* FIXED: Responsive design */
-@media (max-width: 768px) {
-  .editor-toolbar {
-    padding: 6px 8px;
-    gap: 2px;
-    flex-wrap: wrap;
-  }
-  
-  .toolbar-btn {
-    min-width: 28px;
-    height: 28px;
-    padding: 4px 6px;
-    font-size: 12px;
-  }
-  
-  .editor-content {
-    padding: 12px;
-    font-size: 0.95rem;
-  }
-  
-  .editor-content:empty::before {
-    top: 12px;
-    left: 12px;
-  }
-  
-  .recording-time,
-  .uploading-indicator {
-    font-size: 11px;
-    padding: 0 6px;
-    height: 22px;
-  }
-  
-  .toolbar-divider {
-    height: 16px;
-    margin: 0 2px;
-  }
-  
-  .audio-player-controls {
-    gap: 8px;
-  }
-  
-  .play-pause-btn {
-    width: 28px;
-    height: 28px;
-  }
-  
-  .audio-time {
-    font-size: 0.75rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .editor-toolbar {
-    padding: 4px 6px;
-  }
-  
-  .toolbar-btn {
-    min-width: 26px;
-    height: 26px;
-    padding: 3px 5px;
-  }
-  
-  .editor-content {
-    padding: 10px;
-    font-size: 0.9rem;
-    min-height: 100px;
-  }
-  
-  .editor-content:empty::before {
-    top: 10px;
-    left: 10px;
-  }
-  
-  .recording-time,
-  .uploading-indicator {
-    font-size: 10px;
-    padding: 0 4px;
-    height: 20px;
-  }
-  
-  .audio-player-header {
-    margin-bottom: 6px;
-  }
-  
-  .audio-label {
-    font-size: 0.8rem;
-  }
-  
-  .play-pause-btn {
-    width: 24px;
-    height: 24px;
-  }
-  
-  .audio-time {
-    font-size: 0.7rem;
-  }
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .toolbar-btn {
-    border: 1px solid #666;
-  }
-  
-  .toolbar-btn:hover:not(:disabled) {
-    border-color: #4facfe;
-  }
-  
-  .toolbar-btn.active {
-    border-color: #4facfe !important;
-    background: #4facfe !important;
-    color: #000 !important;
-  }
-  
-  .editor-content {
-    border: 1px solid #666;
-  }
-  
-  .audio-progress-bar {
-    border: 1px solid #666;
-  }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  .toolbar-btn,
-  .play-pause-btn,
-  .remove-audio-btn {
-    transition: none;
-  }
-  
-  .toolbar-btn:active {
-    transform: none;
-  }
-  
-  .toolbar-btn.recording-btn {
-    animation: none;
-  }
-  
-  .uploading-indicator::before {
-    animation: none;
-  }
-  
-  .play-pause-btn:hover {
-    transform: none;
-  }
-  
-  .audio-progress-fill {
-    transition: none;
-  }
-}
-
-/* FIXED: Ensure toolbar buttons don't interfere with text selection */
-.editor-toolbar * {
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-}
-
-/* FIXED: Prevent toolbar from interfering with editor focus */
-.editor-toolbar button:focus {
-  outline: 2px solid #4facfe;
-  outline-offset: 2px;
-}
-
-/* FIXED: Better visual feedback for active states */
-.toolbar-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 12px;
-  height: 2px;
-  background: #4facfe;
-  border-radius: 1px;
-}
-
-/* FIXED: Ensure consistent typography in editor */
-.editor-content {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* FIXED: Handle paste operations better */
-.editor-content * {
-  max-width: 100%;
+.simple-rich-text-editor .editor-content:focus {
+  outline: none;
 }
 
-.editor-content img {
+.simple-rich-text-editor .editor-content.readonly {
+  min-height: 0;
+  cursor: default;
+}
+
+/* TipTap placeholder (shown only while the doc is empty) */
+.simple-rich-text-editor .editor-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--rte-text-tertiary);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Content typography */
+.simple-rich-text-editor .editor-content p {
+  margin: 0 0 8px 0;
+}
+.simple-rich-text-editor .editor-content p:last-child {
+  margin-bottom: 0;
+}
+.simple-rich-text-editor .editor-content strong { font-weight: 700; }
+.simple-rich-text-editor .editor-content em { font-style: italic; }
+.simple-rich-text-editor .editor-content u { text-decoration: underline; }
+.simple-rich-text-editor .editor-content sup,
+.simple-rich-text-editor .editor-content sub {
+  font-size: 0.75em;
+  line-height: 0;
+}
+.simple-rich-text-editor .editor-content ul,
+.simple-rich-text-editor .editor-content ol {
+  margin: 8px 0;
+  padding-left: 22px;
+}
+.simple-rich-text-editor .editor-content li { margin: 2px 0; }
+.simple-rich-text-editor .editor-content img {
   max-width: 100%;
   height: auto;
-  border-radius: 4px;
+  border-radius: 6px;
+}
+.simple-rich-text-editor .editor-content ::selection {
+  background: rgba(99, 102, 241, 0.3);
 }
 
-/* FIXED: Better handling of lists and other elements */
-.editor-content ul,
-.editor-content ol {
-  margin: 8px 0;
-  padding-left: 20px;
+/* ── Compact "audio attached" indicator (hideAudioPlayer) ───────────── */
+.simple-rich-text-editor .editor-audio-simple {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: var(--rte-accent-soft);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 8px;
 }
 
-.editor-content li {
-  margin: 4px 0;
+.simple-rich-text-editor .editor-audio-simple .audio-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--rte-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
-.editor-content p {
-  margin: 8px 0;
+.simple-rich-text-editor .editor-audio-simple .audio-label {
+  flex: 1;
 }
 
-.editor-content p:first-child {
-  margin-top: 0;
+.simple-rich-text-editor .editor-audio-simple .remove-audio-btn {
+  background: transparent;
+  border: none;
+  color: var(--rte-text-tertiary);
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.editor-content p:last-child {
-  margin-bottom: 0;
+.simple-rich-text-editor .editor-audio-simple .remove-audio-btn:hover {
+  background: rgba(239, 68, 68, 0.14);
+  color: #f87171;
+}
+
+/* ── Inline note icon ───────────────────────────────────────────────── */
+.simple-rich-text-editor .audio-note-icon {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+/* ── Error + hint text ──────────────────────────────────────────────── */
+.simple-rich-text-editor .audio-error {
+  margin-top: 10px;
+  padding: 9px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-size: 0.85rem;
+}
+
+.simple-rich-text-editor .editor-audio-hint {
+  font-size: 0.78rem;
+  color: var(--rte-text-tertiary);
+  text-align: right;
+  padding: 8px 14px 10px 14px;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .simple-rich-text-editor .editor-content {
+    padding: 12px 14px;
+    min-height: 100px;
+  }
 }

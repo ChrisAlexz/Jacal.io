@@ -1,6 +1,6 @@
 // src/components/FlashcardInput.jsx - NO LIMITS VERSION
 import { logger } from '../utils/logger';
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import SimpleRichTextEditor from './SimpleRichTextEditor';
 import ImageOcclusionEditor from './ImageOcclusionEditor';
 import UserAuthContext from './context/UserAuthContext';
@@ -14,6 +14,10 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
   const [frontAudioUrl, setFrontAudioUrl] = useState(null);
   const [backAudioUrl, setBackAudioUrl] = useState(null);
 
+  // Imperative handles to the rich-text editors (cloze insertion, clearing).
+  const frontEditorRef = useRef(null);
+  const backEditorRef = useRef(null);
+
   const activeType = isPerCardMode ? currentCardType : (type || 'Basic');
 
   const getValidCardType = (cardType) => {
@@ -23,56 +27,28 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
 
   const handleCloze = () => {
     if (activeType !== 'Cloze') return;
-    
-    const selection = window.getSelection();
-    
-    if (selection.rangeCount > 0 && !selection.isCollapsed) {
-      const range = selection.getRangeAt(0);
-      const selectedText = range.toString();
-      
-      if (selectedText.trim()) {
-        const clozeText = `{{c1::${selectedText}}}`;
-        range.deleteContents();
-        const textNode = document.createTextNode(clozeText);
-        range.insertNode(textNode);
-        selection.removeAllRanges();
-        
-        setTimeout(() => {
-          const frontEditor = document.querySelector('.front-editor .editor-content');
-          if (frontEditor) {
-            setFrontContent(frontEditor.innerHTML);
-          }
-        }, 10);
-      }
-    } else {
+
+    const inserted = frontEditorRef.current?.insertCloze();
+    if (!inserted) {
       alert('Please select some text first to create a cloze deletion.');
     }
   };
 
   const clearContent = () => {
-    logger.debug('🧹 Clearing content...');
+    logger.debug('Clearing content...');
     setFrontContent('');
     setBackContent('');
     setFrontAudioUrl(null);
     setBackAudioUrl(null);
-    
+
     if (isPerCardMode) {
       setCurrentCardType(type || 'Basic');
     }
-    
-    setTimeout(() => {
-      const frontEditor = document.querySelector('.front-editor .editor-content');
-      const backEditor = document.querySelector('.back-editor .editor-content');
-      
-      if (frontEditor) {
-        frontEditor.innerHTML = '';
-      }
-      if (backEditor) {
-        backEditor.innerHTML = '';
-      }
-    }, 100);
-    
-    logger.debug('✅ Content cleared successfully');
+
+    frontEditorRef.current?.clear();
+    backEditorRef.current?.clear();
+
+    logger.debug('Content cleared successfully');
   };
 
   const handleAdd = () => {
@@ -117,92 +93,11 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
     clearContent();
   };
 
-  const handleImageOcclusionSave = async (cards) => {
-    logger.debug('🖼️ Image occlusion save called with', cards.length, 'cards');
-    
-    // NO LIMIT CHECKS - All removed
-    
-    cards.forEach((card, index) => {
-      logger.debug(`🃏 Adding image occlusion card ${index + 1}:`, card.title);
-      
-      const canvas = document.querySelector('.image-occlusion-editor canvas');
-      if (!canvas) {
-        logger.error('❌ Canvas not found for image occlusion');
-        return;
-      }
-      
-      const canvasWidth = canvas.width;
-      const canvasHeight = canvas.height;
-      
-      const frontHTML = `
-        <div class="image-occlusion-card">
-          <img src="${card.imageUrl}" alt="${card.title}" class="occlusion-image" />
-          <div class="occlusion-overlay">
-            ${card.occlusions.map(occlusion => {
-              const isActive = occlusion.id === card.revealedId;
-              const leftPercent = (occlusion.x / canvasWidth) * 100;
-              const topPercent = (occlusion.y / canvasHeight) * 100;
-              const widthPercent = (occlusion.width / canvasWidth) * 100;
-              const heightPercent = (occlusion.height / canvasHeight) * 100;
-              const fontSize = Math.max(12, Math.min(18, (occlusion.width / canvasWidth) * 150));
-              
-              if (isActive) {
-                return `<div class="occlusion-question-active" style="
-                  left: ${leftPercent}%; 
-                  top: ${topPercent}%; 
-                  width: ${widthPercent}%; 
-                  height: ${heightPercent}%; 
-                  font-size: ${fontSize}px;
-                ">${occlusion.id}</div>`;
-              } else {
-                return `<div class="occlusion-blocked" style="
-                  left: ${leftPercent}%; 
-                  top: ${topPercent}%; 
-                  width: ${widthPercent}%; 
-                  height: ${heightPercent}%; 
-                  font-size: ${Math.max(10, fontSize * 0.8)}px;
-                ">${occlusion.id}</div>`;
-              }
-            }).join('')}
-          </div>
-        </div>
-      `;
-      
-      const backHTML = `
-        <div class="image-occlusion-card">
-          <img src="${card.imageUrl}" alt="${card.title}" class="occlusion-image" />
-          <div class="occlusion-overlay">
-            ${card.occlusions.map(occlusion => {
-              const isActive = occlusion.id === card.revealedId;
-              const leftPercent = (occlusion.x / canvasWidth) * 100;
-              const topPercent = (occlusion.y / canvasHeight) * 100;
-              const widthPercent = (occlusion.width / canvasWidth) * 100;
-              const heightPercent = (occlusion.height / canvasHeight) * 100;
-              const fontSize = Math.max(12, Math.min(18, (occlusion.width / canvasWidth) * 150));
-              
-              if (isActive) {
-                return `<div class="occlusion-answer-revealed" style="
-                  left: ${leftPercent}%; 
-                  top: ${topPercent}%; 
-                  width: ${widthPercent}%; 
-                  height: ${heightPercent}%; 
-                  font-size: 0px;
-                "></div>`;
-              } else {
-                return `<div class="occlusion-blocked" style="
-                  left: ${leftPercent}%; 
-                  top: ${topPercent}%; 
-                  width: ${widthPercent}%; 
-                  height: ${heightPercent}%; 
-                  font-size: ${Math.max(10, fontSize * 0.8)}px;
-                ">${occlusion.id}</div>`;
-              }
-            }).join('')}
-          </div>
-        </div>
-      `;
-      
-      addFlashcard(frontHTML, backHTML, 'Image-Occlusion');
+  const handleImageOcclusionSave = (cards) => {
+    // The editor produces ready-to-store front/back HTML (one card per masked box).
+    logger.debug('Image occlusion save:', cards.length, 'cards');
+    cards.forEach((card) => {
+      addFlashcard(card.front, card.back, 'Image-Occlusion');
     });
   };
 
@@ -264,18 +159,10 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
             Card Type:
           </label>
           <select
+            className="card-type-select"
             value={currentCardType}
             onChange={(e) => setCurrentCardType(e.target.value)}
             disabled={disabled}
-            style={{
-              padding: '8px 12px',
-              background: '#2a2a2a',
-              border: '2px solid #333',
-              borderRadius: '8px',
-              color: 'white',
-              fontSize: '1rem',
-              cursor: 'pointer'
-            }}
           >
             <option value="Basic">Basic</option>
             <option value="Basic-Type">Basic (Type Answer)</option>
@@ -299,6 +186,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
           
           <div className="flashcard-box front-editor">
             <SimpleRichTextEditor
+              ref={frontEditorRef}
               value={frontContent}
               onChange={setFrontContent}
               placeholder={placeholders.front}
@@ -316,6 +204,7 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
           
           <div className="flashcard-box back-editor">
             <SimpleRichTextEditor
+              ref={backEditorRef}
               value={backContent}
               onChange={setBackContent}
               placeholder={placeholders.back}
@@ -329,16 +218,17 @@ export default function FlashcardInput({ addFlashcard, disabled, type, isPerCard
           {activeType === 'Basic-Type' && (
             <div style={{ marginBottom: '10px' }}>
               <small style={{ color: '#888', fontStyle: 'italic' }}>
-                💡 Tip: Enter the exact answer users should type. Matching will be case-insensitive with trimmed spaces.
+                Tip: Enter the exact answer users should type. Matching will be case-insensitive with trimmed spaces.
               </small>
             </div>
           )}
 
           {activeType === 'Cloze' && (
             <div style={{ marginBottom: '10px' }}>
-              <button 
-                onClick={handleCloze} 
-                disabled={disabled} 
+              <button
+                className="cloze-btn"
+                onClick={handleCloze}
+                disabled={disabled}
                 type="button"
               >
                 [c] Cloze

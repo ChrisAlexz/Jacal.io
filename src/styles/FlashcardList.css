@@ -334,45 +334,32 @@
 
 /* CRITICAL: Force show occlusion areas in edit view - override any hiding styles */
 .flashcard-list .occlusion-question-active,
-.flashcard-list .occlusion-blocked, 
+.flashcard-list .occlusion-blocked,
 .flashcard-list .occlusion-answer-revealed {
   position: absolute !important;
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
   border-radius: 3px;
   box-sizing: border-box;
-  min-height: 16px;
-  min-width: 16px;
-  font-size: 10px;
-  line-height: 1;
-  text-align: center;
-  border: 2px solid;
+  font-size: 0;
+  border: 1px solid;
   opacity: 1 !important;
   visibility: visible !important;
   z-index: 10;
 }
 
-/* Edit view - show all occlusions with strong visibility */
+/* Edit/preview view - show all regions clearly */
 .flashcard-list .occlusion-question-active {
-  background: rgba(79, 172, 254, 0.9) !important;
-  border-color: #4facfe !important;
-  color: white !important;
-  box-shadow: 0 0 8px rgba(79, 172, 254, 0.7);
+  background: #6366f1 !important;
+  border-color: #818cf8 !important;
 }
 
 .flashcard-list .occlusion-blocked {
-  background: rgba(0, 0, 0, 0.85) !important;
-  border-color: #666 !important;
-  color: #fff !important;
+  background: #cbd0d8 !important;
+  border-color: rgba(0, 0, 0, 0.25) !important;
 }
 
 .flashcard-list .occlusion-answer-revealed {
-  background: rgba(40, 167, 69, 0.9) !important;
-  border-color: #28a745 !important;
-  color: white !important;
-  box-shadow: 0 0 8px rgba(40, 167, 69, 0.7);
+  background: transparent !important;
+  border: 2px solid #6366f1 !important;
 }
 
 /* Ensure overlay container is properly positioned */

@@ -1,11 +1,41 @@
 /* src/styles/FlashcardInput.css - WITH INCREASED SPACING FOR MATH SYMBOLS AND CARD LIMITS */
 
 .flashcard-input {
-  background: #1e1e1e;
-  border: 1px solid #333;
-  border-radius: 12px;
-  padding: 25px;
+  /* Transparent so the page's About-style particle background shows through
+     (the panel used to be an opaque slab covering it). */
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
   margin-bottom: 30px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Card Type selector */
+.flashcard-input .card-type-select {
+  padding: 9px 14px;
+  background: #1a1a1d;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #f4f4f5;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  min-width: 200px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23818cf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 38px;
+}
+
+.flashcard-input .card-type-select:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
 }
 
 /* Card Limit Information */
@@ -104,17 +134,10 @@
   margin-bottom: 20px;
 }
 
-/* FIXED: Increased spacing between toolbar and editor content */
 .flashcard-box .simple-rich-text-editor .editor-content {
-  min-height: 120px;
-  padding: 25px 15px 15px 15px; /* INCREASED top padding from 15px to 25px */
-  color: white;
-  font-size: 1rem;
-  line-height: 1.5;
-  outline: none;
-  overflow-y: auto;
-  word-wrap: break-word;
-  margin-top: 8px; /* ADDED: Extra margin between toolbar and content */
+  min-height: 130px;
+  padding: 16px;
+  margin-top: 0;
 }
 
 /* Additional spacing for math structures in the editor */
@@ -130,49 +153,59 @@
   margin: 12px 6px; /* INCREASED vertical margin */
 }
 
-/* Button styling */
-.flashcard-input button {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 10px 16px;
-  font-weight: 600;
+/* Cloze helper button */
+.flashcard-input .cloze-btn {
+  background: transparent;
+  color: #a1a1aa;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 500;
+  font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s ease;
-  margin-right: 10px;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-.flashcard-input button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+.flashcard-input .cloze-btn:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #818cf8;
 }
 
-.flashcard-input button:disabled {
+.flashcard-input .cloze-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
+/* Primary "Add Flashcard" action */
 .add-flashcard-btn {
-  background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
-  padding: 12px 24px !important;
-  font-size: 1rem !important;
-  margin-top: 15px;
+  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 22px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 16px;
+  box-shadow: 0 6px 18px -6px rgba(99, 102, 241, 0.6);
+  transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .add-flashcard-btn:hover:not(:disabled) {
-  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3) !important;
+  transform: translateY(-1px);
+  filter: brightness(1.07);
+  box-shadow: 0 9px 24px -6px rgba(99, 102, 241, 0.75);
 }
 
-/* Button disabled state when limit reached */
+/* Disabled (e.g. empty content / limit reached) */
 .add-flashcard-btn:disabled {
-  background: rgba(220, 53, 69, 0.2) !important;
-  color: #ff6b6b !important;
-  cursor: not-allowed !important;
-  transform: none !important;
-  box-shadow: none !important;
+  background: rgba(255, 255, 255, 0.06);
+  color: #71717a;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  filter: none;
 }
 
 /* Small helper text styling */
@@ -208,10 +241,9 @@
     padding: 6px 10px;
   }
   
-  /* Slightly reduced spacing on tablets */
   .flashcard-box .simple-rich-text-editor .editor-content {
-    padding: 20px 12px 12px 12px;
-    margin-top: 6px;
+    padding: 14px;
+    margin-top: 0;
   }
   
   .flashcard-box .simple-rich-text-editor .editor-content .math-structure {
@@ -256,10 +288,9 @@
     padding: 4px 8px;
   }
   
-  /* Further reduced spacing on mobile */
   .flashcard-box .simple-rich-text-editor .editor-content {
-    padding: 18px 10px 10px 10px;
-    margin-top: 4px;
+    padding: 12px 14px;
+    margin-top: 0;
   }
   
   .flashcard-box .simple-rich-text-editor .editor-content .math-structure {

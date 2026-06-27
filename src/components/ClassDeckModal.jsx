@@ -164,7 +164,16 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
       <div className="class-deck-modal-overlay">
         <div className="class-deck-modal-content">
           <div className="modal-header">
-            <h2>⚠️ Deck Limit Reached</h2>
+            <h2>
+              <span className="modal-title-icon modal-title-icon--warning">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </span>
+              Deck Limit Reached
+            </h2>
           </div>
           <div className="modal-body">
             <p>{limitInfo.decks.message || LIMIT_MESSAGES.DECK_LIMIT_REACHED}</p>
@@ -185,10 +194,19 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
   }
 
   return (
-    <div className="modal-overlay">
+    <div className="class-deck-modal-overlay">
       <div className="class-deck-modal-content">
         <div className="modal-header">
-          <h2>📚 Create New Deck</h2>
+          <h2>
+            <span className="modal-title-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                <polyline points="2 17 12 22 22 17"/>
+                <polyline points="2 12 12 17 22 12"/>
+              </svg>
+            </span>
+            Create New Deck
+          </h2>
           {isAddingToFolder && selectedClass && (
             <p className="modal-subtitle">Adding to "{selectedClass.name}"</p>
           )}
@@ -222,7 +240,13 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
 
         {error && (
           <div className="error-message">
-            <span className="error-icon">⚠️</span>
+            <span className="error-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </span>
             <div className="error-content">
               <div className="error-text">{error}</div>
             </div>
@@ -250,7 +274,12 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
               </div>
               {selectedOption === 'new' && limitInfo.folders && !limitInfo.folders.canCreate && (
                 <div className="field-warning">
-                  ⚠️ {limitInfo.folders.message}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                  {limitInfo.folders.message}
                 </div>
               )}
             </div>
@@ -310,7 +339,11 @@ const ClassDeckModal = ({ onClose, onSuccess, preselectedClassId }) => {
                 </>
               ) : (
                 <>
-                  <span className="btn-icon">📚</span>
+                  <span className="btn-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                  </span>
                   Create Deck
                 </>
               )}

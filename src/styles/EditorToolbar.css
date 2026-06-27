@@ -1,234 +1,137 @@
-/* src/styles/EditorToolbar.css - Toolbar styling */
+/* src/styles/EditorToolbar.css - clean indigo toolbar */
 
-.editor-toolbar {
+.simple-rich-text-editor .editor-toolbar {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  background: #333;
-  border-bottom: 1px solid #444;
+  gap: 2px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--rte-border, rgba(255, 255, 255, 0.08));
   flex-wrap: wrap;
   position: relative;
-  overflow: visible;
 }
 
-.toolbar-btn {
+/* Buttons — override the broad `.flashcard-input button` gradient with a
+   higher-specificity, flat treatment. */
+.simple-rich-text-editor .editor-toolbar .toolbar-btn {
   background: transparent;
-  border: none;
-  color: #ccc;
-  padding: 6px 8px;
-  border-radius: 4px;
+  border: 1px solid transparent;
+  color: var(--rte-text-secondary, #a1a1aa);
+  padding: 0;
+  margin: 0;
+  border-radius: 7px;
   cursor: pointer;
   font-size: 14px;
-  transition: all 0.2s ease;
-  display: flex;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 32px;
+  width: 32px;
   height: 32px;
-  position: relative;
+  box-shadow: none;
+  transform: none;
 }
 
-.toolbar-btn:hover {
-  background: rgba(79, 172, 254, 0.2);
-  color: white;
+.simple-rich-text-editor .editor-toolbar .toolbar-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--rte-text, #f4f4f5);
+  border-color: transparent;
+  transform: none;
+  box-shadow: none;
 }
 
-.toolbar-btn.active {
-  background: rgba(79, 172, 254, 0.3);
-  color: #4facfe;
+.simple-rich-text-editor .editor-toolbar .toolbar-btn.active {
+  background: var(--rte-accent-soft, rgba(99, 102, 241, 0.16));
+  border-color: rgba(99, 102, 241, 0.35);
+  color: var(--rte-accent, #818cf8);
 }
 
-.toolbar-btn:active {
-  transform: scale(0.95);
-}
-
-.toolbar-btn:disabled {
-  opacity: 0.5;
+.simple-rich-text-editor .editor-toolbar .toolbar-btn:disabled {
+  opacity: 0.4;
   cursor: not-allowed;
+  background: transparent;
 }
 
-/* Toolbar divider */
-.toolbar-divider {
+.simple-rich-text-editor .editor-toolbar .toolbar-btn:focus-visible {
+  outline: 2px solid var(--rte-accent, #6366f1);
+  outline-offset: 2px;
+}
+
+/* Divider */
+.simple-rich-text-editor .toolbar-divider {
   width: 1px;
-  height: 20px;
-  background: #555;
-  margin: 0 4px;
+  height: 18px;
+  background: var(--rte-border, rgba(255, 255, 255, 0.1));
+  margin: 0 6px;
   flex-shrink: 0;
 }
 
-/* Audio-specific toolbar buttons */
-.toolbar-btn.audio-btn {
-  color: #9b59b6;
+/* Recording / upload states */
+.simple-rich-text-editor .editor-toolbar .toolbar-btn.recording-btn {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #f87171;
+  animation: rteRecordingPulse 1.5s ease-in-out infinite;
 }
 
-.toolbar-btn.audio-btn:hover {
-  background: rgba(155, 89, 182, 0.2);
-  color: #8e44ad;
+.simple-rich-text-editor .editor-toolbar .toolbar-btn.recording-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.22);
+  color: #fca5a5;
 }
 
-.toolbar-btn.recording-btn {
-  background: rgba(220, 53, 69, 0.2);
-  color: #dc3545;
-  animation: recordingPulse 1.5s ease-in-out infinite;
+.simple-rich-text-editor .editor-toolbar .toolbar-btn.delete-audio:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.14);
+  color: #f87171;
 }
 
-.toolbar-btn.recording-btn:hover {
-  background: rgba(220, 53, 69, 0.3);
+@keyframes rteRecordingPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
-@keyframes recordingPulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.05);
-  }
-}
-
-.toolbar-btn.delete-audio {
-  color: #dc3545;
-}
-
-.toolbar-btn.delete-audio:hover {
-  background: rgba(220, 53, 69, 0.2);
-  color: #c82333;
-}
-
-/* Recording time display */
-.recording-time {
-  color: #dc3545;
+.simple-rich-text-editor .recording-time,
+.simple-rich-text-editor .uploading-indicator {
   font-size: 12px;
   font-weight: 600;
-  padding: 0 8px;
-  background: rgba(220, 53, 69, 0.1);
-  border-radius: 4px;
-  border: 1px solid rgba(220, 53, 69, 0.3);
-  display: flex;
+  padding: 0 10px;
+  border-radius: 6px;
+  display: inline-flex;
   align-items: center;
-  height: 24px;
+  height: 26px;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Uploading indicator */
-.uploading-indicator {
-  color: #4facfe;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 0 8px;
-  background: rgba(79, 172, 254, 0.1);
-  border-radius: 4px;
-  border: 1px solid rgba(79, 172, 254, 0.3);
-  display: flex;
-  align-items: center;
-  height: 24px;
-  white-space: nowrap;
+.simple-rich-text-editor .recording-time {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-.uploading-indicator::before {
+.simple-rich-text-editor .uploading-indicator {
+  color: var(--rte-accent, #818cf8);
+  background: var(--rte-accent-soft, rgba(99, 102, 241, 0.12));
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.simple-rich-text-editor .uploading-indicator::before {
   content: '';
   width: 12px;
   height: 12px;
-  margin-right: 6px;
-  border: 2px solid rgba(79, 172, 254, 0.3);
-  border-top: 2px solid #4facfe;
+  margin-right: 7px;
+  border: 2px solid rgba(99, 102, 241, 0.3);
+  border-top-color: #818cf8;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: rteSpin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+@keyframes rteSpin {
+  to { transform: rotate(360deg); }
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-  .editor-toolbar {
-    padding: 6px 8px;
-    gap: 2px;
-  }
-  
-  .toolbar-btn {
-    min-width: 28px;
-    height: 28px;
-    padding: 4px 6px;
-    font-size: 12px;
-  }
-  
-  .recording-time,
-  .uploading-indicator {
-    font-size: 11px;
-    padding: 0 6px;
-    height: 22px;
-  }
-  
-  .toolbar-divider {
-    height: 16px;
-    margin: 0 2px;
-  }
-}
-
-@media (max-width: 480px) {
-  .editor-toolbar {
-    padding: 4px 6px;
-  }
-  
-  .toolbar-btn {
-    min-width: 26px;
-    height: 26px;
-    padding: 3px 5px;
-  }
-  
-  .recording-time,
-  .uploading-indicator {
-    font-size: 10px;
-    padding: 0 4px;
-    height: 20px;
-  }
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .toolbar-btn {
-    border: 1px solid #666;
-  }
-  
-  .toolbar-btn:hover {
-    border-color: #4facfe;
-  }
-  
-  .toolbar-btn.active {
-    border-color: #4facfe;
-    background: #4facfe;
-    color: #000;
-  }
-  
-  .recording-time {
-    border: 1px solid #dc3545;
-  }
-  
-  .uploading-indicator {
-    border: 1px solid #4facfe;
-  }
-}
-
-/* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
-  .toolbar-btn {
-    transition: none;
-  }
-  
-  .toolbar-btn:active {
-    transform: none;
-  }
-  
-  .toolbar-btn.recording-btn {
-    animation: none;
-  }
-  
-  .uploading-indicator::before {
+  .simple-rich-text-editor .editor-toolbar .toolbar-btn.recording-btn,
+  .simple-rich-text-editor .uploading-indicator::before {
     animation: none;
   }
 }
