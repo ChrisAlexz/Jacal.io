@@ -92,8 +92,11 @@ const SimpleRichTextEditor = forwardRef(function SimpleRichTextEditor(
   }, [editor, readOnly]);
 
   // Sync external value changes (e.g. loading a card, clearing the form).
+  // Skip while the user is actively typing in this editor: a debounced parent
+  // update can arrive with slightly-stale HTML and would otherwise reset the
+  // content / jump the cursor mid-edit.
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || editor.isFocused) return;
     const current = editor.isEmpty ? '' : editor.getHTML();
     if ((value || '') !== current) {
       isSyncingRef.current = true;

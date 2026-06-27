@@ -12,12 +12,13 @@ const FlashcardList = ({ flashcards, updateFlashcard, onDelete }) => {
         flashcards.map((card, index) => (
           <FlashcardItem
             key={card.id || index}
+            id={card.id}
             index={index}
             front={card.front}
             back={card.back}
-            cardType={card.card_type} // Pass the card type
-            frontAudioUrl={card.front_audio_url} // Pass front audio URL
-            backAudioUrl={card.back_audio_url} // Pass back audio URL
+            cardType={card.card_type}
+            frontAudioUrl={card.front_audio_url}
+            backAudioUrl={card.back_audio_url}
             updateFlashcard={updateFlashcard}
             onDelete={onDelete}
           />

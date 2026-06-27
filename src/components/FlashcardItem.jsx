@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useRef, useEffect, useContext, useCallback } from 'react';
 import SimpleRichTextEditor from './SimpleRichTextEditor';
 import AudioPlayer from './AudioPlayer';
 import UserAuthContext from './context/UserAuthContext';
@@ -7,90 +7,63 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { sanitizeHTML } from '../utils/sanitize';
 
-const FlashcardItem = ({ 
-  index, 
-  front, 
-  back, 
-  updateFlashcard, 
-  onDelete, 
-  cardType, 
-  frontAudioUrl, 
+const DEBOUNCE_MS = 400;
+
+function FlashcardItem({
+  id,
+  index,
+  front,
+  back,
+  updateFlashcard,
+  onDelete,
+  cardType,
+  frontAudioUrl,
   backAudioUrl,
-  isStudyMode = false // NEW: Indicates if we're in study mode
-}) => {
+  isStudyMode = false,
+}) {
   const { user } = useContext(UserAuthContext);
-  const [frontContent, setFrontContent] = useState('');
-  const [backContent, setBackContent] = useState('');
-  const [frontAudio, setFrontAudio] = useState(frontAudioUrl || null);
-  const [backAudio, setBackAudio] = useState(backAudioUrl || null);
 
-  // Initialize content when component mounts or props change
-  useEffect(() => {
-    if (typeof front === 'string') {
-      setFrontContent(front);
-    }
-    if (typeof back === 'string') {
-      setBackContent(back);
-    }
-    if (frontAudioUrl) {
-      setFrontAudio(frontAudioUrl);
-    }
-    if (backAudioUrl) {
-      setBackAudio(backAudioUrl);
-    }
-  }, [front, back, frontAudioUrl, backAudioUrl]);
+  // One debounce timer per field — cleared before each new keystroke so we
+  // persist once the user pauses instead of on every change.
+  const frontTimer = useRef(null);
+  const backTimer = useRef(null);
 
-  // Handle content changes with debouncing to avoid too many updates
-  const handleFrontChange = (content) => {
-    setFrontContent(content);
-    // Debounce the update to avoid excessive API calls
-    const timeoutId = setTimeout(() => {
-      updateFlashcard(index, { front: content });
-    }, 500);
-    
-    // Store timeout ID for cleanup
-    handleFrontChange.timeoutId = timeoutId;
+  const debounce = (timerRef, patch) => {
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => updateFlashcard(id, patch), DEBOUNCE_MS);
   };
 
-  const handleBackChange = (content) => {
-    setBackContent(content);
-    // Debounce the update to avoid excessive API calls
-    const timeoutId = setTimeout(() => {
-      updateFlashcard(index, { back: content });
-    }, 500);
-    
-    // Store timeout ID for cleanup
-    handleBackChange.timeoutId = timeoutId;
-  };
+  const handleFrontChange = useCallback(
+    (content) => debounce(frontTimer, { front: content }),
+    [id, updateFlashcard]
+  );
+  const handleBackChange = useCallback(
+    (content) => debounce(backTimer, { back: content }),
+    [id, updateFlashcard]
+  );
 
-  // Handle audio changes from the rich text editor toolbar
-  const handleFrontAudioChange = (audioUrl) => {
-    setFrontAudio(audioUrl);
-    updateFlashcard(index, { front_audio_url: audioUrl });
-  };
+  // Audio attach/remove is a discrete action — persist immediately.
+  const handleFrontAudioChange = useCallback(
+    (url) => updateFlashcard(id, { front_audio_url: url }),
+    [id, updateFlashcard]
+  );
+  const handleBackAudioChange = useCallback(
+    (url) => updateFlashcard(id, { back_audio_url: url }),
+    [id, updateFlashcard]
+  );
 
-  const handleBackAudioChange = (audioUrl) => {
-    setBackAudio(audioUrl);
-    updateFlashcard(index, { back_audio_url: audioUrl });
-  };
+  useEffect(
+    () => () => {
+      clearTimeout(frontTimer.current);
+      clearTimeout(backTimer.current);
+    },
+    []
+  );
 
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (handleFrontChange.timeoutId) {
-        clearTimeout(handleFrontChange.timeoutId);
-      }
-      if (handleBackChange.timeoutId) {
-        clearTimeout(handleBackChange.timeoutId);
-      }
-    };
-  }, []);
+  const isImageOcclusionCard =
+    cardType === 'Image-Occlusion' ||
+    (front && (front.includes('image-occlusion-card') || front.includes('occlusion-')));
 
-  // Check if this is an image occlusion card
-  const isImageOcclusionCard = cardType === 'Image-Occlusion' || 
-    (frontContent && (frontContent.includes('image-occlusion-card') || frontContent.includes('occlusion-')));
-
-  // Render content based on card type
   const renderContent = (content, isBack = false, audioUrl = null) => {
     if (isImageOcclusionCard) {
       return (
@@ -98,10 +71,9 @@ const FlashcardItem = ({
           <div dangerouslySetInnerHTML={{ __html: sanitizeHTML(content) }} />
           <div className="edit-overlay">
             <span className="edit-notice">
-              {isBack ? '🖼️ Back: Answer revealed' : '🖼️ Front: Question view'}
+              {isBack ? 'Back: Answer revealed' : 'Front: Question view'}
             </span>
           </div>
-          {/* Audio in image cards - only if not in study mode */}
           {audioUrl && !isStudyMode && (
             <div className="audio-in-image-card">
               <AudioPlayer audioUrl={audioUrl} compact={true} />
@@ -109,41 +81,34 @@ const FlashcardItem = ({
           )}
         </div>
       );
-    } else {
-      // Regular rich text editor for non-image cards
-      return (
-        <div className="content-with-audio">
-          <div className="editor-container">
-            <SimpleRichTextEditor
-              value={content}
-              onChange={isBack ? handleBackChange : handleFrontChange}
-              onAudioChange={isBack ? handleBackAudioChange : handleFrontAudioChange}
-              initialAudioUrl={audioUrl}
-              user={user}
-              hideAudioPlayer={false} // Always show embedded audio player in edit mode
-            />
-          </div>
-          
-          {/* REMOVED: No duplicate AudioPlayer - SimpleRichTextEditor handles it */}
-        </div>
-      );
     }
+
+    return (
+      <div className="content-with-audio">
+        <div className="editor-container">
+          <SimpleRichTextEditor
+            value={content}
+            onChange={isBack ? handleBackChange : handleFrontChange}
+            onAudioChange={isBack ? handleBackAudioChange : handleFrontAudioChange}
+            initialAudioUrl={audioUrl}
+            user={user}
+            hideAudioPlayer={false}
+          />
+        </div>
+      </div>
+    );
   };
 
   return (
     <div className={`flashcard-item ${isImageOcclusionCard ? 'image-occlusion-item' : ''}`}>
       <div className="flashcard-top-row">
         <div className="index-num">{index + 1}</div>
-        {isImageOcclusionCard && (
-          <div className="card-type-badge">Image Occlusion</div>
-        )}
-        {(frontAudio || backAudio) && !isImageOcclusionCard && !isStudyMode && (
-          <div className="audio-indicator">
-            🎵 Audio
-          </div>
+        {isImageOcclusionCard && <div className="card-type-badge">Image Occlusion</div>}
+        {(frontAudioUrl || backAudioUrl) && !isImageOcclusionCard && !isStudyMode && (
+          <div className="audio-indicator">Audio</div>
         )}
         {!isStudyMode && (
-          <button className="delete-btn" onClick={() => onDelete(index)}>
+          <button className="delete-btn" onClick={() => onDelete(id)} aria-label="Delete card">
             <FontAwesomeIcon icon={faTrash} />
           </button>
         )}
@@ -152,35 +117,34 @@ const FlashcardItem = ({
       <div className="front-back">
         <div className="front">
           <label>Front</label>
-          {renderContent(frontContent, false, frontAudio)}
+          {renderContent(front, false, frontAudioUrl)}
         </div>
 
         <div className="back">
           <label>Back</label>
-          {renderContent(backContent, true, backAudio)}
+          {renderContent(back, true, backAudioUrl)}
         </div>
       </div>
 
       {isImageOcclusionCard && !isStudyMode && (
         <div className="image-occlusion-info">
           <div className="info-item">
-            <span className="info-icon">⚠️</span>
             <span className="info-text">
-              Image Occlusion cards are not editable here. To modify, delete and recreate using the Image Occlusion Editor.
+              Image Occlusion cards are not editable here. To modify, delete and recreate using the
+              Image Occlusion Editor.
             </span>
           </div>
-          {(frontAudio || backAudio) && (
+          {(frontAudioUrl || backAudioUrl) && (
             <div className="info-item">
-              <span className="info-icon">🎵</span>
-              <span className="info-text">
-                This card has audio content.
-              </span>
+              <span className="info-text">This card has audio content.</span>
             </div>
           )}
         </div>
       )}
     </div>
   );
-};
+}
 
-export default FlashcardItem;
+// Only re-render a card when its own data actually changes (the parent passes
+// stable id-based callbacks), so editing one card doesn't re-render the rest.
+export default React.memo(FlashcardItem);

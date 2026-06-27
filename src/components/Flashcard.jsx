@@ -1,6 +1,6 @@
 // src/components/Flashcard.jsx - NO LIMITS VERSION
 import { logger } from '../utils/logger';
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from '../supabase';
 import UserAuthContext from './context/UserAuthContext';
@@ -249,42 +249,31 @@ export default function Flashcard() {
     }
   };
 
-  const updateFlashcard = async (index, updated) => {
-    const cardId = flashcards[index].id;
+  // Identify cards by id (not array index) so debounced edits and deletes
+  // always hit the right row even if the list changed in between.
+  const updateFlashcard = useCallback(async (id, updated) => {
+    if (!id) return;
+    setFlashcards((prev) => prev.map((fc) => (fc.id === id ? { ...fc, ...updated } : fc)));
 
-    const newArray = flashcards.map((fc, i) =>
-      i === index ? { ...fc, ...updated } : fc
-    );
-    setFlashcards(newArray);
+    const { error } = await supabase
+      .from('flashcard_cards')
+      .update(updated)
+      .eq('id', id);
 
-    if (cardId) {
-      const { error } = await supabase
-        .from('flashcard_cards')
-        .update(updated)
-        .eq('id', cardId);
+    if (error) logger.error('Error updating flashcard:', error);
+  }, []);
 
-      if (error) {
-        logger.error("Error updating flashcard");
-      } 
-    }
-  };
+  const handleDelete = useCallback(async (id) => {
+    if (!id) return;
+    setFlashcards((prev) => prev.filter((fc) => fc.id !== id));
 
-  const handleDelete = async (index) => {
-    const cardToDelete = flashcards[index];
-    const updatedFlashcards = flashcards.filter((_, i) => i !== index);
-    setFlashcards(updatedFlashcards);
+    const { error } = await supabase
+      .from('flashcard_cards')
+      .delete()
+      .eq('id', id);
 
-    if (cardToDelete.id) {
-      const { error } = await supabase
-        .from('flashcard_cards')
-        .delete()
-        .eq('id', cardToDelete.id);
-      
-      if (error) {
-        logger.error("Error deleting card");
-      }
-    }
-  };
+    if (error) logger.error('Error deleting card:', error);
+  }, []);
 
   if (loading) {
     return (
